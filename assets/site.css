@@ -67,7 +67,7 @@ h3 { font-size: 21px; letter-spacing: -.028em; line-height: 1.4; }
 .catalog-stats div { display: flex; flex-direction: column; }
 .catalog-stats strong { font: 500 36px/1.2 var(--mono); letter-spacing: -2px; }
 .catalog-stats span { color: var(--muted); font-size: 12px; margin-top: 8px; }
-.catalog-section { padding-top: 28px; }
+.catalog-section { padding-top: 28px; padding-bottom: 56px; }
 .section-top, .filter-row, .results-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .section-index { font: 10px var(--mono); letter-spacing: 1px; color: var(--faint); margin-left: 12px; }
 .search-wrap { display: flex; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; min-width: 270px; padding: 0 16px; gap: 8px; }
@@ -102,10 +102,11 @@ input[type=checkbox] { accent-color: var(--ink); height: 16px; width: 16px; }
 .launch { display: inline-flex; align-items: center; gap: 16px; font-size: 12px; color: var(--bg); background: var(--ink); border-radius: 999px; font-weight: 600; padding: 9px 15px; min-height: 44px; }
 .launch:hover { opacity: .86; }
 .planned-label { font-size: 12px; color: var(--faint); }
-.learning-note { margin: 48px 0 56px; border-top: 1px solid var(--line-soft); padding-top: 32px; }
-.learning-note > p:last-child { margin-top: 18px; color: var(--muted); font-size: 14px; }
-.learning-note b { font: 12px var(--mono); color: var(--ink); margin-right: 8px; }
-.learning-note > p span { margin: 0 18px; color: var(--faint); }
+.intro-guide { margin-top: 22px; color: var(--muted); font-size: 13px; }
+.intro-guide > p { color: var(--ink); font-weight: 600; margin-bottom: 8px; }
+.intro-steps { display: flex; flex-wrap: wrap; gap: 8px 18px; list-style: none; padding: 0; margin: 0; counter-reset: step; }
+.intro-steps li { counter-increment: step; }
+.intro-steps li::before { content: "0" counter(step); font: 11px var(--mono); color: var(--ink); margin-right: 7px; }
 .empty-state { text-align: center; padding: 55px 20px; border: 1px dashed var(--line); border-radius: var(--radius); }
 .empty-state p { margin: 10px 0 18px; color: var(--muted); }
 
@@ -207,7 +208,6 @@ canvas { display: block; width: 100%; }
   .catalog-grid { gap: 14px; }
   .card-body { padding: 18px; }
   .card-visual { height: 140px; }
-  .learning-note > p span { margin: 0 5px; }
   .site-footer { flex-direction: column; }
   .sim-heading { align-items: start; flex-direction: column; gap: 18px; }
   .sim-heading h1 { font-size: 32px; }
@@ -223,7 +223,6 @@ canvas { display: block; width: 100%; }
   .catalog-grid { grid-template-columns: 1fr; }
   .card-visual { height: 160px; }
   .card-body { padding: 22px; }
-  .learning-note > p:last-child { line-height: 2.1; }
   .section-index { font-size: 9px; }
   .parameter { padding-inline: 14px; }
   .parameter label { font-size: 12px; }
