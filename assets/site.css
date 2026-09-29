@@ -157,6 +157,33 @@ canvas { display: block; width: 100%; }
 .model-notes p { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
 .model-notes a { font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
 
+/* Control-loop diagrams keep readable labels instead of shrinking on phones. */
+.control-loop { margin-top: 28px; }
+.loop-scroll-help { display: none; padding: 12px 20px; font-size: 12px; color: var(--muted); }
+.loop-viewport { overflow-x: auto; background: var(--bg-soft); }
+.loop-notes summary { padding: 14px 20px; min-height: 44px; cursor: pointer; font-size: 13px; border-top: 1px solid var(--line-soft); }
+.loop-notes summary:hover { background: var(--bg-soft); }
+.loop-notes summary:focus-visible { outline-offset: -4px; }
+@media (max-width: 1060px) {
+  .loop-scroll-help { display: block; }
+}
+.loop-viewport:focus-visible { outline-offset: -4px; }
+.loop-diagram { display: block; width: 100%; min-width: 960px; height: auto; }
+.loop-diagram text { fill: var(--ink); stroke: none; text-anchor: middle; font: 15px var(--sans); }
+.loop-wires { fill: none; stroke: var(--ink); stroke-width: 1.6; }
+.loop-wires rect, .loop-wires circle { fill: var(--surface); }
+.loop-diagram marker path { fill: var(--ink); }
+.loop-target { stroke-dasharray: 6 4; }
+.loop-details { display: grid; grid-template-columns: 1.2fr 1fr; gap: 22px 32px; padding: 22px 24px; }
+.loop-details h3 { font-size: 14px; margin-bottom: 8px; }
+.loop-details p { color: var(--muted); font-size: 13px; margin-top: 6px; }
+.loop-details .loop-equation { color: var(--ink); font-size: 14px; overflow-wrap: anywhere; }
+.loop-controller { grid-column: 1 / -1; border-top: 1px solid var(--line-soft); padding-top: 18px; }
+@media (max-width: 720px) {
+  .loop-details { grid-template-columns: 1fr; padding: 20px; gap: 20px; }
+  .control-loop .panel-heading { flex-wrap: wrap; }
+}
+
 /* Preserve the compact interactive layout at tablet and phone widths. */
 @media (max-width: 1000px) {
   .catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

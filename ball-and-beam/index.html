@@ -7,5 +7,35 @@
 <div class="metrics"><div><span>시뮬레이션 시간</span><strong><output id="sim-time">0.00</output> <small>s</small></strong></div><div><span>실제 출력</span><strong><output id="sim-output">0.00</output> <small class="unit"></small></strong></div><div><span>오차 · 목표 − 실제</span><strong><output id="sim-error">0.00</output> <small class="unit"></small></strong></div><div><span>제어 입력 u</span><strong><output id="sim-input">0.00</output></strong></div></div>
 <div class="panel graph-panel"><div class="panel-heading"><h2>시간 응답</h2><div class="legend"><span class="target-line">목표</span><span class="actual-line">실제</span></div></div><canvas id="response" role="img" aria-label="최근 15초의 목표값과 실제 출력 비교 그래프">목표값과 실제 출력의 시간 응답 그래프입니다. 현재 실제 값과 오차는 위에 숫자로 표시됩니다.</canvas><p class="canvas-caption">최근 15초 · 가로축: 시간 (s) · 세로축: 출력 <span class="unit"></span> · 자동 범위</p></div></section>
 <aside class="panel controls" aria-labelledby="controls-title"><div class="panel-heading"><h2 id="controls-title">실험 설정</h2><span class="mono">PID CONTROL</span></div><div class="action-buttons"><button id="start-pause" class="primary" type="button" disabled>시작</button><button id="reset" type="button" disabled>초기화</button></div><button id="disturb" class="disturb-button" type="button" disabled>외란 가하기 ↗</button><p class="control-help">초기화하면 시간과 상태가 리셋됩니다.<br>설정한 목표와 이득은 유지됩니다.</p><div id="parameter-controls"></div><div class="experiment-tip"><strong>관찰 포인트</strong><p>Kp를 조금씩 바꾸면 응답 속도와 오버슈트는 어떻게 달라질까요? 같은 조건에서 하나씩 비교해 보세요.</p></div><p id="simulation-message" class="simulation-message" role="status" aria-live="polite">모델을 불러오는 중입니다.</p><noscript>JavaScript를 켜면 실험을 실행할 수 있습니다.</noscript></aside></div>
+<section class="control-loop panel" aria-labelledby="loop-title">
+<div class="panel-heading"><h2 id="loop-title">제어 구조</h2><span class="mono">CLOSED LOOP / 0.005 s</span></div>
+<p class="loop-scroll-help">좌우로 스크롤해 전체 구조를 확인하세요.</p>
+<p id="loop-scroll-help" class="sr-only">키보드로는 그림에 초점을 맞춘 뒤 방향키를 사용하세요.</p>
+<div class="loop-viewport" role="region" aria-label="공과 빔 위치 제어 블록선도" aria-describedby="loop-scroll-help" tabindex="0">
+<svg class="loop-diagram" viewBox="0 0 1020 310" role="img" aria-labelledby="loop-svg-title loop-svg-desc">
+<title id="loop-svg-title">공과 빔 위치 음의 피드백 제어</title>
+<desc id="loop-svg-desc">목표 r에서 출력 y를 빼 오차 e를 만듭니다. 제어기는 오차의 비례·적분 항과 측정 출력 변화율의 음의 미분 항을 합합니다. 입력 제한을 거쳐 공과 빔에 전달하고 실제 출력을 되먹임합니다. 외란 버튼을 누를 때마다 공의 속도에 +0.6 m/s를 순간적으로 더합니다. 지속 부하나 일정 가속도가 아니며, θ에서 빼지 않습니다.</desc>
+<defs><marker id="loop-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z"/></marker></defs>
+<g class="loop-wires">
+<path class="loop-target" d="M35 120H118" marker-end="url(#loop-arrow)"/>
+<circle cx="140" cy="120" r="18"/><text x="140" y="125">Σ</text><text x="115" y="105">+</text><text x="157" y="157">−</text>
+<path d="M162 120H225" marker-end="url(#loop-arrow)"/><path d="M435 120H495" marker-end="url(#loop-arrow)"/><path d="M615 120H728" marker-end="url(#loop-arrow)"/>
+<path d="M895 120H990" marker-end="url(#loop-arrow)"/>
+<path data-signal="feedback" d="M950 120V280H140V141" marker-end="url(#loop-arrow)"/>
+<path data-signal="derivative" d="M950 235H335V159" marker-end="url(#loop-arrow)"/>
+<path data-signal="disturbance" d="M810 57V87" marker-end="url(#loop-arrow)"/><text x="810" y="40">x′ ← x′ + 0.6 m/s</text>
+<rect x="230" y="88" width="205" height="70" rx="7"/><rect x="500" y="88" width="115" height="70" rx="7"/><rect x="733" y="88" width="162" height="70" rx="7"/>
+</g>
+<g class="loop-labels">
+<text x="72" y="82">목표 r · m</text><text x="194" y="103">e</text><text x="332" y="114">PID 제어기</text><text x="332" y="140">Kp e + I − Kd dy/dt</text><text x="465" y="102">q</text>
+<text x="557" y="114">입력 제한</text><text x="557" y="140">±0.25 rad</text><text x="643" y="151">θ · rad</text><text x="814" y="117">공과 빔</text><text x="814" y="142">플랜트</text><text x="955" y="83">y = x · m</text>
+<text x="614" y="220">측정 변화율 dy/dt → 미분 항 (−Kd)</text><text x="565" y="270">출력 y → 음의 피드백 · e = r − y</text>
+</g></svg></div>
+<details class="loop-notes"><summary>모델·제어식</summary>
+<div class="loop-details">
+<div><h3>신호와 플랜트</h3><p class="loop-equation">x″ = (5g/7)sin(θ) − 0.15x′</p><p>위치 y = x를 되먹임하고, 선속도 dy/dt = x′를 미분 항에 사용합니다.</p><p>L = 0.25 rad. 제어 입력 u는 빔 각도 θ입니다. g = 9.81 m/s²이며 |x| ≥ 1 m에서 실험이 정지합니다.</p></div>
+<div><h3>외란이 들어오는 곳</h3><p>외란 버튼을 누를 때마다 공의 속도에 +0.6 m/s를 순간적으로 더합니다. 지속 부하나 일정 가속도가 아니며, θ에서 빼지 않습니다.</p></div>
+<div class="loop-controller"><h3>제어기와 입력 제한</h3><p class="loop-equation">e = r − y · q = Kp e + I − Kd dy/dt · u = clip(q, −L, L)</p><p>미분은 오차가 아닌 측정 출력에 적용합니다. I는 적분 항의 누적 출력입니다. 매 0.005 s마다 ΔI = Ki e Δt를 계산하고, 후보 입력 q* = Kp e − Kd dy/dt + I + ΔI가 제한 안에 있거나 q* ΔI &lt; 0이면 I에 ΔI를 더합니다. 그 외에는 적분을 보류합니다 (조건부 적분 · anti-windup). Ki = 0이면 누적 I를 0으로 지웁니다.</p></div>
+</div></details></section>
 <section class="model-notes panel"><h2>모델과 실험 범위</h2><p id="model-description"></p><p id="model-limits"></p><p>고정 적분 간격 0.005 s · 화면 갱신과 독립적으로 계산합니다. 탭을 숨기면 자동으로 일시정지하며, 다시 시작 버튼을 눌러야 재개됩니다.</p><a href="https://github.com/MathWorks-Teaching-Resources/Virtual-Controls-Laboratory" target="_blank" rel="noopener noreferrer">관련 MATLAB 프로젝트 · Virtual Controls Laboratory ↗</a></section>
 </main><footer class="site-footer"><span><strong>Control Simulators</strong></span><a href="../">실험 목록으로 돌아가기 ↑</a></footer></body></html>
