@@ -99,7 +99,7 @@ input[type=checkbox] { accent-color: var(--ink); height: 16px; width: 16px; }
 .card-footer { border-top: 1px solid var(--line-soft); padding-top: 14px; margin-top: auto; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; }
 .source-link { font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
 .source-link:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
-.launch { display: inline-flex; align-items: center; gap: 16px; font-size: 12px; color: var(--bg); background: var(--ink); border-radius: 999px; font-weight: 600; padding: 9px 15px; min-height: 44px; }
+.launch { display: inline-flex; align-items: center; gap: 12px; font-size: 12px; line-height: 1.5; color: var(--bg); background: var(--ink); border-radius: 999px; font-weight: 600; padding: 6px 13px; }
 .launch:hover { opacity: .86; }
 .planned-label { font-size: 12px; color: var(--faint); }
 .intro-guide { margin-top: 22px; color: var(--muted); font-size: 13px; }
