@@ -23,7 +23,7 @@ const entries = [
   ['aircraft-pitch','항공기 피치 제어','Aircraft pitch','항공','엘리베이터 입력으로 항공기 피치각을 조절하는 실험입니다.',['목표 피치각','제어 이득'],'https://www.mathworks.com/matlabcentral/fileexchange/40798-aircraft-pitch-control','MATLAB File Exchange']
 ];
 const research = (id, name, english, sim, description, features) => ({id,name,english,category:'로보틱스',description,features,sourceName:'연구 시뮬레이션',status:'ready',external:true,href:`https://icarlaboratory.github.io/research.html?sim=${sim}&lang=ko#interactive`,source:`https://icarlaboratory.github.io/research.html?sim=${sim}&lang=ko#interactive`});
-export const catalog = entries.map(([id,name,english,category,description,features,source,sourceName], index) => ({id,name,english,category,description,features,source,sourceName,status:index < 3 ? 'ready' : 'planned',external:false,href:index < 3 ? `${id}/` : null})).concat([
+export const catalog = entries.map(([id,name,english,category,description,features,source,sourceName], index) => ({id,name,english,category,description,features,source,sourceName,status:index < 4 ? 'ready' : 'planned',external:false,href:index < 4 ? `${id}/` : null})).concat([
   research('research-tracking','로봇 궤적 추종','Robot trajectory tracking','track','제어 이득을 바꾸며 로봇의 목표 궤적과 추종 오차를 비교합니다.',['목표 궤적','제어 이득']),
   research('research-contact','로봇 접촉 제어','Robot contact control','contact','강성과 감쇠를 바꾸며 접촉 힘과 움직임을 관찰합니다.',['가상 강성','감쇠 계수','접촉 힘'])
 ]).sort((a,b) => Number(b.status==='ready') - Number(a.status==='ready'));

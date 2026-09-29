@@ -8,7 +8,7 @@ test('schematic surfaces use neutral paper while signal colors remain distinct',
   await expect(page.locator('[data-id="cruise-control"] svg')).toHaveAttribute('stroke', '#0a0a0a');
 });
 
-for (const path of ['', 'cruise-control/', 'dc-motor/', 'ball-and-beam/']) {
+for (const path of ['', 'cruise-control/', 'dc-motor/', 'ball-and-beam/', 'inverted-pendulum/']) {
   test(`${path || 'catalog'} shares the homepage visual language`, async ({ page }) => {
     await page.goto(root + path);
     await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(255, 255, 255)');

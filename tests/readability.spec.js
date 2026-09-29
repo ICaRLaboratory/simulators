@@ -52,7 +52,7 @@ test('language switch has compact inverted states and keyboard focus', async ({ 
 for (const width of [390, 320]) {
   test(`readable workspace remains contained at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    for (const route of ['', 'cruise-control/', 'dc-motor/', 'ball-and-beam/']) {
+    for (const route of ['', 'cruise-control/', 'dc-motor/', 'ball-and-beam/', 'inverted-pendulum/']) {
       await page.goto(root + route);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       if (route) {

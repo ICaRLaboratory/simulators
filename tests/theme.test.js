@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const pages = ['index.html', 'cruise-control/index.html', 'dc-motor/index.html', 'ball-and-beam/index.html'];
+const pages = ['index.html', 'cruise-control/index.html', 'dc-motor/index.html', 'ball-and-beam/index.html', 'inverted-pendulum/index.html'];
 test('footers omit the browser/storage filler without removing neutral branding', async () => {
   for (const path of pages) {
     const html = await readFile(new URL('../' + path, import.meta.url), 'utf8');

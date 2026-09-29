@@ -1,0 +1,12 @@
+.angle-panel { margin-top: 18px; }
+#angle-response { height: 205px; }
+.loop-details .loop-equation { overflow-wrap: anywhere; }
+.controls .panel-heading { flex-wrap: wrap; }
+.pendulum-parameter-value { white-space: nowrap; }
+@media (max-width: 600px) {
+  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .panel-heading { flex-wrap: wrap; }
+  .loop-details { display: block; }
+  .loop-details > div + div { margin-top: 20px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
