@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 const root = process.env.SIM_BASE || 'http://127.0.0.1:8765/simulators/';
-test('catalog offers exactly three real experiments and searchable source entries', async ({page}) => {
+test('catalog offers three local and two research experiments and searchable source entries', async ({page}) => {
  const errors=[]; page.on('pageerror',e=>errors.push(e.message));
  await page.goto(root);
- await expect(page.locator('.sim-card')).toHaveCount(15);
- await expect(page.locator('a[data-launch]')).toHaveCount(3);
+ await expect(page.locator('.sim-card')).toHaveCount(17);
+ await expect(page.locator('a[data-launch]')).toHaveCount(5);
  await page.locator('#search').fill('크루즈');
  await expect(page.locator('.sim-card:visible')).toHaveCount(1);
  await expect(page.locator('a[data-launch]:visible')).toHaveCount(1);
@@ -45,10 +45,10 @@ test('mobile catalog and experiments do not overflow viewport',async({page})=>{
 test('category and ready-only filters compose',async({page})=>{
  await page.goto(root);
  await page.locator('#ready-only').check();
- await expect(page.locator('.sim-card')).toHaveCount(3);
+ await expect(page.locator('.sim-card')).toHaveCount(5);
  await page.locator('[data-category="균형·진자"]').click();
  await expect(page.locator('.sim-card')).toHaveCount(1);
- await expect(page.locator('a[data-launch]')).toHaveAttribute('href','ball-and-beam/');
+ await expect(page.locator('a[data-launch]')).toHaveAttribute('href','ball-and-beam/?lang=ko');
  await page.locator('#ready-only').uncheck();
  await expect(page.locator('.sim-card')).toHaveCount(4);
 });

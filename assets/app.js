@@ -1,5 +1,7 @@
 import { catalog, filterCatalog } from './catalog.js';
 import { motionDistance } from './motion.js';
+import {setupLanguage, translateDOM, t, getLanguage, localizedHref} from './i18n.js';
+setupLanguage();
 
 const $ = selector => document.querySelector(selector);
 const TEAL = '#087f74', ORANGE = '#c56b31', INK = '#0a0a0a', MUTED = '#666670';
@@ -36,11 +38,13 @@ function setupCatalog() {
   $('#category-filters').innerHTML = ['',...categories].map(name => `<button type="button" data-category="${name}" aria-pressed="${name === ''}">${name || '전체'}<span>${name ? catalog.filter(item => item.category === name).length : catalog.length}</span></button>`).join('');
   function render() {
     const filtered = filterCatalog({query:$('#search').value,category,ready:$('#ready-only').checked});
-    $('#catalog-grid').innerHTML = filtered.map(item => `<article class="sim-card" data-id="${item.id}"><div class="card-visual"><span class="card-number">EXP. ${String(catalog.indexOf(item) + 1).padStart(2,'0')}</span><span class="card-status ${item.status}">${item.status === 'ready' ? '실행 가능' : '준비 중'}</span>${schematic(item)}</div><div class="card-body"><p class="card-category">${item.category}</p><h3>${item.name}</h3><p class="english-name">${item.english}</p><p class="card-description">${item.description}</p><div class="features" aria-label="${item.status === 'ready' ? '조절 가능한 항목' : '구현 예정 항목'}">${item.features.map(feature => `<span>${feature}</span>`).join('')}</div><div class="card-footer"><a class="source-link" href="${item.source}" target="_blank" rel="noopener noreferrer" aria-label="${item.name} 관련 MATLAB 프로젝트 · 새 탭">관련 프로젝트 · ${item.sourceName} ↗</a>${item.href ? `<a class="launch" data-launch href="${item.href}">실험 시작 <span aria-hidden="true">→</span></a>` : '<span class="planned-label">브라우저 실험 준비 중</span>'}</div></div></article>`).join('');
-    $('#result-count').innerHTML = `<strong>${filtered.length}</strong>개 실험 <span>/ 전체 ${catalog.length}개</span>`;
+    $('#catalog-grid').innerHTML = filtered.map(item => `<article class="sim-card" data-id="${item.id}"><div class="card-visual"><span class="card-number">EXP. ${String(catalog.indexOf(item) + 1).padStart(2,'0')}</span><span class="card-status ${item.status}">${item.status === 'ready' ? '실행 가능' : '준비 중'}</span>${schematic(item)}</div><div class="card-body"><p class="card-category">${item.category}</p><h3>${item.name}</h3><p class="english-name">${item.english}</p><p class="card-description">${item.description}</p><div class="features" aria-label="${item.status === 'ready' ? '조절 가능한 항목' : '구현 예정 항목'}">${item.features.map(feature => `<span>${feature}</span>`).join('')}</div><div class="card-footer"><a class="source-link" href="${item.external ? localizedHref(item.source) : item.source}" target="_blank" rel="noopener noreferrer" aria-label="${item.name} ${item.external ? '관련 연구 시뮬레이션' : '관련 MATLAB 프로젝트'} · 새 탭">관련 프로젝트 · ${item.sourceName} ↗</a>${item.href ? `<a class="launch" data-launch href="${localizedHref(item.href)}" ${item.external ? `aria-label="${item.name} · 연구 실험 열기 · 외부 사이트"` : ''}>${item.external ? '연구 실험 열기' : '실험 시작'} <span aria-hidden="true">${item.external ? '↗' : '→'}</span></a>` : '<span class="planned-label">브라우저 실험 준비 중</span>'}</div></div></article>`).join('');
+    $('#result-count').innerHTML = getLanguage()==='en' ? `<strong>${filtered.length}</strong> experiments <span>/ ${catalog.length} total</span>` : `<strong>${filtered.length}</strong>개 실험 <span>/ 전체 ${catalog.length}개</span>`;
     $('#empty-state').hidden = filtered.length !== 0;
     document.querySelectorAll('[data-category]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.category === category)));
+    translateDOM();
   }
+  window.addEventListener('icar:lang',render);
   $('#search').addEventListener('input',render);
   $('#ready-only').addEventListener('change',render);
   $('#category-filters').addEventListener('click',event => {
@@ -69,7 +73,7 @@ function apparatus(canvas, sim, sceneDistance) {
   c.lineCap = 'round'; c.lineJoin = 'round'; c.lineWidth = 2; c.strokeStyle = INK; c.fillStyle = '#e8e8e5';
   const line = (x1,y1,x2,y2,color=INK) => { c.strokeStyle=color;c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke(); };
   const circle = (x,y,r,fill) => {c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fillStyle=fill;c.fill();c.strokeStyle=INK;c.stroke();};
-  const text = (label,x,y,color=MUTED) => {c.font='12px "JetBrains Mono", "Pretendard Variable", monospace';c.fillStyle=color;c.textAlign='center';c.fillText(label,x,y);};
+  const text = (label,x,y,color=MUTED) => {c.font='12px "JetBrains Mono", "Pretendard Variable", monospace';c.fillStyle=color;c.textAlign='center';c.fillText(t(label),x,y);};
   if (sim.kind === 'cruise-control') {
     c.strokeStyle='#bdbdbd'; line(-240,53,240,53,'#bdbdbd');
     const offset = (sceneDistance * 3) % 55;
@@ -115,7 +119,7 @@ function drawGraph(canvas, history, sim) {
   const margin=Math.max((high-low)*.17,.1); low-=margin;high+=margin;
   const x=t=>pad.left+(t-leftTime)/(rightTime-leftTime)*(w-pad.left-pad.right);
   const y=value=>h-pad.bottom-(value-low)/(high-low)*(h-pad.top-pad.bottom);
-  c.font='10px "JetBrains Mono", monospace';c.lineWidth=1;
+  c.font='12px "JetBrains Mono", monospace';c.lineWidth=1;
   for(let i=0;i<=4;i++) {
     const value=low+(high-low)*i/4,py=y(value);
     c.strokeStyle='#ededeb';c.beginPath();c.moveTo(pad.left,py);c.lineTo(w-pad.right,py);c.stroke();
@@ -163,12 +167,12 @@ async function setupSimulation(kind) {
     $('#run-status').textContent=sim.state.failed?'실험 정지 · STOPPED':running?'실행 중 · RUNNING':'일시정지 · PAUSED';
     if(reason) message.textContent=reason;
     if(running) raf=requestAnimationFrame(frame);
-    render();
+    render();translateDOM();
   }
   function fail(error) {
     sim.state.failed=true;setRunning(false);
     message.classList.add('error');message.textContent=`실험이 정지되었습니다. ${error} 초기화 후 이득을 낮추어 다시 실행하세요.`;
-    $('#start-pause').disabled=true;$('#disturb').disabled=true;
+    $('#start-pause').disabled=true;$('#disturb').disabled=true;translateDOM();
   }
   function frame(timestamp) {
     if(!running)return;
@@ -207,8 +211,9 @@ async function setupSimulation(kind) {
     sim.disturb();
     if(kind!=='ball-and-beam')$('#disturb').textContent=sim.state.disturbance?'외란 제거하기 ↗':'외란 가하기 ↗';
     message.textContent=kind==='ball-and-beam'?'공에 외란을 가했습니다. 실행 후 회복을 관찰하세요.':sim.state.disturbance?'부하 외란을 적용했습니다. 회복 응답을 관찰하세요.':'부하 외란을 제거했습니다.';
-    render();
+    render();translateDOM();
   });
+  window.addEventListener('icar:lang',render);
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&running)setRunning(false,'탭이 숨겨져 자동 일시정지했습니다. 시작을 누르면 재개됩니다.');});
   new ResizeObserver(render).observe($('.experiment'));
   setRunning(false,'준비되었습니다. 시작을 눌러 실험을 실행하세요.');
@@ -217,5 +222,5 @@ async function setupSimulation(kind) {
 if(document.body.dataset.page==='catalog')setupCatalog();
 if(document.body.dataset.simulator)setupSimulation(document.body.dataset.simulator).catch(error=>{
   $('#simulation-message').textContent='모델을 불러오지 못했습니다. 페이지를 새로 고침해 주세요.';
-  $('#simulation-message').classList.add('error');console.error(error);
+  $('#simulation-message').classList.add('error');translateDOM();console.error(error);
 });
