@@ -2,19 +2,19 @@ import { catalog, filterCatalog } from './catalog.js';
 import { motionDistance } from './motion.js';
 
 const $ = selector => document.querySelector(selector);
-const TEAL = '#087f74', ORANGE = '#c56b31', INK = '#31473c', MUTED = '#718078';
+const TEAL = '#087f74', ORANGE = '#c56b31', INK = '#0a0a0a', MUTED = '#666670';
 
 function schematic(item) {
-  const car = '<path d="M90 88h140v-22l-28-7-17-22h-51l-20 24-24 5z" fill="#e1eee6"/><path d="M136 43h45l12 18h-73z"/><circle cx="122" cy="88" r="13" fill="#f0f4f0"/><circle cx="204" cy="88" r="13" fill="#f0f4f0"/><path d="M62 105h207M242 60h30m-9-7 9 7-9 7"/>';
-  const motor = '<rect x="93" y="47" width="92" height="48" rx="5" fill="#e1eee6"/><path d="M108 47V37h61v10m-67 48-8 13h88l-8-13m11-36h21"/><circle cx="221" cy="71" r="27" fill="#f0f4f0"/><path d="M221 71l19-19" stroke="#c56b31"/><circle cx="221" cy="71" r="4"/><path d="M119 57v27m13-27v27m13-27v27"/>';
-  const beam = '<path d="m72 80 182-17" stroke-width="5"/><path d="m163 74-20 32h40z" fill="#dcebe2"/><circle cx="135" cy="63" r="12" fill="#087f74"/><path d="M101 112h123M206 49v36" stroke="#c56b31" stroke-dasharray="4 4"/>';
-  const pendulum = '<path d="M68 109h193"/><rect x="132" y="86" width="62" height="18" rx="3" fill="#e1eee6"/><path d="m163 86-23-51" stroke-width="4"/><circle cx="140" cy="35" r="9" fill="#087f74"/><circle cx="143" cy="108" r="5"/><circle cx="184" cy="108" r="5"/><path d="M164 25v52" stroke="#c56b31" stroke-dasharray="4 4"/>';
-  const robot = '<path d="M113 110h92m-78 0v-17h32v17m-16-18 24-38 39 5 23-21" stroke-width="9"/><circle cx="143" cy="92" r="8" fill="#e1eee6"/><circle cx="167" cy="54" r="8" fill="#e1eee6"/><circle cx="206" cy="59" r="7" fill="#e1eee6"/><path d="m229 38 12 6 10-12m-22 6-5-11 11-11" stroke="#c56b31"/>';
-  const tank = '<path d="M127 39v64q32 18 64 0V39m-64 0q32-14 64 0m-64 22h64M158 22v67m-14-9 28 13m-28 0 28-13M99 48h28m64 46h28"/><path d="M136 99q23 9 46 0V66h-46z" fill="#dcebe2" stroke="none"/><path d="M158 65v24"/>';
-  const drone = '<path d="m131 48 57 48m-57 0 57-48" stroke-width="6"/><rect x="145" y="59" width="30" height="25" rx="6" fill="#e1eee6"/><ellipse cx="126" cy="43" rx="24" ry="7"/><ellipse cx="192" cy="43" rx="24" ry="7"/><ellipse cx="126" cy="101" rx="24" ry="7"/><ellipse cx="192" cy="101" rx="24" ry="7"/>';
-  const plate = '<path d="m97 65 89-31 50 42-88 32z" fill="#e1eee6"/><path d="m148 108 1 13 33-2 9-27"/><circle cx="166" cy="62" r="10" fill="#087f74"/><path d="m186 57 11 13m-14-3 18-8" stroke="#c56b31"/>';
-  const suspension = '<path d="M107 34h105v19H107z" fill="#e1eee6"/><path d="M126 53v7l-8 7 16 9-16 9 16 9-8 6v10m63-57v12m-8 0h16v26h-16zm8 26v19M101 110h114M158 110v8"/><circle cx="158" cy="119" r="9"/>';
-  const aircraft = '<path d="m82 76 160-14-1 10-71 16-47 24-16-2 20-22-44-2z" fill="#e1eee6"/><path d="m113 77-17-28 12-2 36 27m36-8-24-33 13-2 42 33M76 101h177"/><path d="M210 40q28 7 30 22" stroke="#c56b31"/>';
+  const car = '<path d="M90 88h140v-22l-28-7-17-22h-51l-20 24-24 5z" fill="#e8e8e5"/><path d="M136 43h45l12 18h-73z"/><circle cx="122" cy="88" r="13" fill="#f5f5f3"/><circle cx="204" cy="88" r="13" fill="#f5f5f3"/><path d="M62 105h207M242 60h30m-9-7 9 7-9 7"/>';
+  const motor = '<rect x="93" y="47" width="92" height="48" rx="5" fill="#e8e8e5"/><path d="M108 47V37h61v10m-67 48-8 13h88l-8-13m11-36h21"/><circle cx="221" cy="71" r="27" fill="#f5f5f3"/><path d="M221 71l19-19" stroke="#c56b31"/><circle cx="221" cy="71" r="4"/><path d="M119 57v27m13-27v27m13-27v27"/>';
+  const beam = '<path d="m72 80 182-17" stroke-width="5"/><path d="m163 74-20 32h40z" fill="#e8e8e5"/><circle cx="135" cy="63" r="12" fill="#087f74"/><path d="M101 112h123M206 49v36" stroke="#c56b31" stroke-dasharray="4 4"/>';
+  const pendulum = '<path d="M68 109h193"/><rect x="132" y="86" width="62" height="18" rx="3" fill="#e8e8e5"/><path d="m163 86-23-51" stroke-width="4"/><circle cx="140" cy="35" r="9" fill="#087f74"/><circle cx="143" cy="108" r="5"/><circle cx="184" cy="108" r="5"/><path d="M164 25v52" stroke="#c56b31" stroke-dasharray="4 4"/>';
+  const robot = '<path d="M113 110h92m-78 0v-17h32v17m-16-18 24-38 39 5 23-21" stroke-width="9"/><circle cx="143" cy="92" r="8" fill="#e8e8e5"/><circle cx="167" cy="54" r="8" fill="#e8e8e5"/><circle cx="206" cy="59" r="7" fill="#e8e8e5"/><path d="m229 38 12 6 10-12m-22 6-5-11 11-11" stroke="#c56b31"/>';
+  const tank = '<path d="M127 39v64q32 18 64 0V39m-64 0q32-14 64 0m-64 22h64M158 22v67m-14-9 28 13m-28 0 28-13M99 48h28m64 46h28"/><path d="M136 99q23 9 46 0V66h-46z" fill="#e8e8e5" stroke="none"/><path d="M158 65v24"/>';
+  const drone = '<path d="m131 48 57 48m-57 0 57-48" stroke-width="6"/><rect x="145" y="59" width="30" height="25" rx="6" fill="#e8e8e5"/><ellipse cx="126" cy="43" rx="24" ry="7"/><ellipse cx="192" cy="43" rx="24" ry="7"/><ellipse cx="126" cy="101" rx="24" ry="7"/><ellipse cx="192" cy="101" rx="24" ry="7"/>';
+  const plate = '<path d="m97 65 89-31 50 42-88 32z" fill="#e8e8e5"/><path d="m148 108 1 13 33-2 9-27"/><circle cx="166" cy="62" r="10" fill="#087f74"/><path d="m186 57 11 13m-14-3 18-8" stroke="#c56b31"/>';
+  const suspension = '<path d="M107 34h105v19H107z" fill="#e8e8e5"/><path d="M126 53v7l-8 7 16 9-16 9 16 9-8 6v10m63-57v12m-8 0h16v26h-16zm8 26v19M101 110h114M158 110v8"/><circle cx="158" cy="119" r="9"/>';
+  const aircraft = '<path d="m82 76 160-14-1 10-71 16-47 24-16-2 20-22-44-2z" fill="#e8e8e5"/><path d="m113 77-17-28 12-2 36 27m36-8-24-33 13-2 42 33M76 101h177"/><path d="M210 40q28 7 30 22" stroke="#c56b31"/>';
   let drawing = robot;
   if (['cruise-control','parking','path-tracking'].includes(item.id)) drawing = car;
   if (item.id === 'dc-motor') drawing = motor;
@@ -66,33 +66,33 @@ function canvasContext(canvas) {
 function apparatus(canvas, sim, sceneDistance) {
   const {ctx:c,width:w,height:h} = canvasContext(canvas);
   c.save(); c.translate(w / 2,h / 2); c.scale(Math.min(w / 570,1),Math.min(w / 570,1));
-  c.lineCap = 'round'; c.lineJoin = 'round'; c.lineWidth = 2; c.strokeStyle = INK; c.fillStyle = '#e1eee6';
+  c.lineCap = 'round'; c.lineJoin = 'round'; c.lineWidth = 2; c.strokeStyle = INK; c.fillStyle = '#e8e8e5';
   const line = (x1,y1,x2,y2,color=INK) => { c.strokeStyle=color;c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke(); };
   const circle = (x,y,r,fill) => {c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fillStyle=fill;c.fill();c.strokeStyle=INK;c.stroke();};
-  const text = (label,x,y,color=MUTED) => {c.font='12px ui-monospace,monospace';c.fillStyle=color;c.textAlign='center';c.fillText(label,x,y);};
+  const text = (label,x,y,color=MUTED) => {c.font='12px "JetBrains Mono", "Pretendard Variable", monospace';c.fillStyle=color;c.textAlign='center';c.fillText(label,x,y);};
   if (sim.kind === 'cruise-control') {
-    c.strokeStyle='#bac8bf'; line(-240,53,240,53,'#bac8bf');
+    c.strokeStyle='#bdbdbd'; line(-240,53,240,53,'#bdbdbd');
     const offset = (sceneDistance * 3) % 55;
-    for(let x=-260;x<270;x+=55) line(x-offset,69,x+25-offset,69,'#cbd6cc');
-    c.beginPath();c.moveTo(-103,24);c.lineTo(-103,-9);c.lineTo(-68,-19);c.lineTo(-39,-51);c.lineTo(42,-51);c.lineTo(74,-20);c.lineTo(106,-9);c.lineTo(106,24);c.closePath();c.fillStyle='#e1eee6';c.fill();c.strokeStyle=INK;c.stroke();
+    for(let x=-260;x<270;x+=55) line(x-offset,69,x+25-offset,69,'#d6d6d3');
+    c.beginPath();c.moveTo(-103,24);c.lineTo(-103,-9);c.lineTo(-68,-19);c.lineTo(-39,-51);c.lineTo(42,-51);c.lineTo(74,-20);c.lineTo(106,-9);c.lineTo(106,24);c.closePath();c.fillStyle='#e8e8e5';c.fill();c.strokeStyle=INK;c.stroke();
     line(-58,-20,60,-20);line(-26,-44,-42,-24);line(7,-45,7,-23);
-    circle(-63,28,23,'#f5f7f2');circle(65,28,23,'#f5f7f2');
+    circle(-63,28,23,'#f5f5f3');circle(65,28,23,'#f5f5f3');
     for (const x of [-63,65]) { const theta=sceneDistance/2;line(x,28,x+15*Math.cos(theta),28+15*Math.sin(theta),TEAL); }
     line(135,-12,206,-12,TEAL);line(197,-19,206,-12,TEAL);line(197,-5,206,-12,TEAL);
     text(`v = ${sim.state.y.toFixed(2)} m/s`,0,-78,TEAL);
     text(`목표 ${sim.params.target.toFixed(1)} m/s`,0,102,ORANGE);
     if (sim.state.disturbance) text('← 부하 외란',-171,-39,ORANGE);
   } else if (sim.kind === 'dc-motor') {
-    c.fillStyle='#e1eee6';c.fillRect(-188,-47,109,94);c.strokeStyle=INK;c.strokeRect(-188,-47,109,94);
-    for(let x=-170;x<-90;x+=18) line(x,-31,x,31,'#9aafa1');
-    line(-79,0,-8,0);circle(76,0,65,'#edf2eb');
+    c.fillStyle='#e8e8e5';c.fillRect(-188,-47,109,94);c.strokeStyle=INK;c.strokeRect(-188,-47,109,94);
+    for(let x=-170;x<-90;x+=18) line(x,-31,x,31,'#a7a7ae');
+    line(-79,0,-8,0);circle(76,0,65,'#f5f5f3');
     c.setLineDash([5,5]); line(76,0,76+60*Math.cos(-sim.params.target),60*Math.sin(-sim.params.target),ORANGE);c.setLineDash([]);
     line(76,0,76+57*Math.cos(-sim.state.y),57*Math.sin(-sim.state.y),TEAL);circle(76,0,7,TEAL);
     text('DC MOTOR',-133,77);text(`θ = ${sim.state.y.toFixed(2)} rad`,76,100,TEAL);
     text('0 rad →',182,5);if(sim.state.disturbance)text('부하 외란 적용',-130,-69,ORANGE);
   } else {
-    c.beginPath();c.moveTo(0,18);c.lineTo(-28,70);c.lineTo(28,70);c.closePath();c.fillStyle='#dfeadf';c.fill();c.strokeStyle=INK;c.stroke();
-    line(-75,77,75,77,'#a8b9ac');
+    c.beginPath();c.moveTo(0,18);c.lineTo(-28,70);c.lineTo(28,70);c.closePath();c.fillStyle='#e8e8e5';c.fill();c.strokeStyle=INK;c.stroke();
+    line(-75,77,75,77,'#a7a7ae');
     c.save();c.translate(0,15);c.rotate(sim.state.u);
     c.lineWidth=7;line(-218,0,218,0);c.lineWidth=2;
     const target = sim.params.target * 210;
@@ -115,10 +115,10 @@ function drawGraph(canvas, history, sim) {
   const margin=Math.max((high-low)*.17,.1); low-=margin;high+=margin;
   const x=t=>pad.left+(t-leftTime)/(rightTime-leftTime)*(w-pad.left-pad.right);
   const y=value=>h-pad.bottom-(value-low)/(high-low)*(h-pad.top-pad.bottom);
-  c.font='10px ui-monospace,monospace';c.lineWidth=1;
+  c.font='10px "JetBrains Mono", monospace';c.lineWidth=1;
   for(let i=0;i<=4;i++) {
     const value=low+(high-low)*i/4,py=y(value);
-    c.strokeStyle='#e9eee6';c.beginPath();c.moveTo(pad.left,py);c.lineTo(w-pad.right,py);c.stroke();
+    c.strokeStyle='#ededeb';c.beginPath();c.moveTo(pad.left,py);c.lineTo(w-pad.right,py);c.stroke();
     c.fillStyle=MUTED;c.textAlign='right';c.fillText(value.toFixed(Math.abs(high-low)<3?2:1),pad.left-8,py+3);
     const time=leftTime+(rightTime-leftTime)*i/4;
     c.textAlign='center';c.fillText(time.toFixed(1),x(time),h-7);
