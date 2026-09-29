@@ -1,4 +1,4 @@
-# ICaR Control Simulators
+# Control Simulators
 
 설치와 로그인 없이 브라우저에서 제어를 체험하는 교육용 시뮬레이터 모음입니다.
 

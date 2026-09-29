@@ -14,7 +14,7 @@ test('catalog search combines category, ready and case-insensitive text', async 
 test('pages expose keyboard accessible simulation and catalog controls', async () => {
   const home = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   assert.match(home, /id="search"/);
-  assert.match(home, /research\.html/);
+  assert.match(home, /aria-label="Control Simulators 홈"/);
   for (const kind of ['cruise-control','dc-motor','ball-and-beam']) {
     const html = await readFile(new URL(`../${kind}/index.html`, import.meta.url), 'utf8');
     assert.match(html, /lang="ko"/);
