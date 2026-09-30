@@ -33,18 +33,33 @@ export class Simulation {
  observe(){const s=this.state,[tiltX,tiltY]=controls(s,this.params);return {t:s.t,x:s.x,y:s.y,vx:s.vx,vy:s.vy,tiltX,tiltY,targetX:this.params.targetX,targetY:this.params.targetY};}
 }
 export function draw(ctx,s,p,w,h,language){
- const en=language==='en',size=Math.min(w-48,h-110),left=(w-size)/2,top=48,scale=size/.6;
- const point=(x,y)=>[left+size/2+x*scale,top+size/2-y*scale];
- ctx.fillStyle='#f5f5f3';ctx.fillRect(left,top,size,size);ctx.strokeStyle='#444';ctx.lineWidth=2;ctx.strokeRect(left,top,size,size);
- ctx.strokeStyle='#bbb';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(...point(-.3,0));ctx.lineTo(...point(.3,0));ctx.moveTo(...point(0,-.3));ctx.lineTo(...point(0,.3));ctx.stroke();
- ctx.strokeStyle='#c56b31';ctx.setLineDash([4,3]);ctx.beginPath();ctx.arc(...point(p.targetX,p.targetY),10,0,2*Math.PI);ctx.stroke();ctx.setLineDash([]);
- ctx.fillStyle='#087f74';ctx.beginPath();ctx.arc(...point(s.x,s.y),8,0,2*Math.PI);ctx.fill();
- const [tx,ty]=controls(s,p),origin=point(0,0),end=[origin[0]+tx*size,origin[1]-ty*size];
- ctx.strokeStyle='#6d5cae';ctx.beginPath();ctx.moveTo(...origin);ctx.lineTo(...end);ctx.stroke();ctx.fillStyle='#6d5cae';ctx.beginPath();ctx.arc(...end,3,0,2*Math.PI);ctx.fill();
- ctx.font='12px "Pretendard Variable", sans-serif';ctx.fillStyle='#0a0a0a';ctx.fillText(en?'Top view · x → / y ↑ · ±0.30 m':'윗면 · x → / y ↑ · ±0.30 m',12,20);
- ctx.fillText(`βx=${tx.toFixed(3)} · βy=${ty.toFixed(3)} rad`,12,38);
- ctx.fillStyle='#6d5cae';ctx.fillText(en?'Purple: downhill tilt vector':'보라: 내리막 기울기 벡터',12,h-34);
- ctx.fillStyle='#c56b31';ctx.fillText(en?'Dashed ring: target · teal: ball':'점선 원: 목표 · 청록: 공',12,h-16);
+ function machinery(ctx) {
+  const ink='#334155',light='#e2e8ec',teal='#087f74';
+  const poly=(points,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(...points[0]);for(const p of points.slice(1))ctx.lineTo(...p);ctx.closePath();ctx.fill();};
+  const line=(a,b,color=ink,width=2,dash=[])=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();ctx.setLineDash([]);};
+  const disc=(p,r,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc(...p,r,0,Math.PI*2);ctx.fill();};
+  const bearing=(p,r=12)=>{disc(p,r,ink);disc(p,r-3,light);disc(p,r-6,teal);disc(p,2,'#fff');};
+  const link=(a,b,width=18)=>{const dx=b[0]-a[0],dy=b[1]-a[1],length=Math.hypot(dx,dy),nx=-dy/length,ny=dx/length;const offset=(p,n)=>[p[0]+nx*n,p[1]+ny*n];poly([offset(a,width/2),offset(b,width/2),offset(b,-width/2),offset(a,-width/2)],ink);poly([offset(a,width/2-3),offset(b,width/2-3),offset(b,-width/2+3),offset(a,-width/2+3)],light);line(offset(a,-width/2+4),offset(b,-width/2+4),'#fff',2);line(a,b,teal,3);};
+  const housing=(x,y,width,height)=>{poly([[x,y],[x+width,y],[x+width+7,y+7],[x+7,y+7]],'#e2e8ec');poly([[x+width,y],[x+width+7,y+7],[x+width+7,y+height],[x+width,y+height-7]],'#64748b');ctx.fillStyle=ink;ctx.fillRect(x,y+7,width,height-7);ctx.fillStyle='#cbd5df';ctx.fillRect(x+4,y+11,width-8,4);for(const bx of [x+7,x+width-7])for(const by of [y+20,y+height-6])disc([bx,by],2,'#94a3b8');};
+  return {poly,line,disc,bearing,link,housing};
+ }
+
+ const en=language==='en',[tx,ty]=controls(s,p),scale=Math.min((w-48)/.84,(h-135)/.68),cx=w/2,cy=h*.48;
+ // Rigid compound rotation, followed by one fixed oblique camera projection.
+ // Positive beta makes the corresponding plate axis slope downhill.
+ const point=(x,y,z=0)=>{const a=x*Math.cos(tx)+z*Math.sin(tx),b=-x*Math.sin(tx)+z*Math.cos(tx),c=y*Math.cos(ty)+b*Math.sin(ty),d=-y*Math.sin(ty)+b*Math.cos(ty);return [cx+scale*(a+.4*c),cy+scale*(.38*a-.65*c-d)];};
+ ctx.save();ctx.lineCap='round';const {poly,line,disc,bearing,housing}=machinery(ctx);
+ housing(cx-44,cy+scale*.25,82,37);line([cx,cy+scale*.27],[cx,cy],'#64748b',22);bearing([cx,cy+18],14);
+ const corners=[[-.3,-.3],[.3,-.3],[.3,.3],[-.3,.3]],top=corners.map(q=>point(...q));
+ for(let i=0;i<4;i++){const j=(i+1)%4;poly([top[i],top[j],point(...corners[j],-.025),point(...corners[i],-.025)],i%2?'#94a3b8':'#475569');}
+ poly(top,'#e2e8ec');
+ for(const t of [-.2,-.1,0,.1,.2]){line(point(t,-.3),point(t,.3),'#bcc9ce',1);line(point(-.3,t),point(.3,t),'#bcc9ce',1);}
+ for(let i=0;i<4;i++)line(top[i],top[(i+1)%4],'#64748b',2);
+ for(const [x,y] of corners)disc(point(x*.91,y*.91),2,'#64748b');
+ const target=point(p.targetX,p.targetY);ctx.strokeStyle='#c56b31';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.beginPath();ctx.arc(...target,9,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+ const ball=point(s.x,s.y);disc([ball[0]+3,ball[1]+3],10,'#a9babb');disc([ball[0],ball[1]-7],10,'#334155');disc([ball[0],ball[1]-8],8,'#087f74');disc([ball[0]-3,ball[1]-11],3,'#d3f1e9');
+ ctx.font='12px "Pretendard Variable", sans-serif';ctx.fillStyle='#334155';ctx.fillText(en?'Two-axis platform · ±0.30 m':'2축 틸팅 플랫폼 · ±0.30 m',12,22);ctx.fillText(`βx ${tx.toFixed(3)} · βy ${ty.toFixed(3)} rad`,12,42);
+ ctx.fillStyle='#c56b31';ctx.fillText(en?'Dashed ring: target · teal: ball':'점선 원: 목표 · 청록: 공',12,h-16);ctx.restore();
 }
 
 // Reduced rolling-sphere model: x/vx and y/vy, ideal held tilt actuators.

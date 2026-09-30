@@ -39,17 +39,34 @@ export class Simulation {
  observe(){const s=this.state;return {t:s.t,alpha:s.alpha,v:s.v,theta:s.theta,omega:s.omega,torque:this.control(),target:this.params.target,upright:0};}
 }
 export function draw(ctx,s,p,w,h,language){
- const en=language==='en',cx=w*.5,cy=h*.68,scale=Math.min(w*.8,h*.95),r=.18,l=.22;
+ function machinery(ctx) {
+  const ink='#334155',light='#e2e8ec',teal='#087f74';
+  const poly=(points,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(...points[0]);for(const p of points.slice(1))ctx.lineTo(...p);ctx.closePath();ctx.fill();};
+  const line=(a,b,color=ink,width=2,dash=[])=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();ctx.setLineDash([]);};
+  const disc=(p,r,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc(...p,r,0,Math.PI*2);ctx.fill();};
+  const bearing=(p,r=12)=>{disc(p,r,ink);disc(p,r-3,light);disc(p,r-6,teal);disc(p,2,'#fff');};
+  const link=(a,b,width=18)=>{const dx=b[0]-a[0],dy=b[1]-a[1],length=Math.hypot(dx,dy),nx=-dy/length,ny=dx/length;const offset=(p,n)=>[p[0]+nx*n,p[1]+ny*n];poly([offset(a,width/2),offset(b,width/2),offset(b,-width/2),offset(a,-width/2)],ink);poly([offset(a,width/2-3),offset(b,width/2-3),offset(b,-width/2+3),offset(a,-width/2+3)],light);line(offset(a,-width/2+4),offset(b,-width/2+4),'#fff',2);line(a,b,teal,3);};
+  const housing=(x,y,width,height)=>{poly([[x,y],[x+width,y],[x+width+7,y+7],[x+7,y+7]],'#e2e8ec');poly([[x+width,y],[x+width+7,y+7],[x+width+7,y+height],[x+width,y+height-7]],'#64748b');ctx.fillStyle=ink;ctx.fillRect(x,y+7,width,height-7);ctx.fillStyle='#cbd5df';ctx.fillRect(x+4,y+11,width-8,4);for(const bx of [x+7,x+width-7])for(const by of [y+20,y+height-6])disc([bx,by],2,'#94a3b8');};
+  return {poly,line,disc,bearing,link,housing};
+ }
+
+ const en=language==='en',cx=w*.43,cy=Math.min(h*.69,h-98),scale=Math.min((w-65)/.53,(h-115)/.39),r=.18,l=.22;
  const project=(x,y,z)=>[cx+scale*x,cy+scale*(.45*y-z)];
- const line=(a,b,color,dash=[])=>{ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=4;ctx.setLineDash(dash);ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();ctx.setLineDash([]);};
  const base=project(0,0,0),pivot=project(r*Math.cos(s.alpha),r*Math.sin(s.alpha),0);
  const tip=project(r*Math.cos(s.alpha)-l*Math.sin(s.theta)*Math.sin(s.alpha),r*Math.sin(s.alpha)+l*Math.sin(s.theta)*Math.cos(s.alpha),l*Math.cos(s.theta));
- line(base,project(r*Math.cos(p.target),r*Math.sin(p.target),0),'#c56b31',[6,4]);
- line(base,pivot,'#444');line(pivot,project(r*Math.cos(s.alpha),r*Math.sin(s.alpha),l),'#c56b31',[6,4]);line(pivot,tip,'#087f74');
- ctx.fillStyle='#087f74';ctx.beginPath();ctx.arc(...tip,8,0,2*Math.PI);ctx.fill();
- ctx.font='12px "Pretendard Variable", sans-serif';ctx.fillStyle='#0a0a0a';ctx.fillText(en?'Oblique view · +θ along +α tangent':'사시 투영 · +θ는 +α 접선 방향',12,22);
- ctx.fillText(`α=${s.alpha.toFixed(3)} rad · θ=${s.theta.toFixed(3)} rad`,12,42);
- ctx.fillStyle='#c56b31';ctx.fillText(en?'Dashed: arm target / upright':'점선: 암 목표 / 직립',12,h-18);
+ ctx.save();ctx.lineCap='round';const {poly,line,disc,bearing,link,housing}=machinery(ctx);
+ poly([[cx-53,cy+56],[cx+49,cy+56],[cx+70,cy+66],[cx-35,cy+66]],'#e8ecef');
+ housing(cx-36,cy+14,68,42);housing(cx-23,cy+1,42,27);
+ for(let i=0;i<5;i++)line([cx-23+i*10,cy+37],[cx-23+i*10,cy+46],'#94a3b8',2);
+ line([cx,cy+20],base,'#94a3b8',18);bearing(base,14);
+ line(base,project(r*Math.cos(p.target),r*Math.sin(p.target),0),'#c56b31',2,[6,4]);
+ line(pivot,project(r*Math.cos(s.alpha),r*Math.sin(s.alpha),l),'#c56b31',2,[6,4]);
+ link(base,pivot,17);bearing(base,12);bearing(pivot,11);link(pivot,tip,9);
+ disc(tip,11,'#334155');disc(tip,8,'#087f74');disc([tip[0]-2,tip[1]-3],3,'#bde5dd');
+ ctx.font='12px "Pretendard Variable", sans-serif';ctx.fillStyle='#334155';
+ ctx.fillText(en?'Rotary drive · oblique view':'회전 구동부 · 사시 투영',12,22);
+ ctx.fillText(`α ${s.alpha.toFixed(3)} · θ ${s.theta.toFixed(3)} rad`,12,42);
+ ctx.fillStyle='#c56b31';ctx.fillText(en?'Dashed: arm target / upright':'점선: 암 목표 / 직립',12,h-16);ctx.restore();
 }
 
 // Point-mass Furuta pendulum; angles in radians, torque in N m.

@@ -58,15 +58,30 @@ export class Simulation{
  observe(){const s=this.state,p=this.params,k=kinematics([s.q1,s.q2],[s.dq1,s.dq2]);return {t:s.t,x:k.x,y:k.y,target:p.target,wall:.5,force:contactForce(k.x,k.vx,p.wallStiffness),actuator:control(k,p)[0],equilibriumForce:Math.min(60,p.stiffness*p.wallStiffness/(p.stiffness+p.wallStiffness)*Math.max(0,p.target-.5))};}
 }
 export function draw(ctx,s,p,w,h,language){
+ function machinery(ctx) {
+  const ink='#334155',light='#e2e8ec',teal='#087f74';
+  const poly=(points,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(...points[0]);for(const p of points.slice(1))ctx.lineTo(...p);ctx.closePath();ctx.fill();};
+  const line=(a,b,color=ink,width=2,dash=[])=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();ctx.setLineDash([]);};
+  const disc=(p,r,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc(...p,r,0,Math.PI*2);ctx.fill();};
+  const bearing=(p,r=12)=>{disc(p,r,ink);disc(p,r-3,light);disc(p,r-6,teal);disc(p,2,'#fff');};
+  const link=(a,b,width=18)=>{const dx=b[0]-a[0],dy=b[1]-a[1],length=Math.hypot(dx,dy),nx=-dy/length,ny=dx/length;const offset=(p,n)=>[p[0]+nx*n,p[1]+ny*n];poly([offset(a,width/2),offset(b,width/2),offset(b,-width/2),offset(a,-width/2)],ink);poly([offset(a,width/2-3),offset(b,width/2-3),offset(b,-width/2+3),offset(a,-width/2+3)],light);line(offset(a,-width/2+4),offset(b,-width/2+4),'#fff',2);line(a,b,teal,3);};
+  const housing=(x,y,width,height)=>{poly([[x,y],[x+width,y],[x+width+7,y+7],[x+7,y+7]],'#e2e8ec');poly([[x+width,y],[x+width+7,y+7],[x+width+7,y+height],[x+width,y+height-7]],'#64748b');ctx.fillStyle=ink;ctx.fillRect(x,y+7,width,height-7);ctx.fillStyle='#cbd5df';ctx.fillRect(x+4,y+11,width-8,4);for(const bx of [x+7,x+width-7])for(const by of [y+20,y+height-6])disc([bx,by],2,'#94a3b8');};
+  return {poly,line,disc,bearing,link,housing};
+ }
+
  const en=language==='en',k=kinematics([s.q1,s.q2],[s.dq1,s.dq2]);
- // Isotropic projection of the entire reachable disk; never stretch a link to reach a target.
  const scale=Math.min((w-32)/2.3,(h-104)/2.3),ox=w/2,oy=(h+40)/2,point=(x,y)=>[ox+x*scale,oy-y*scale],wall=point(.5,0)[0],force=contactForce(k.x,k.vx,p.wallStiffness);
- ctx.save();ctx.font='12px "Pretendard Variable", sans-serif';ctx.fillStyle='#eeeeeb';ctx.fillRect(wall,58,w-12-wall,h-90);ctx.strokeStyle='#777';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(wall,58);ctx.lineTo(wall,h-32);ctx.stroke();
- ctx.fillStyle='#0a0a0a';ctx.fillText(en?'Wall: 0.5 m':'벽: 0.5 m',Math.min(wall,w-100),h-16);
- const target=point(p.target,mechanics.targetY);ctx.strokeStyle='#c56b31';ctx.setLineDash([5,4]);ctx.beginPath();ctx.arc(...target,8,0,Math.PI*2);ctx.moveTo(target[0],58);ctx.lineTo(target[0],h-32);ctx.stroke();ctx.setLineDash([]);
- ctx.strokeStyle='#555';ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(...point(0,0));ctx.lineTo(...point(...k.elbow));ctx.lineTo(...point(k.x,k.y));ctx.stroke();
- for(const [x,y] of [[0,0],k.elbow]){ctx.fillStyle='#0a0a0a';ctx.beginPath();ctx.arc(...point(x,y),6,0,Math.PI*2);ctx.fill();}
- ctx.fillStyle='#087f74';ctx.beginPath();ctx.arc(...point(k.x,k.y),7,0,Math.PI*2);ctx.fill();
- if(force>0){const [x,y]=point(k.x,k.y),length=Math.min(60,force);ctx.strokeStyle='#087f74';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y+14);ctx.lineTo(x-length,y+14);ctx.lineTo(x-length+6,y+10);ctx.moveTo(x-length,y+14);ctx.lineTo(x-length+6,y+18);ctx.stroke();}
- ctx.fillStyle='#0a0a0a';ctx.fillText(en?'Endpoint: teal · target: dashed':'끝점: 청록색 · 목표: 점선',12,22);ctx.fillText(`${en?'Contact':'접촉 힘'}: ${force.toFixed(1)} N`,12,42);ctx.fillText(`x = ${k.x.toFixed(3)} m`,12,h-16);ctx.restore();
+ ctx.save();ctx.lineCap='round';const {poly,line,disc,bearing,link,housing}=machinery(ctx);
+ ctx.fillStyle='#edf0f2';ctx.fillRect(wall,62,w-12-wall,h-102);ctx.fillStyle='#cbd5df';ctx.fillRect(wall,62,9,h-102);
+ for(let y=70;y<h-47;y+=19)line([wall+10,y],[Math.min(wall+24,w-13),y-9],'#b1bec7',1);
+ line([wall,62],[wall,h-40],'#64748b',3);for(const y of [73,h-52])disc([wall+5,y],2,'#475569');
+ const target=point(p.target,mechanics.targetY);ctx.strokeStyle='#c56b31';ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.beginPath();ctx.arc(...target,8,0,Math.PI*2);ctx.stroke();line([target[0],62],[target[0],h-40],'#c56b31',1,[5,4]);
+ housing(ox-26,oy+13,48,32);line([ox,oy+19],[ox,oy],'#64748b',20);
+ const base=point(0,0),elbow=point(...k.elbow),tip=point(k.x,k.y);
+ ctx.strokeStyle='#334155';ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(...base);ctx.lineTo(...elbow);ctx.lineTo(...tip);ctx.stroke();
+ link(base,elbow,20);link(elbow,tip,17);bearing(base,13);bearing(elbow,11);
+ // Probe center is the simulated endpoint (wall compliance may allow penetration).
+ disc(tip,9,'#334155');disc(tip,6,'#087f74');disc([tip[0]-2,tip[1]-2],2,'#d3f1e9');
+ if(force>0){const length=Math.min(60,force),x=tip[0],y=tip[1]+19;line([x,y],[x-length,y],'#087f74',2);line([x-length,y],[x-length+6,y-4],'#087f74',2);line([x-length,y],[x-length+6,y+4],'#087f74',2);line([wall,tip[1]-12],[wall,tip[1]+12],'#087f74',4);}
+ ctx.font='12px "Pretendard Variable", sans-serif';ctx.fillStyle='#334155';ctx.fillText(en?'Compliant contact · articulated arm':'유연 접촉 · 2관절 로봇',12,22);ctx.fillText(`${en?'Contact':'접촉 힘'} ${force.toFixed(1)} N · x ${k.x.toFixed(3)} m`,12,42);ctx.fillText(en?'Teal: actual · dashed: target':'청록: 실제 · 점선: 목표',12,h-16);ctx.fillStyle='#64748b';ctx.fillText(en?'Wall 0.5 m':'벽 0.5 m',Math.min(wall,w-86),h-35);ctx.restore();
 }

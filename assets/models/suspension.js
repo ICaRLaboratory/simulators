@@ -274,14 +274,46 @@ export function draw(ctx, s, p, width, height, language) {
   ctx.fillText(ko ? "스프링 kₛ" : "Spring kₛ", cx - spacing, 37);
   ctx.fillText(ko ? "댐퍼 c" : "Damper c", cx, 37);
   ctx.fillText(ko ? "구동기 u" : "Actuator u", cx + spacing, 37);
+  // Box-section chassis, with a metallic upper flange and fastener plates.
+  ctx.fillStyle = "#cbd5e1";
+  ctx.fillRect(cx - spacing - 20, bodyY - 18, 2 * spacing + 40, 36);
   ctx.fillStyle = "#087f74";
   ctx.fillRect(cx - spacing - 16, bodyY - 14, 2 * spacing + 32, 28);
+  ctx.fillStyle = "#134e4a";
+  ctx.fillRect(cx - spacing - 16, bodyY + 9, 2 * spacing + 32, 5);
+  ctx.fillStyle = "#e2e8f0";
+  for (const x of [cx - spacing - 9, cx + spacing + 5]) {
+    ctx.fillRect(x, bodyY - 9, 4, 4);
+    ctx.fillRect(x, bodyY + 5, 4, 4);
+  }
+  // Rubber casing stays rigid with the unsprung mass; tire compliance is
+  // represented separately by k_t below, never by a fabricated wheel rotation.
+  ctx.fillStyle = "#1e293b";
+  ctx.fillRect(cx - 64, wheelY - 16, 128, 34);
+  ctx.fillStyle = "#94a3b8";
+  for (const x of [cx - 62, cx + 58]) for (let y = -12; y < 17; y += 6)
+    ctx.fillRect(x, wheelY + y, 4, 2);
+  ctx.fillStyle = "#cbd5e1";
+  ctx.fillRect(cx - 59, wheelY - 14, 118, 30);
   ctx.fillStyle = "#fff";
   ctx.fillText(ko ? "차체 mₛ = 300 kg" : "Body mₛ = 300 kg", cx, bodyY + 4);
   ctx.fillStyle = "#555";
   ctx.fillRect(cx - 57, wheelY - 12, 114, 26);
-  ctx.fillStyle = "#fff";
-  ctx.fillText(ko ? "휠 mᵤ = 40 kg" : "Wheel mᵤ = 40 kg", cx, wheelY + 5);
+  // Side-view tire and hub, with the equivalent wheel mass labeled on the axle.
+  // The k_t spring remains visible as a cutaway between wheel and road.
+  if (ctx.arc && ctx.fill) {
+    for (const [radius, color] of [[24, "#1e293b"], [17, "#94a3b8"], [12, "#e2e8f0"], [5, "#475569"]]) {
+      ctx.beginPath(); ctx.arc(cx, wheelY + 1, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = color; ctx.fill();
+    }
+  }
+  ctx.fillStyle = "#0a0a0a";
+  ctx.textAlign = "right";
+  ctx.fillText("mᵤ = 40 kg", Math.min(width - 10, cx + 140), wheelY + 5);
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#cbd5e1";
+  ctx.fillRect(cx - spacing - 5, bottom - 3, 2 * spacing + 10, 6);
+  ctx.fillRect(cx - 4, bottom, 8, wheelY - 12 - bottom);
   ctx.strokeStyle = "#555";
   line(cx - spacing, bottom, cx + spacing, bottom);
   line(cx, bottom, cx, wheelY - 12);
@@ -292,6 +324,12 @@ export function draw(ctx, s, p, width, height, language) {
   const cylinderTop = bottom - 46,
     cylinderBottom = bottom - 12,
     pistonY = top + height - 194;
+  ctx.fillStyle = "#e2e8f0";
+  ctx.fillRect(cx - 10, cylinderTop, 20, cylinderBottom - cylinderTop);
+  ctx.fillStyle = "#94a3b8";
+  ctx.fillRect(cx - 2, top, 4, pistonY - top);
+  ctx.fillStyle = "#475569";
+  ctx.fillRect(cx - 8, pistonY - 2, 16, 4);
   line(cx, top, cx, pistonY);
   line(cx - 8, pistonY, cx + 8, pistonY);
   ctx.beginPath();
@@ -303,6 +341,13 @@ export function draw(ctx, s, p, width, height, language) {
   line(cx, cylinderBottom, cx, bottom);
   // Powered telescopic actuator, with a fixed-size housing on the wheel.
   const ax = cx + spacing;
+  ctx.fillStyle = "#ccfbf1";
+  ctx.fillRect(ax - 9, bottom - 44, 18, 32);
+  ctx.fillStyle = "#94a3b8";
+  ctx.fillRect(ax - 2, top, 4, bottom - 44 - top);
+  ctx.fillStyle = "#087f74";
+  for (let y = bottom - 39; y < bottom - 14; y += 7)
+    ctx.fillRect(ax - 6, y, 12, 2);
   ctx.strokeStyle = "#087f74";
   ctx.strokeRect(ax - 9, bottom - 44, 18, 32);
   line(ax, top, ax, bottom - 44);
@@ -327,8 +372,13 @@ export function draw(ctx, s, p, width, height, language) {
   ctx.fillStyle = "#0a0a0a";
   ctx.textAlign = "left";
   ctx.fillText(ko ? "타이어 kₜ" : "Tire kₜ", cx + 16, roadY - 8);
+  ctx.fillStyle = "#e2e8f0";
+  ctx.fillRect(16, roadY + 1, width - 32, 5);
+  ctx.strokeStyle = "#94a3b8";
+  for (let x = 20; x < width - 20; x += 14) line(x, roadY + 2, x - 4, roadY + 6);
   ctx.strokeStyle = "#c56b31";
   line(16, roadY, width - 16, roadY);
   ctx.textAlign = "center";
+  ctx.fillStyle = "#0a0a0a";
   ctx.fillText(`${ko ? "노면" : "Road"} r = ${road.toFixed(3)} m`, cx, height - 7);
 }

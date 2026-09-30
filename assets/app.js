@@ -7,27 +7,8 @@ const $ = selector => document.querySelector(selector);
 const TEAL = '#087f74', ORANGE = '#c56b31', INK = '#0a0a0a', MUTED = '#666670';
 
 function schematic(item) {
-  const car = '<path d="M90 88h140v-22l-28-7-17-22h-51l-20 24-24 5z" fill="#e8e8e5"/><path d="M136 43h45l12 18h-73z"/><circle cx="122" cy="88" r="13" fill="#f5f5f3"/><circle cx="204" cy="88" r="13" fill="#f5f5f3"/><path d="M62 105h207M242 60h30m-9-7 9 7-9 7"/>';
-  const motor = '<rect x="93" y="47" width="92" height="48" rx="5" fill="#e8e8e5"/><path d="M108 47V37h61v10m-67 48-8 13h88l-8-13m11-36h21"/><circle cx="221" cy="71" r="27" fill="#f5f5f3"/><path d="M221 71l19-19" stroke="#c56b31"/><circle cx="221" cy="71" r="4"/><path d="M119 57v27m13-27v27m13-27v27"/>';
-  const beam = '<path d="m72 80 182-17" stroke-width="5"/><path d="m163 74-20 32h40z" fill="#e8e8e5"/><circle cx="135" cy="63" r="12" fill="#087f74"/><path d="M101 112h123M206 49v36" stroke="#c56b31" stroke-dasharray="4 4"/>';
-  const pendulum = '<path d="M68 109h193"/><rect x="132" y="86" width="62" height="18" rx="3" fill="#e8e8e5"/><path d="m163 86-23-51" stroke-width="4"/><circle cx="140" cy="35" r="9" fill="#087f74"/><circle cx="143" cy="108" r="5"/><circle cx="184" cy="108" r="5"/><path d="M164 25v52" stroke="#c56b31" stroke-dasharray="4 4"/>';
-  const robot = '<path d="M113 110h92m-78 0v-17h32v17m-16-18 24-38 39 5 23-21" stroke-width="9"/><circle cx="143" cy="92" r="8" fill="#e8e8e5"/><circle cx="167" cy="54" r="8" fill="#e8e8e5"/><circle cx="206" cy="59" r="7" fill="#e8e8e5"/><path d="m229 38 12 6 10-12m-22 6-5-11 11-11" stroke="#c56b31"/>';
-  const tank = '<path d="M127 39v64q32 18 64 0V39m-64 0q32-14 64 0m-64 22h64M158 22v67m-14-9 28 13m-28 0 28-13M99 48h28m64 46h28"/><path d="M136 99q23 9 46 0V66h-46z" fill="#e8e8e5" stroke="none"/><path d="M158 65v24"/>';
-  const drone = '<path d="m131 48 57 48m-57 0 57-48" stroke-width="6"/><rect x="145" y="59" width="30" height="25" rx="6" fill="#e8e8e5"/><ellipse cx="126" cy="43" rx="24" ry="7"/><ellipse cx="192" cy="43" rx="24" ry="7"/><ellipse cx="126" cy="101" rx="24" ry="7"/><ellipse cx="192" cy="101" rx="24" ry="7"/>';
-  const plate = '<path d="m97 65 89-31 50 42-88 32z" fill="#e8e8e5"/><path d="m148 108 1 13 33-2 9-27"/><circle cx="166" cy="62" r="10" fill="#087f74"/><path d="m186 57 11 13m-14-3 18-8" stroke="#c56b31"/>';
-  const suspension = '<path d="M107 34h105v19H107z" fill="#e8e8e5"/><path d="M126 53v7l-8 7 16 9-16 9 16 9-8 6v10m63-57v12m-8 0h16v26h-16zm8 26v19M101 110h114M158 110v8"/><circle cx="158" cy="119" r="9"/>';
-  const aircraft = '<path d="m82 76 160-14-1 10-71 16-47 24-16-2 20-22-44-2z" fill="#e8e8e5"/><path d="m113 77-17-28 12-2 36 27m36-8-24-33 13-2 42 33M76 101h177"/><path d="M210 40q28 7 30 22" stroke="#c56b31"/>';
-  let drawing = robot;
-  if (['cruise-control','parking','path-tracking'].includes(item.id)) drawing = car;
-  if (item.id === 'dc-motor') drawing = motor;
-  if (item.id === 'ball-and-beam') drawing = beam;
-  if (item.id.includes('pendulum')) drawing = pendulum;
-  if (item.id === 'ball-and-plate') drawing = plate;
-  if (['heat-exchanger','cstr'].includes(item.id)) drawing = tank;
-  if (item.id === 'drone') drawing = drone;
-  if (item.id === 'suspension') drawing = suspension;
-  if (item.id === 'aircraft-pitch') drawing = aircraft;
-  return `<svg viewBox="0 0 320 145" aria-hidden="true" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${drawing}</svg>`;
+  // Real apparatus captures, not category-level icons shared by unrelated experiments.
+  return `<img class="card-preview" src="assets/previews/${item.id}-${getLanguage()}.png" alt="" loading="lazy" decoding="async" width="640" height="340">`;
 }
 
 function setupCatalog() {
@@ -69,44 +50,78 @@ function canvasContext(canvas) {
 
 function apparatus(canvas, sim, sceneDistance) {
   const {ctx:c,width:w,height:h} = canvasContext(canvas);
-  c.save(); c.translate(w / 2,h / 2); c.scale(Math.min(w / 570,1),Math.min(w / 570,1));
-  c.lineCap = 'round'; c.lineJoin = 'round'; c.lineWidth = 2; c.strokeStyle = INK; c.fillStyle = '#e8e8e5';
-  const line = (x1,y1,x2,y2,color=INK) => { c.strokeStyle=color;c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke(); };
-  const circle = (x,y,r,fill) => {c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fillStyle=fill;c.fill();c.strokeStyle=INK;c.stroke();};
-  const text = (label,x,y,color=MUTED) => {c.font='12px "JetBrains Mono", "Pretendard Variable", monospace';c.fillStyle=color;c.textAlign='center';c.fillText(t(label),x,y);};
+  const scale = Math.min((w-24)/480,(h-100)/200,1);
+  const slate='#334155', edge='#94a3b8', pale='#e2e8f0';
+  const line = (x1,y1,x2,y2,color=slate,width=2) => {c.lineWidth=width;c.strokeStyle=color;c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();};
+  const circle = (x,y,r,fill,stroke=slate) => {c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fillStyle=fill;c.fill();c.strokeStyle=stroke;c.lineWidth=2;c.stroke();};
+  const box = (x,y,width,height,fill,r=4) => {c.beginPath();c.roundRect(x,y,width,height,r);c.fillStyle=fill;c.fill();c.strokeStyle=slate;c.lineWidth=2;c.stroke();};
+  const polygon = (points,fill) => {c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fillStyle=fill;c.fill();c.strokeStyle=slate;c.lineWidth=2;c.stroke();};
+  // Typography stays in CSS pixels; only mechanical geometry is scaled.
+  const text = (label,y,color=MUTED) => {c.font='12px "JetBrains Mono", "Pretendard Variable", monospace';c.fillStyle=color;c.textAlign='center';c.fillText(t(label),w/2,y);};
+  c.save();c.translate(w/2,h/2);c.scale(scale,scale);c.lineCap='round';c.lineJoin='round';
   if (sim.kind === 'cruise-control') {
-    c.strokeStyle='#bdbdbd'; line(-240,53,240,53,'#bdbdbd');
-    const offset = (sceneDistance * 3) % 55;
-    for(let x=-260;x<270;x+=55) line(x-offset,69,x+25-offset,69,'#d6d6d3');
-    c.beginPath();c.moveTo(-103,24);c.lineTo(-103,-9);c.lineTo(-68,-19);c.lineTo(-39,-51);c.lineTo(42,-51);c.lineTo(74,-20);c.lineTo(106,-9);c.lineTo(106,24);c.closePath();c.fillStyle='#e8e8e5';c.fill();c.strokeStyle=INK;c.stroke();
-    line(-58,-20,60,-20);line(-26,-44,-42,-24);line(7,-45,7,-23);
-    circle(-63,28,23,'#f5f5f3');circle(65,28,23,'#f5f5f3');
-    for (const x of [-63,65]) { const theta=sceneDistance/2;line(x,28,x+15*Math.cos(theta),28+15*Math.sin(theta),TEAL); }
-    line(135,-12,206,-12,TEAL);line(197,-19,206,-12,TEAL);line(197,-5,206,-12,TEAL);
-    text(`v = ${sim.state.y.toFixed(2)} m/s`,0,-78,TEAL);
-    text(`목표 ${sim.params.target.toFixed(1)} m/s`,0,102,ORANGE);
-    if (sim.state.disturbance) text('← 부하 외란',-171,-39,ORANGE);
+    box(-238,58,476,32,'#f1f5f9');
+    const offset=(sceneDistance*3)%55;
+    c.save();c.beginPath();c.rect(-236,59,472,30);c.clip();
+    for(let x=-290;x<290;x+=55) line(x-offset,76,x+25-offset,76,edge,3);
+    c.restore();
+    polygon([[-151,24],[-148,-12],[-105,-24],[-65,-65],[45,-65],[93,-24],[139,-14],[154,9],[151,33],[-150,33]],'#fff');
+    polygon([[-95,-24],[-59,-57],[-13,-57],[-13,-24]],pale);
+    polygon([[-3,-57],[39,-57],[79,-24],[-3,-24]],pale);
+    line(-5,-19,-5,23,edge,1);line(-132,15,133,15,TEAL,4);
+    line(12,-11,28,-11,slate,3);line(-76,-11,-61,-11,slate,3);
+    box(132,-9,18,10,pale,2);box(-150,-8,10,13,slate,2);
+    for(const x of [-92,96]) {
+      circle(x,34,24,slate);circle(x,34,16,pale);circle(x,34,5,'#fff');
+      // Road travel and wheel rotation use the same integrated distance.
+      const angle=sceneDistance*3/24;
+      for(let i=0;i<5;i++){const a=angle+i*Math.PI*2/5;line(x+6*Math.cos(a),34+6*Math.sin(a),x+13*Math.cos(a),34+13*Math.sin(a),slate,2);}
+    }
+    line(176,-17,221,-17,TEAL,3);line(212,-25,221,-17,TEAL,3);line(212,-9,221,-17,TEAL,3);
   } else if (sim.kind === 'dc-motor') {
-    c.fillStyle='#e8e8e5';c.fillRect(-188,-47,109,94);c.strokeStyle=INK;c.strokeRect(-188,-47,109,94);
-    for(let x=-170;x<-90;x+=18) line(x,-31,x,31,'#a7a7ae');
-    line(-79,0,-8,0);circle(76,0,65,'#f5f5f3');
-    c.setLineDash([5,5]); line(76,0,76+60*Math.cos(-sim.params.target),60*Math.sin(-sim.params.target),ORANGE);c.setLineDash([]);
-    line(76,0,76+57*Math.cos(-sim.state.y),57*Math.sin(-sim.state.y),TEAL);circle(76,0,7,TEAL);
-    text('DC MOTOR',-133,77);text(`θ = ${sim.state.y.toFixed(2)} rad`,76,100,TEAL);
-    text('0 rad →',182,5);if(sim.state.disturbance)text('부하 외란 적용',-130,-69,ORANGE);
+    box(-199,55,141,13,pale);box(-178,37,24,20,slate);box(-105,37,24,20,slate);
+    box(-200,-49,120,97,pale,12);box(-205,-38,15,74,slate,5);
+    for(let x=-179;x<-91;x+=14) line(x,-33,x,32,edge,4);
+    box(-173,-67,48,18,'#fff');circle(-80,0,41,'#f8fafc');
+    for(const y of [-26,26]) circle(-82,y,4,edge);
+    box(-66,-8,99,16,edge,3);line(-58,-4,26,-4,'#fff',2);
+    circle(107,0,82,slate);circle(107,0,75,'#fff');circle(107,0,58,pale);
+    for(let i=0;i<24;i++){const a=i*Math.PI/12;line(107+65*Math.cos(a),65*Math.sin(a),107+71*Math.cos(a),71*Math.sin(a),edge,i%6===0?3:1);}
+    c.save();c.translate(107,0);c.rotate(-sim.state.y);
+    for(let i=0;i<3;i++){c.rotate(Math.PI*2/3);box(15,-7,34,14,'#cbd5e1',5);}
+    c.restore();
+    c.setLineDash([5,4]);line(107,0,107+72*Math.cos(-sim.params.target),72*Math.sin(-sim.params.target),ORANGE,3);c.setLineDash([]);
+    line(107,0,107+57*Math.cos(-sim.state.y),57*Math.sin(-sim.state.y),TEAL,5);circle(107,0,10,TEAL);circle(107,0,3,'#fff');
   } else {
-    c.beginPath();c.moveTo(0,18);c.lineTo(-28,70);c.lineTo(28,70);c.closePath();c.fillStyle='#e8e8e5';c.fill();c.strokeStyle=INK;c.stroke();
-    line(-75,77,75,77,'#a7a7ae');
+    box(-72,77,144,12,pale);polygon([[0,15],[-37,76],[37,76]],'#cbd5e1');
+    circle(0,24,12,slate);circle(0,24,5,'#fff');
     c.save();c.translate(0,15);c.rotate(sim.state.u);
-    c.lineWidth=7;line(-218,0,218,0);c.lineWidth=2;
-    const target = sim.params.target * 210;
-    c.setLineDash([4,4]);line(target,-38,target,22,ORANGE);c.setLineDash([]);
-    circle(sim.state.y*210,-19,15,TEAL);
-    text('−1 m',-220,30);text('+1 m',220,30);c.restore();
-    text(`θ = ${sim.state.u.toFixed(3)} rad`,0,-73);
-    text(`x = ${sim.state.y.toFixed(3)} m`,0,102,TEAL);
+    // Positive input slopes down to the right, matching +sin(theta).
+    box(-220,0,440,14,slate,3);line(-216,1,216,1,'#cbd5e1',3);
+    for(let x=-210;x<=210;x+=21)line(x,5,x,10,edge,1);
+    const target=sim.params.target*210;
+    c.setLineDash([5,4]);line(target,-42,target,22,ORANGE,2);c.setLineDash([]);
+    polygon([[target-7,24],[target+7,24],[target,17]],ORANGE);
+    const ball=sim.state.y*210;
+    circle(ball,-19,19,TEAL);circle(ball-6,-26,5,'#d9f7f2',TEAL);
+    c.restore();
   }
   c.restore();
+  if(sim.kind==='cruise-control') {
+    text(`v = ${sim.state.y.toFixed(2)} m/s`,25,TEAL);
+    text(`목표 ${sim.params.target.toFixed(1)} m/s`,h-18,ORANGE);
+    if(sim.state.disturbance)text('← 부하 외란',44,ORANGE);
+  } else if(sim.kind==='dc-motor') {
+    text(`θ = ${sim.state.y.toFixed(2)} rad`,25,TEAL);
+    text('DC MOTOR',h-18);
+    text('0 rad →',h-38);
+    if(sim.state.disturbance)text('부하 외란 적용',44,ORANGE);
+  } else {
+    text(`θ = ${sim.state.u.toFixed(3)} rad`,25);
+    text(`x = ${sim.state.y.toFixed(3)} m`,h-18,TEAL);
+    c.font='12px "Pretendard Variable", sans-serif';c.fillStyle=MUTED;
+    c.textAlign='left';c.fillText('−1 m',12,h-42);c.textAlign='right';c.fillText('+1 m',w-12,h-42);
+  }
 }
 
 function drawGraph(canvas, history, sim) {

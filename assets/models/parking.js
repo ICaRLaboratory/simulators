@@ -344,6 +344,37 @@ export class Simulation {
     };
   }
 }
+// Rear-axle-local bodywork; front tires use the model's bicycle steering angle.
+function drawCar(ctx, s, xy) {
+  const point = ([x, y]) => xy({
+    x: s.x + x * Math.cos(s.psi) - y * Math.sin(s.psi),
+    y: s.y + x * Math.sin(s.psi) + y * Math.cos(s.psi),
+  });
+  const panel = (points, color, outline = false) => {
+    ctx.beginPath();
+    points.map(point).forEach(([x,y],i) => i ? ctx.lineTo(x,y) : ctx.moveTo(x,y));
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    if (outline) { ctx.strokeStyle = "#134e4a"; ctx.lineWidth = 1; ctx.stroke(); }
+  };
+  // Separate rubber footprints, centered at rear and front axles (L = 2.7 m).
+  for (const axle of [0, L]) for (const side of [-1, 1]) {
+    const angle = axle === 0 ? 0 : s.steering;
+    panel([[-0.43,-0.17],[0.43,-0.17],[0.43,0.17],[-0.43,0.17]].map(([x,y]) =>
+      [axle+x*Math.cos(angle)-y*Math.sin(angle), side*0.86+x*Math.sin(angle)+y*Math.cos(angle)]), "#1e293b");
+  }
+  panel([[-0.8,-0.6],[-0.55,-0.84],[2.95,-0.84],[3.4,-0.55],
+    [3.4,0.55],[2.95,0.84],[-0.55,0.84],[-0.8,0.6]], "#087f74", true);
+  // Roof and two glazed screens make heading legible without an artificial arrow.
+  panel([[0.1,-0.67],[0.55,-0.57],[0.55,0.57],[0.1,0.67]], "#cbd5e1");
+  panel([[0.65,-0.56],[1.7,-0.56],[1.7,0.56],[0.65,0.56]], "#f8fafc");
+  panel([[1.8,-0.56],[2.36,-0.7],[2.36,0.7],[1.8,0.56]], "#cbd5e1");
+  for (const side of [-1,1]) {
+    panel([[2.95,side*0.72],[3.22,side*0.58],[3.22,side*0.36],[2.95,side*0.42]], "#fff");
+    panel([[-0.67,side*0.62],[-0.48,side*0.7],[-0.48,side*0.35],[-0.67,side*0.35]], "#fda4af");
+  }
+}
 export function draw(ctx, s, p, width, height, language) {
   const ko = language === "ko",
     scale = Math.min((width - 36) / 39, (height - 82) / 20),
@@ -362,8 +393,25 @@ export function draw(ctx, s, p, width, height, language) {
     12,
     39,
   );
-  ctx.strokeStyle = "#999";
+  // Neutral paving and empty painted practice bays; these are not obstacles.
+  ctx.fillStyle = "#f1f5f9";
+  ctx.fillRect(cx - 16 * scale, cy - 10 * scale, 39 * scale, 20 * scale);
+  ctx.fillStyle = "#dbe2e8";
+  for (let x = -15; x < 23; x += 2) for (let y = -9; y < 10; y += 2)
+    ctx.fillRect(cx + x * scale, cy - y * scale, 1, 1);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#94a3b8";
   ctx.strokeRect(cx - 16 * scale, cy - 10 * scale, 39 * scale, 20 * scale);
+  ctx.strokeStyle = "#cbd5e1";
+  for (const y of [-7, -3.5, 0, 3.5, 7]) {
+    ctx.beginPath();
+    ctx.moveTo(cx - 5 * scale, cy - (y - 1.5) * scale);
+    ctx.lineTo(cx - 12 * scale, cy - (y - 1.5) * scale);
+    ctx.lineTo(cx - 12 * scale, cy - (y + 1.5) * scale);
+    ctx.lineTo(cx - 5 * scale, cy - (y + 1.5) * scale);
+    ctx.stroke();
+  }
+  ctx.lineWidth = 2;
   ctx.strokeStyle = "#c56b31";
   ctx.setLineDash([6, 4]);
   ctx.strokeRect(
@@ -386,23 +434,7 @@ export function draw(ctx, s, p, width, height, language) {
     i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
   });
   ctx.stroke();
-  ctx.fillStyle = "#087f74";
-  ctx.beginPath();
-  footprint(s).forEach((q, i) => {
-    const [x, y] = xy(q);
-    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-  });
-  ctx.closePath();
-  ctx.fill();
-  const [x, y] = xy(s);
-  ctx.strokeStyle = "#fff";
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(
-    x + 2.8 * scale * Math.cos(s.psi),
-    y - 2.8 * scale * Math.sin(s.psi),
-  );
-  ctx.stroke();
+  drawCar(ctx, s, xy);
   const [tx, ty] = xy(s.targetPoint);
   ctx.fillStyle = "#c56b31";
   ctx.beginPath();

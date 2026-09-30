@@ -36,15 +36,25 @@ export class Simulation{
  observe(){const s=this.state;return {t:s.t,temperature:s.temperature,target:this.params.target,heat:s.heat,rate:s.rate};}
 }
 export function draw(ctx,s,p,w,h,language){
- const en=language==='en',x=w*.25,y=h*.28,bw=w*.46,bh=h*.45;
- ctx.font='14px "Pretendard Variable", sans-serif';ctx.lineWidth=3;ctx.strokeStyle='#0a0a0a';ctx.strokeRect(x,y,bw,bh);
- ctx.fillStyle='#e0f2ef';ctx.fillRect(x+2,y+2,bw-4,bh-4);
- for(const [yy,color,dir] of [[y+bh*.25,'#c56b31',1],[y+bh*.7,'#087f74',-1]]){
- ctx.strokeStyle=color;ctx.beginPath();ctx.moveTo(w*.06,yy);ctx.lineTo(w*.9,yy);ctx.stroke();
- for(let i=0;i<5;i++){const xx=w*.08+((i/5+s.t*.12*dir+100)%1)*w*.8;ctx.fillStyle=color;ctx.beginPath();ctx.arc(xx,yy,3,0,Math.PI*2);ctx.fill();}}
- ctx.fillStyle='#0a0a0a';ctx.fillText(en?'Mixed outlet':'혼합 출구',x+8,y-12);ctx.fillText(`${s.temperature.toFixed(1)} °C`,x+8,y+bh+24);
- ctx.fillText(`${en?'Heat':'가열'} ${s.heat.toFixed(1)} kW`,12,24);
- const tx=w*.86,ty=y+bh;ctx.strokeStyle='#666';ctx.strokeRect(tx,y,12,bh);ctx.fillStyle='#087f74';const fill=clamp(s.temperature/90,0,1)*bh;ctx.fillRect(tx+2,ty-fill,8,fill);
- ctx.strokeStyle='#c56b31';ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(tx-6,ty-p.target/90*bh);ctx.lineTo(tx+20,ty-p.target/90*bh);ctx.stroke();ctx.setLineDash([]);
- ctx.fillStyle='#c56b31';ctx.fillText(`${en?'Target':'목표'} ${p.target} °C`,12,h-14);
+ const en=language==='en',x=w*.19,y=h*.31,bw=w*.62,bh=h*.28;
+ ctx.save();ctx.font='13px "Pretendard Variable", sans-serif';ctx.lineWidth=1.5;
+ const pipe=(points)=>{ctx.beginPath();points.forEach(([a,b],i)=>i?ctx.lineTo(a,b):ctx.moveTo(a,b));ctx.strokeStyle='#747b7a';ctx.lineWidth=12;ctx.stroke();ctx.strokeStyle='#e3e6e4';ctx.lineWidth=8;ctx.stroke();ctx.lineWidth=1.5;};
+ const shell=(xx,yy,ww,hh,r,fill)=>{ctx.beginPath();ctx.moveTo(xx+r,yy);ctx.lineTo(xx+ww-r,yy);ctx.quadraticCurveTo(xx+ww,yy,xx+ww,yy+r);ctx.lineTo(xx+ww,yy+hh-r);ctx.quadraticCurveTo(xx+ww,yy+hh,xx+ww-r,yy+hh);ctx.lineTo(xx+r,yy+hh);ctx.quadraticCurveTo(xx,yy+hh,xx,yy+hh-r);ctx.lineTo(xx,yy+r);ctx.quadraticCurveTo(xx,yy,xx+r,yy);ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle='#626a68';ctx.stroke();};
+ // Both pipe circuits are schematic: only the mixed bulk and Q are modeled.
+ pipe([[w*.32,y],[w*.32,y-24],[w*.08,y-24]]);
+ pipe([[w*.68,y],[w*.68,y-24],[w*.92,y-24]]);
+ pipe([[12,y+bh*.5],[x,y+bh*.5]]);pipe([[x+bw,y+bh*.5],[w-12,y+bh*.5]]);
+ ctx.fillStyle='#d2d6d3';ctx.fillRect(x+bw*.17,y+bh,12,22);ctx.fillRect(x+bw*.76,y+bh,12,22);
+ ctx.fillStyle='#909894';ctx.fillRect(x+bw*.12,y+bh+20,32,5);ctx.fillRect(x+bw*.71,y+bh+20,32,5);
+ shell(x,y,bw,bh,22,'#dce1de');shell(x+7,y+6,bw-14,bh-12,18,'#f3f5f2');
+ // Cutaway bundle and baffles; no fictitious particles or hot-side temperature.
+ ctx.fillStyle='#e0efeb';ctx.fillRect(x+25,y+14,bw-50,bh-28);
+ for(let i=0;i<4;i++){const yy=y+bh*(.25+i*.16);ctx.strokeStyle='#7d8983';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x+13,yy);ctx.lineTo(x+bw-13,yy);ctx.stroke();ctx.strokeStyle='#c3d0c9';ctx.lineWidth=2;ctx.stroke();}
+ ctx.lineWidth=1.5;for(let i=1;i<4;i++){ctx.fillStyle='#a2aca6';ctx.fillRect(x+bw*i/4,y+(i%2?12:bh*.35),4,bh*.5);}
+ for(const xx of [x+7,x+bw-13]){ctx.fillStyle='#b2bab5';ctx.fillRect(xx,y+2,6,bh-4);for(const yy of [y+12,y+bh-12]){ctx.fillStyle='#626a68';ctx.beginPath();ctx.arc(xx+3,yy,2,0,Math.PI*2);ctx.fill();}}
+ ctx.fillStyle='#252b28';ctx.fillText(`${en?'Hot side · heat input':'가열측 · 열입력'} Q`,12,22);ctx.fillText(`${s.heat.toFixed(1)} kW`,12,42);
+ ctx.fillText(`${en?'Inlet':'입구'} ${(p.inlet+s.load).toFixed(1)} °C`,12,h-66);
+ ctx.fillStyle='#087f74';ctx.fillText(`${en?'Mixed outlet':'혼합 출구'} ${s.temperature.toFixed(1)} °C`,12,h-44);
+ ctx.fillStyle='#c56b31';ctx.fillText(`${en?'Target':'목표'} ${p.target} °C`,12,h-22);
+ ctx.restore();
 }

@@ -37,11 +37,36 @@ export class Simulation{
  observe(){const s=this.state;return {t:s.t,x:s.x,z:s.z,roll:s.roll,left:s.left,right:s.right,altitude:this.params.altitude,rollTarget:this.params.rollTarget};}
 }
 export function draw(ctx,s,p,w,h,language){
- const en=language==='en',scale=(h-100)/6,ground=h-42,cx=w/2,cy=ground-s.z*scale,span=Math.min(52,w*0.17);
- ctx.save();ctx.font='12px "Pretendard Variable", sans-serif';ctx.lineWidth=2;ctx.strokeStyle='#777';ctx.beginPath();ctx.moveTo(12,ground);ctx.lineTo(w-12,ground);ctx.stroke();
- ctx.strokeStyle='#c56b31';ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(12,ground-p.altitude*scale);ctx.lineTo(w-12,ground-p.altitude*scale);ctx.stroke();
- ctx.beginPath();ctx.moveTo(cx-span*Math.cos(p.rollTarget),cy+span*Math.sin(p.rollTarget));ctx.lineTo(cx+span*Math.cos(p.rollTarget),cy-span*Math.sin(p.rollTarget));ctx.stroke();ctx.setLineDash([]);
- ctx.strokeStyle='#087f74';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(cx-span*Math.cos(s.roll),cy+span*Math.sin(s.roll));ctx.lineTo(cx+span*Math.cos(s.roll),cy-span*Math.sin(s.roll));ctx.stroke();
- for(const side of [-1,1]){const x=cx+side*span*Math.cos(s.roll),y=cy-side*span*Math.sin(s.roll),f=side<0?s.left:s.right;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x-16,y);ctx.lineTo(x+16,y);ctx.stroke();ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-f*3*Math.sin(s.roll),y-f*3*Math.cos(s.roll));ctx.stroke();ctx.fillStyle='#0a0a0a';ctx.fillText(`${f.toFixed(1)} N`,x-20,y+22);}
- ctx.fillStyle='#0a0a0a';ctx.fillText(en?'Planar x–z · solid: actual':'x–z 평면 · 실선: 실제',12,20);ctx.fillStyle='#c56b31';ctx.fillText(en?'Dashed: altitude / roll targets':'점선: 고도 / 롤 목표',12,38);ctx.fillStyle='#0a0a0a';ctx.fillText(`x = ${s.x.toFixed(1)} m · z = ${s.z.toFixed(2)} m`,12,h-14);ctx.restore();
+ function machinery(ctx) {
+  const ink='#334155',light='#e2e8ec',teal='#087f74';
+  const poly=(points,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(...points[0]);for(const p of points.slice(1))ctx.lineTo(...p);ctx.closePath();ctx.fill();};
+  const line=(a,b,color=ink,width=2,dash=[])=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();ctx.setLineDash([]);};
+  const disc=(p,r,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc(...p,r,0,Math.PI*2);ctx.fill();};
+  const bearing=(p,r=12)=>{disc(p,r,ink);disc(p,r-3,light);disc(p,r-6,teal);disc(p,2,'#fff');};
+  const link=(a,b,width=18)=>{const dx=b[0]-a[0],dy=b[1]-a[1],length=Math.hypot(dx,dy),nx=-dy/length,ny=dx/length;const offset=(p,n)=>[p[0]+nx*n,p[1]+ny*n];poly([offset(a,width/2),offset(b,width/2),offset(b,-width/2),offset(a,-width/2)],ink);poly([offset(a,width/2-3),offset(b,width/2-3),offset(b,-width/2+3),offset(a,-width/2+3)],light);line(offset(a,-width/2+4),offset(b,-width/2+4),'#fff',2);line(a,b,teal,3);};
+  const housing=(x,y,width,height)=>{poly([[x,y],[x+width,y],[x+width+7,y+7],[x+7,y+7]],'#e2e8ec');poly([[x+width,y],[x+width+7,y+7],[x+width+7,y+height],[x+width,y+height-7]],'#64748b');ctx.fillStyle=ink;ctx.fillRect(x,y+7,width,height-7);ctx.fillStyle='#cbd5df';ctx.fillRect(x+4,y+11,width-8,4);for(const bx of [x+7,x+width-7])for(const by of [y+20,y+height-6])disc([bx,by],2,'#94a3b8');};
+  return {poly,line,disc,bearing,link,housing};
+ }
+
+ const en=language==='en',scale=(h-160)/6,ground=h-70,cx=w/2,cy=ground-s.z*scale,span=Math.min(62,(w-90)/2.8);
+ ctx.save();ctx.lineCap='round';const {poly,line,disc}=machinery(ctx);
+ ctx.fillStyle='#f0f3f4';ctx.fillRect(12,ground+9,w-24,12);line([12,ground+9],[w-12,ground+9],'#94a3b8',2);
+ // Ground marks move with the horizontal camera; the body remains centered.
+ const spacing=32,offset=((s.x*scale)%spacing+spacing)%spacing;
+ for(let x=12-offset;x<w-12;x+=spacing)if(x>=12)line([x,ground+10],[x+6,ground+17],'#cbd5df',1);
+ line([12,ground-p.altitude*scale],[w-12,ground-p.altitude*scale],'#c56b31',2,[6,5]);
+ const at=(x,y)=>[cx+x*Math.cos(s.roll)+y*Math.sin(s.roll),cy-x*Math.sin(s.roll)+y*Math.cos(s.roll)];
+ line([cx-span*Math.cos(p.rollTarget),cy+span*Math.sin(p.rollTarget)],[cx+span*Math.cos(p.rollTarget),cy-span*Math.sin(p.rollTarget)],'#c56b31',2,[6,5]);
+ const oval=(x,y,rx,ry,color)=>{const pts=[];for(let i=0;i<24;i++){const a=i*Math.PI/12;pts.push(at(x+rx*Math.cos(a),y+ry*Math.sin(a)));}poly(pts,color);};
+ // Four distinct motor pods; no decorative time-based propeller phase.
+ for(const depth of [-1,1])for(const side of [-1,1]){
+  const x=side*span,y=depth*10;
+  line(at(side*12,depth*5),at(x,y),'#334155',9);line(at(side*12,depth*5-2),at(x,y-2),'#94a3b8',3);
+  poly([at(x-6,y-8),at(x+6,y-8),at(x+6,y+4),at(x-6,y+4)],'#475569');
+  oval(x,y-9,23,5,'#d7e0e3');line(at(x-22,y-9),at(x+22,y-9),'#64748b',2);disc(at(x,y-9),3,'#087f74');
+ }
+ for(const side of [-1,1]){line(at(side*13,6),at(side*23,24),'#64748b',4);line(at(side*16,24),at(side*33,24),'#334155',4);}
+ poly([at(-22,-10),at(16,-10),at(25,-2),at(18,12),at(-18,12),at(-26,0)],'#334155');poly([at(-18,-10),at(15,-10),at(20,-3),at(-21,-3)],'#e2e8ec');poly([at(-17,-1),at(16,-1),at(12,8),at(-12,8)],'#087f74');disc(at(0,12),5,'#334155');disc(at(0,12),2,'#94a3b8');
+ for(const side of [-1,1]){const f=side<0?s.left:s.right;if(f>0){const from=at(side*span,-19),to=at(side*span,-19-f*2);line(from,to,'#087f74',2);line(to,at(side*span-3,-15-f*2),'#087f74',2);line(to,at(side*span+3,-15-f*2),'#087f74',2);}}
+ ctx.font='12px "Pretendard Variable", sans-serif';ctx.fillStyle='#334155';ctx.fillText(en?'Quadcopter · horizontal follow camera':'쿼드콥터 · 수평 추적 시점',12,22);ctx.fillStyle='#c56b31';ctx.fillText(en?'Dashed: altitude / roll targets':'점선: 고도 / 롤 목표',12,42);ctx.fillStyle='#334155';ctx.fillText(`L ${s.left.toFixed(1)} N · R ${s.right.toFixed(1)} N`,12,h-31);ctx.fillText(`x ${s.x.toFixed(1)} m · z ${s.z.toFixed(2)} m`,12,h-13);ctx.restore();
 }

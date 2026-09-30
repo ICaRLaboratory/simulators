@@ -3,9 +3,17 @@ const root = process.env.SIM_BASE || 'http://127.0.0.1:8765/simulators/';
 
 test('schematic surfaces use neutral paper while signal colors remain distinct', async ({ page }) => {
   await page.goto(root);
-  const body = page.locator('[data-id="cruise-control"] svg path').first();
-  await expect(body).toHaveAttribute('fill', '#e8e8e5');
-  await expect(page.locator('[data-id="cruise-control"] svg')).toHaveAttribute('stroke', '#0a0a0a');
+  const image = page.locator('[data-id="cruise-control"] .card-preview');
+  await image.scrollIntoViewIfNeeded();
+  await expect.poll(()=>image.evaluate(n=>n.complete&&n.naturalWidth>0)).toBe(true);
+  const colors=await image.evaluate(n=>{
+    const canvas=document.createElement('canvas');canvas.width=n.naturalWidth;canvas.height=n.naturalHeight;
+    const ctx=canvas.getContext('2d');ctx.drawImage(n,0,0);const {data}=ctx.getImageData(0,0,canvas.width,canvas.height);
+    let neutral=0,teal=0,orange=0;
+    for(let i=0;i<data.length;i+=4){const [r,g,b]=data.slice(i,i+3);if(Math.max(r,g,b)-Math.min(r,g,b)<15)neutral++;if(g>r+25&&b>r+15)teal++;if(r>g+30&&g>b+20)orange++;}
+    return {neutral:neutral/(data.length/4),teal,orange};
+  });
+  expect(colors.neutral).toBeGreaterThan(.6);expect(colors.teal).toBeGreaterThan(0);expect(colors.orange).toBeGreaterThan(0);
 });
 
 import {catalog} from '../assets/catalog.js';

@@ -53,13 +53,26 @@ export class Simulation {
   observe(){const s=this.state;return {t:s.t,q1:s.q1,q2:s.q2,tau1:s.tau1,tau2:s.tau2,target1:this.params.target1,target2:this.params.target2};}
 }
 export function draw(ctx,s,p,w,h,language){
-  const en=language==='en',scale=Math.min(w*0.26,(h-70)/3.2),ox=w/2,oy=h/2;
-  ctx.save();ctx.font='12px "Pretendard Variable", sans-serif';ctx.lineCap='round';
-  function arm(q1,q2,color,dashed){
-    const x=ox+0.8*scale*Math.cos(q1),y=oy-0.8*scale*Math.sin(q1),ex=x+0.8*scale*Math.cos(q1+q2),ey=y-0.8*scale*Math.sin(q1+q2);
-    ctx.strokeStyle=color;ctx.lineWidth=dashed?3:8;ctx.setLineDash(dashed?[6,5]:[]);ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(x,y);ctx.lineTo(ex,ey);ctx.stroke();
-    if(!dashed){ctx.fillStyle=color;for(const [a,b] of [[ox,oy],[x,y],[ex,ey]]){ctx.beginPath();ctx.arc(a,b,6,0,Math.PI*2);ctx.fill();}}
-  }
-  arm(p.target1,p.target2,'#c56b31',true);arm(s.q1,s.q2,'#087f74',false);
-  ctx.fillStyle='#0a0a0a';ctx.fillText(en?'Solid: actual · dashed: target':'실선: 실제 · 점선: 목표',12,22);ctx.fillText(en?'Links: 0.8 m · angles: rad':'링크: 0.8 m · 각도: rad',12,h-16);ctx.restore();
+ function machinery(ctx) {
+  const ink='#334155',light='#e2e8ec',teal='#087f74';
+  const poly=(points,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(...points[0]);for(const p of points.slice(1))ctx.lineTo(...p);ctx.closePath();ctx.fill();};
+  const line=(a,b,color=ink,width=2,dash=[])=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();ctx.setLineDash([]);};
+  const disc=(p,r,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc(...p,r,0,Math.PI*2);ctx.fill();};
+  const bearing=(p,r=12)=>{disc(p,r,ink);disc(p,r-3,light);disc(p,r-6,teal);disc(p,2,'#fff');};
+  const link=(a,b,width=18)=>{const dx=b[0]-a[0],dy=b[1]-a[1],length=Math.hypot(dx,dy),nx=-dy/length,ny=dx/length;const offset=(p,n)=>[p[0]+nx*n,p[1]+ny*n];poly([offset(a,width/2),offset(b,width/2),offset(b,-width/2),offset(a,-width/2)],ink);poly([offset(a,width/2-3),offset(b,width/2-3),offset(b,-width/2+3),offset(a,-width/2+3)],light);line(offset(a,-width/2+4),offset(b,-width/2+4),'#fff',2);line(a,b,teal,3);};
+  const housing=(x,y,width,height)=>{poly([[x,y],[x+width,y],[x+width+7,y+7],[x+7,y+7]],'#e2e8ec');poly([[x+width,y],[x+width+7,y+7],[x+width+7,y+height],[x+width,y+height-7]],'#64748b');ctx.fillStyle=ink;ctx.fillRect(x,y+7,width,height-7);ctx.fillStyle='#cbd5df';ctx.fillRect(x+4,y+11,width-8,4);for(const bx of [x+7,x+width-7])for(const by of [y+20,y+height-6])disc([bx,by],2,'#94a3b8');};
+  return {poly,line,disc,bearing,link,housing};
+ }
+
+ const en=language==='en',scale=Math.min((w-54)/3.2,(h-115)/3.2),ox=w/2,oy=h*.51;
+ const joints=(a,b)=>{const e=[ox+.8*scale*Math.cos(a),oy-.8*scale*Math.sin(a)];return [[ox,oy],e,[e[0]+.8*scale*Math.cos(a+b),e[1]-.8*scale*Math.sin(a+b)]];};
+ ctx.save();ctx.lineCap='round';const {poly,line,disc,bearing,link,housing}=machinery(ctx);
+ const target=joints(p.target1,p.target2),actual=joints(s.q1,s.q2);
+ line(target[0],target[1],'#c56b31',2,[6,5]);line(target[1],target[2],'#c56b31',2,[6,5]);
+ housing(ox-30,oy+14,56,39);line([ox,oy+20],[ox,oy],'#64748b',24);
+ link(actual[0],actual[1],22);link(actual[1],actual[2],18);bearing(actual[0],15);bearing(actual[1],12);bearing(actual[2],9);
+ const tip=actual[2],a=s.q1+s.q2,u=[Math.cos(a),-Math.sin(a)],v=[Math.sin(a),Math.cos(a)],at=(x,y)=>[tip[0]+x*u[0]+y*v[0],tip[1]+x*u[1]+y*v[1]];
+ poly([at(1,-8),at(9,-8),at(9,8),at(1,8)],'#475569');for(const side of [-1,1]){line(at(6,side*7),at(16,side*7),'#334155',4);line(at(16,side*7),at(16,side*3),'#087f74',3);}
+ disc(actual[0],3,'#fff');
+ ctx.font='12px "Pretendard Variable", sans-serif';ctx.fillStyle='#334155';ctx.fillText(en?'Two-link servo arm · 0.8 m + 0.8 m':'2관절 서보 암 · 0.8 m + 0.8 m',12,22);ctx.fillText(en?'Solid: actual · dashed: target':'실선: 실제 · 점선: 목표',12,h-16);ctx.restore();
 }

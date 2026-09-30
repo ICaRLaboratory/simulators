@@ -40,12 +40,26 @@ export class Simulation{
  observe(){const s=this.state;return {t:s.t,temperature:s.temperature-273.15,target:this.params.target,concentration:s.concentration,coolant:s.coolant-273.15,rate:s.rate};}
 }
 export function draw(ctx,s,p,w,h,language){
- const en=language==='en',x=w*.28,y=h*.26,bw=w*.44,bh=h*.45;
- ctx.font='14px "Pretendard Variable", sans-serif';ctx.lineWidth=3;ctx.strokeStyle='#087f74';ctx.strokeRect(x-10,y-8,bw+20,bh+16);
- ctx.fillStyle=s.temperature>380?'#f8c3a9':'#e0f2ef';ctx.fillRect(x,y,bw,bh);ctx.strokeStyle='#0a0a0a';ctx.strokeRect(x,y,bw,bh);
- ctx.beginPath();ctx.moveTo(w/2,y-18);ctx.lineTo(w/2,y+bh*.7);ctx.stroke();const blade=Math.cos(s.t*3)*bw*.3;ctx.beginPath();ctx.moveTo(w/2-blade,y+bh*.7);ctx.lineTo(w/2+blade,y+bh*.7);ctx.stroke();
- ctx.fillStyle='#0a0a0a';ctx.fillText(`${en?'Reactor':'반응기'} ${(s.temperature-273.15).toFixed(1)} °C`,12,24);ctx.fillText(`C = ${s.concentration.toFixed(3)} mol/L`,x-8,y+bh+40);
- ctx.fillStyle='#087f74';ctx.fillText(`${en?'Jacket':'재킷'} ${(s.coolant-273.15).toFixed(1)} °C`,12,h-40);ctx.fillStyle='#c56b31';ctx.fillText(`${en?'Target':'목표'} ${p.target} °C`,12,h-16);
- ctx.strokeStyle='#087f74';ctx.beginPath();ctx.moveTo(15,y+bh*.3);ctx.lineTo(x,y+bh*.3);ctx.moveTo(x+bw,y+bh*.8);ctx.lineTo(w-15,y+bh*.8);ctx.stroke();
- const offset=(s.t*.15)%1;ctx.fillStyle='#087f74';ctx.beginPath();ctx.arc(15+offset*(x-15),y+bh*.3,4,0,Math.PI*2);ctx.fill();
+ const en=language==='en',x=w*.28,y=h*.29,bw=w*.44,bh=h*.36;
+ ctx.save();ctx.font='13px "Pretendard Variable", sans-serif';ctx.lineWidth=1.5;
+ const body=(xx,yy,ww,hh,fill)=>{const r=Math.min(ww*.23,24);ctx.beginPath();ctx.moveTo(xx+r,yy);ctx.lineTo(xx+ww-r,yy);ctx.quadraticCurveTo(xx+ww,yy,xx+ww,yy+r);ctx.lineTo(xx+ww,yy+hh-r);ctx.quadraticCurveTo(xx+ww,yy+hh,xx+ww-r,yy+hh);ctx.lineTo(xx+r,yy+hh);ctx.quadraticCurveTo(xx,yy+hh,xx,yy+hh-r);ctx.lineTo(xx,yy+r);ctx.quadraticCurveTo(xx,yy,xx+r,yy);ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle='#68736c';ctx.stroke();};
+ const pipe=(points,color='#d5dbd6')=>{ctx.beginPath();points.forEach(([a,b],i)=>i?ctx.lineTo(a,b):ctx.moveTo(a,b));ctx.lineWidth=10;ctx.strokeStyle='#7b867f';ctx.stroke();ctx.lineWidth=6;ctx.strokeStyle=color;ctx.stroke();ctx.lineWidth=1.5;};
+ pipe([[14,y-12],[x+24,y-12],[x+24,y+12]]);pipe([[x+bw-4,y+bh*.67],[w-14,y+bh*.67]]);
+ pipe([[14,y+bh*.8],[x-10,y+bh*.8]],'#bbdcd4');pipe([[x+bw+10,y+bh*.2],[w-14,y+bh*.2]],'#bbdcd4');
+ ctx.fillStyle='#959f98';for(const xx of [x+14,x+bw-24]){ctx.fillRect(xx,y+bh-3,10,26);ctx.fillRect(xx-7,y+bh+20,24,5);}
+ // Separate outer jacket and inner vessel leave a visible coolant passage.
+ body(x-13,y-4,bw+26,bh+12,'#c6ddd6');body(x,y,bw,bh,'#f3f5f1');
+ const tone=clamp((s.temperature-300)/100,0,1);
+ body(x+7,y+bh*.28,bw-14,bh*.65,`rgba(8,127,116,${.13+.18*tone})`);
+ ctx.strokeStyle='#087f74';ctx.beginPath();ctx.moveTo(x+12,y+bh*.28);ctx.lineTo(x+bw-12,y+bh*.28);ctx.stroke();
+ // A fixed agitator cutaway, not an invented shaft-speed state.
+ ctx.fillStyle='#8b9690';ctx.fillRect(w/2-16,y-30,32,21);ctx.fillStyle='#d9dfda';ctx.fillRect(w/2-11,y-27,22,11);
+ ctx.strokeStyle='#5f6b64';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(w/2,y-9);ctx.lineTo(w/2,y+bh*.78);ctx.stroke();
+ for(const yy of [y+bh*.48,y+bh*.75]){ctx.fillStyle='#8c9b93';ctx.beginPath();ctx.moveTo(w/2-27,yy-6);ctx.lineTo(w/2+27,yy+2);ctx.lineTo(w/2+24,yy+9);ctx.lineTo(w/2-25,yy+1);ctx.closePath();ctx.fill();}
+ ctx.lineWidth=1;ctx.strokeStyle='#81948a';ctx.beginPath();ctx.moveTo(x+6,y+bh+5);ctx.lineTo(x-18,h-68);ctx.lineTo(12,h-68);ctx.stroke();
+ ctx.fillStyle='#087f74';ctx.fillText(`${en?'Reactor':'반응기'} ${(s.temperature-273.15).toFixed(1)} °C`,12,22);
+ ctx.fillStyle='#c56b31';ctx.fillText(`${en?'Target':'목표'} ${p.target} °C`,12,42);
+ ctx.fillStyle='#263d33';ctx.fillText(en?'Jacket · Coolant passage':'재킷 · 냉각수 통로',12,h-53);
+ ctx.fillStyle='#087f74';ctx.fillText(`${en?'Coolant':'냉각수'} ${(s.coolant-273.15).toFixed(1)} °C`,12,h-33);
+ ctx.fillStyle='#252b28';ctx.fillText(`C = ${s.concentration.toFixed(3)} mol/L`,12,h-13);ctx.restore();
 }

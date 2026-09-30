@@ -119,8 +119,8 @@ input[type=checkbox] { accent-color: var(--ink); height: 16px; width: 16px; }
 .sim-card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; background: var(--ink); opacity: 0; transition: opacity .28s; z-index: 1; }
 .sim-card:hover { transform: translateY(-4px); border-color: var(--line); background: var(--panel-2); }
 .sim-card:hover::before { opacity: 1; }
-.card-visual { height: 155px; position: relative; border-bottom: 1px solid var(--line-soft); background: var(--bg-soft); }
-.card-visual svg { width: 100%; height: 100%; }
+.card-visual { height: 225px; padding-top: 43px; position: relative; border-bottom: 1px solid var(--line-soft); background: var(--bg-soft); }
+.card-preview { display: block; width: 100%; height: 100%; object-fit: contain; }
 .card-visual .card-number { position: absolute; left: 17px; top: 14px; font: 500 11px/1.5 var(--mono); letter-spacing: .18em; color: var(--faint); }
 .card-status { position: absolute; right: 13px; top: 12px; padding: 3px 8px; border-radius: 999px; font-size: 12px; background: var(--surface); color: var(--muted); border: 1px solid var(--line-soft); }
 .card-status.ready { background: var(--ink); color: var(--bg); border-color: var(--ink); }
@@ -245,7 +245,7 @@ canvas { display: block; width: 100%; }
   .results-row > span { display: none; }
   .catalog-grid { gap: 14px; }
   .card-body { padding: 18px; }
-  .card-visual { height: 140px; }
+  .card-visual { height: 205px; }
   .site-footer { flex-direction: column; }
   .sim-heading { align-items: start; flex-direction: column; gap: 18px; }
   .sim-heading h1 { font-size: 32px; }
@@ -259,7 +259,7 @@ canvas { display: block; width: 100%; }
 }
 @media (max-width: 450px) {
   .catalog-grid { grid-template-columns: 1fr; }
-  .card-visual { height: 160px; }
+  .card-visual { height: 205px; }
   .card-body { padding: 22px; }
   .section-index { font-size: 11px; }
   .parameter { padding-inline: 14px; }

@@ -204,6 +204,37 @@ export class Simulation {
     };
   }
 }
+// Rear-axle-local bodywork; front tires use the model's bicycle steering angle.
+function drawCar(ctx, s, xy) {
+  const point = ([x, y]) => xy({
+    x: s.x + x * Math.cos(s.psi) - y * Math.sin(s.psi),
+    y: s.y + x * Math.sin(s.psi) + y * Math.cos(s.psi),
+  });
+  const panel = (points, color, outline = false) => {
+    ctx.beginPath();
+    points.map(point).forEach(([x,y],i) => i ? ctx.lineTo(x,y) : ctx.moveTo(x,y));
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    if (outline) { ctx.strokeStyle = "#134e4a"; ctx.lineWidth = 1; ctx.stroke(); }
+  };
+  // Separate rubber footprints, centered at rear and front axles (L = 2.7 m).
+  for (const axle of [0, L]) for (const side of [-1, 1]) {
+    const angle = axle === 0 ? 0 : s.steering;
+    panel([[-0.43,-0.17],[0.43,-0.17],[0.43,0.17],[-0.43,0.17]].map(([x,y]) =>
+      [axle+x*Math.cos(angle)-y*Math.sin(angle), side*0.86+x*Math.sin(angle)+y*Math.cos(angle)]), "#1e293b");
+  }
+  panel([[-0.8,-0.6],[-0.55,-0.84],[2.95,-0.84],[3.4,-0.55],
+    [3.4,0.55],[2.95,0.84],[-0.55,0.84],[-0.8,0.6]], "#087f74", true);
+  // Roof and two glazed screens make heading legible without an artificial arrow.
+  panel([[0.1,-0.67],[0.55,-0.57],[0.55,0.57],[0.1,0.67]], "#cbd5e1");
+  panel([[0.65,-0.56],[1.7,-0.56],[1.7,0.56],[0.65,0.56]], "#f8fafc");
+  panel([[1.8,-0.56],[2.36,-0.7],[2.36,0.7],[1.8,0.56]], "#cbd5e1");
+  for (const side of [-1,1]) {
+    panel([[2.95,side*0.72],[3.22,side*0.58],[3.22,side*0.36],[2.95,side*0.42]], "#fff");
+    panel([[-0.67,side*0.62],[-0.48,side*0.7],[-0.48,side*0.35],[-0.67,side*0.35]], "#fda4af");
+  }
+}
 export function draw(ctx, s, p, width, height, language) {
   const ko = language === "ko",
     scale = Math.min(width - 44, height - 80) / 38,
@@ -224,6 +255,25 @@ export function draw(ctx, s, p, width, height, language) {
     12,
     39,
   );
+  // A neutral test-track surface; only the dashed centerline is the reference.
+  ctx.strokeStyle = "#e2e8f0";
+  ctx.lineWidth = 4.8 * scale;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * scale, 0, 2 * Math.PI);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#94a3b8";
+  for (const radius of [R - 2.4, R + 2.4]) {
+    ctx.beginPath(); ctx.arc(cx, cy, radius * scale, 0, 2 * Math.PI); ctx.stroke();
+  }
+  ctx.strokeStyle = "#cbd5e1";
+  for (let a = 0; a < 2 * Math.PI; a += Math.PI / 24) {
+    ctx.beginPath();
+    ctx.moveTo(cx + 12 * scale * Math.cos(a), cy + 12 * scale * Math.sin(a));
+    ctx.lineTo(cx + 16 * scale * Math.cos(a), cy + 16 * scale * Math.sin(a));
+    ctx.stroke();
+  }
+  ctx.lineWidth = 2;
   ctx.strokeStyle = "#c56b31";
   ctx.setLineDash([6, 4]);
   ctx.beginPath();
@@ -250,14 +300,7 @@ export function draw(ctx, s, p, width, height, language) {
   ctx.beginPath();
   ctx.arc(tx, ty, 5, 0, 2 * Math.PI);
   ctx.fill();
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(-s.psi);
-  ctx.fillStyle = "#087f74";
-  ctx.fillRect(-0.8 * scale, -0.9 * scale, 4.2 * scale, 1.8 * scale);
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(2 * scale, -0.6 * scale, 0.5 * scale, 1.2 * scale);
-  ctx.restore();
+  drawCar(ctx, s, xy);
   ctx.fillStyle = "#0a0a0a";
   ctx.fillText(
     `R = 14 m · L = 2.7 m · v = ${p.speed.toFixed(1)} m/s`,

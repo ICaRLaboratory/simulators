@@ -32,10 +32,30 @@ export class Simulation{
  observe(){const s=this.state;return {t:s.t,pitch:s.theta/rad,target:this.params.target,pitchRate:s.q/rad,alpha:s.alpha/rad,elevator:s.elevator/rad};}
 }
 export function draw(ctx,s,p,w,h,language){
- const en=language==='en';ctx.font='14px "Pretendard Variable", sans-serif';ctx.lineWidth=2;
- ctx.strokeStyle='#aaa';ctx.beginPath();ctx.moveTo(16,h*.52);ctx.lineTo(w-16,h*.52);ctx.stroke();
- ctx.save();ctx.translate(w*.5,h*.52);ctx.rotate(-p.target*rad);ctx.strokeStyle='#c56b31';ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(-w*.32,0);ctx.lineTo(w*.32,0);ctx.stroke();ctx.restore();
- ctx.save();ctx.translate(w*.5,h*.52);ctx.rotate(-s.theta);ctx.fillStyle='#087f74';ctx.beginPath();ctx.moveTo(w*.32,0);ctx.lineTo(w*.15,-10);ctx.lineTo(-w*.22,-7);ctx.lineTo(-w*.3,-30);ctx.lineTo(-w*.34,-30);ctx.lineTo(-w*.32,8);ctx.lineTo(w*.15,10);ctx.closePath();ctx.fill();
- ctx.strokeStyle='#0a0a0a';ctx.beginPath();ctx.moveTo(-w*.24,0);ctx.lineTo(-w*.34,Math.sin(s.elevator)*w*.14);ctx.stroke();ctx.restore();
- ctx.fillStyle='#087f74';ctx.fillText(`${en?'Pitch':'피치'} ${(s.theta/rad).toFixed(1)}°`,12,24);ctx.fillStyle='#c56b31';ctx.fillText(`${en?'Target':'목표'} ${p.target}°`,12,46);ctx.fillStyle='#0a0a0a';ctx.fillText(`${en?'Elevator':'승강타'} ${(s.elevator/rad).toFixed(1)}°`,12,h-36);ctx.fillText(`q = ${(s.q/rad).toFixed(1)} °/s`,12,h-14);
+ const en=language==='en',cy=h*.51,L=Math.min(w*.39,h*.64);
+ ctx.save();ctx.font='13px "Pretendard Variable", sans-serif';ctx.lineWidth=1.5;
+ ctx.fillStyle='#f4f6f3';ctx.fillRect(12,cy,w-24,h*.20);
+ ctx.strokeStyle='#a8b0a9';ctx.beginPath();ctx.moveTo(12,cy);ctx.lineTo(w-12,cy);ctx.stroke();
+ ctx.fillStyle='#626b65';ctx.fillText(en?'Horizon':'수평선',12,cy+h*.20+16);
+ ctx.save();ctx.translate(w/2,cy);ctx.rotate(-p.target*rad);ctx.strokeStyle='#c56b31';ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(-L-10,0);ctx.lineTo(L+10,0);ctx.stroke();ctx.restore();
+ ctx.save();ctx.translate(w/2,cy);ctx.rotate(-s.theta);
+ const polygon=(points,fill)=>{ctx.beginPath();points.forEach(([x,y],i)=>i?ctx.lineTo(x*L,y*L):ctx.moveTo(x*L,y*L));ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle='#636f67';ctx.stroke();};
+ // Far wing and vertical fin sit behind the rounded fuselage.
+ polygon([[-.20,-.04],[-.39,-.37],[-.17,-.34],[.18,-.03]],'#ccd4cd');
+ polygon([[-.84,-.04],[-.91,-.42],[-.74,-.41],[-.46,-.06]],'#b9c5bc');
+ ctx.beginPath();ctx.moveTo(-.96*L,.02*L);ctx.quadraticCurveTo(-.84*L,-.09*L,-.60*L,-.095*L);ctx.lineTo(.53*L,-.095*L);ctx.quadraticCurveTo(.80*L,-.085*L,L,.025*L);ctx.quadraticCurveTo(.87*L,.13*L,.52*L,.125*L);ctx.lineTo(-.59*L,.095*L);ctx.quadraticCurveTo(-.85*L,.08*L,-.96*L,.02*L);ctx.closePath();ctx.fillStyle='#e6ebe5';ctx.fill();ctx.strokeStyle='#616e65';ctx.stroke();
+ // Belly shading and a teal actual-attitude stripe.
+ polygon([[-.69,.057],[.84,.057],[.65,.105],[-.58,.084]],'#b8c8be');
+ ctx.strokeStyle='#087f74';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-.64*L,.015*L);ctx.lineTo(.69*L,.015*L);ctx.stroke();ctx.lineWidth=1.5;
+ polygon([[.53,-.082],[.68,-.06],[.78,-.01],[.55,-.012]],'#536c63');
+ for(let i=0;i<6;i++){ctx.fillStyle='#768e82';ctx.fillRect((.36-i*.125)*L,-.06*L,.048*L,.033*L);}
+ polygon([[.15,.03],[-.33,.39],[-.56,.37],[-.22,.045]],'#b2c1b6');
+ polygon([[-.60,.035],[-.81,.19],[-.98,.16],[-.81,.018]],'#ced8cf');
+ // Elevator rotates about its tail hinge using the modeled deflection.
+ ctx.save();ctx.translate(-.80*L,.045*L);ctx.rotate(s.elevator);
+ polygon([[0,0],[-.20,-.016],[-.22,.028],[0,.028]],'#087f74');ctx.restore();
+ ctx.fillStyle='#087f74';ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fill();ctx.restore();
+ ctx.fillStyle='#087f74';ctx.fillText(`${en?'Pitch':'피치'} ${(s.theta/rad).toFixed(1)}°`,12,22);
+ ctx.fillStyle='#c56b31';ctx.fillText(`${en?'Target':'목표'} ${p.target}°`,12,42);
+ ctx.fillStyle='#252b28';ctx.fillText(`${en?'Elevator':'승강타'} ${(s.elevator/rad).toFixed(1)}°`,12,h-34);ctx.fillText(`q = ${(s.q/rad).toFixed(1)} °/s`,12,h-14);ctx.restore();
 }

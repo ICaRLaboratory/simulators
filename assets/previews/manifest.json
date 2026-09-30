@@ -1,0 +1,240 @@
+[
+  {
+    "id": "cruise-control",
+    "lang": "ko",
+    "file": "cruise-control-ko.png",
+    "source": "cruise-control/?lang=ko",
+    "sha256": "e499b0706726c2bf8e4010b4fd4041bad16ce4fcdacf9b0e1010351470b9f7c4"
+  },
+  {
+    "id": "cruise-control",
+    "lang": "en",
+    "file": "cruise-control-en.png",
+    "source": "cruise-control/?lang=en",
+    "sha256": "15d3b8b227498c8e703629297db44778b76105d7bf914e0be539039d8ae27b36"
+  },
+  {
+    "id": "dc-motor",
+    "lang": "ko",
+    "file": "dc-motor-ko.png",
+    "source": "dc-motor/?lang=ko",
+    "sha256": "b83835f26af10eac1c0b06cda8db2f7b96624d7cd36d28e1a630262ed2215fba"
+  },
+  {
+    "id": "dc-motor",
+    "lang": "en",
+    "file": "dc-motor-en.png",
+    "source": "dc-motor/?lang=en",
+    "sha256": "b83835f26af10eac1c0b06cda8db2f7b96624d7cd36d28e1a630262ed2215fba"
+  },
+  {
+    "id": "ball-and-beam",
+    "lang": "ko",
+    "file": "ball-and-beam-ko.png",
+    "source": "ball-and-beam/?lang=ko",
+    "sha256": "1d7ee2a4daa4c3d288e9681a5e15d39f6dfffa99dee1f5f926e3366b0c6eba2e"
+  },
+  {
+    "id": "ball-and-beam",
+    "lang": "en",
+    "file": "ball-and-beam-en.png",
+    "source": "ball-and-beam/?lang=en",
+    "sha256": "1d7ee2a4daa4c3d288e9681a5e15d39f6dfffa99dee1f5f926e3366b0c6eba2e"
+  },
+  {
+    "id": "inverted-pendulum",
+    "lang": "ko",
+    "file": "inverted-pendulum-ko.png",
+    "source": "inverted-pendulum/?lang=ko",
+    "sha256": "19d6bf192b6b5960148a8abac91ecaca9d0adfa1af3d3384884c571ea84cd7cd"
+  },
+  {
+    "id": "inverted-pendulum",
+    "lang": "en",
+    "file": "inverted-pendulum-en.png",
+    "source": "inverted-pendulum/?lang=en",
+    "sha256": "19d6bf192b6b5960148a8abac91ecaca9d0adfa1af3d3384884c571ea84cd7cd"
+  },
+  {
+    "id": "rotary-pendulum",
+    "lang": "ko",
+    "file": "rotary-pendulum-ko.png",
+    "source": "rotary-pendulum/?lang=ko",
+    "sha256": "f06c4cf4622373777eb5b4fc7f035037adccd74c0b26e97f900d1a265778fb22"
+  },
+  {
+    "id": "rotary-pendulum",
+    "lang": "en",
+    "file": "rotary-pendulum-en.png",
+    "source": "rotary-pendulum/?lang=en",
+    "sha256": "f06c4cf4622373777eb5b4fc7f035037adccd74c0b26e97f900d1a265778fb22"
+  },
+  {
+    "id": "ball-and-plate",
+    "lang": "ko",
+    "file": "ball-and-plate-ko.png",
+    "source": "ball-and-plate/?lang=ko",
+    "sha256": "dc77eb1ca855afa6c4a50dd7b712f0ff7397a5a4612e7e31ff695dfd2d6538f0"
+  },
+  {
+    "id": "ball-and-plate",
+    "lang": "en",
+    "file": "ball-and-plate-en.png",
+    "source": "ball-and-plate/?lang=en",
+    "sha256": "dc77eb1ca855afa6c4a50dd7b712f0ff7397a5a4612e7e31ff695dfd2d6538f0"
+  },
+  {
+    "id": "robot-arm",
+    "lang": "ko",
+    "file": "robot-arm-ko.png",
+    "source": "robot-arm/?lang=ko",
+    "sha256": "68844abc1bb2d93a2273c4c3fd2fbd92ccd7245193c96bdffd7b2870553d0b34"
+  },
+  {
+    "id": "robot-arm",
+    "lang": "en",
+    "file": "robot-arm-en.png",
+    "source": "robot-arm/?lang=en",
+    "sha256": "68844abc1bb2d93a2273c4c3fd2fbd92ccd7245193c96bdffd7b2870553d0b34"
+  },
+  {
+    "id": "parking",
+    "lang": "ko",
+    "file": "parking-ko.png",
+    "source": "parking/?lang=ko",
+    "sha256": "a964e829d2be2f825e6f0554e63c770fa7c3d0fd040f267a42f74a6e1c95f4bd"
+  },
+  {
+    "id": "parking",
+    "lang": "en",
+    "file": "parking-en.png",
+    "source": "parking/?lang=en",
+    "sha256": "d4bf6c64c0f7a5919205daa247d2452e4a759eb231b432620108ea817966994b"
+  },
+  {
+    "id": "heat-exchanger",
+    "lang": "ko",
+    "file": "heat-exchanger-ko.png",
+    "source": "heat-exchanger/?lang=ko",
+    "sha256": "96ef74946cd7d8babcd7b2d0c11d4e22cc246c14ee706910f5fb9d410494871b"
+  },
+  {
+    "id": "heat-exchanger",
+    "lang": "en",
+    "file": "heat-exchanger-en.png",
+    "source": "heat-exchanger/?lang=en",
+    "sha256": "228ab817b9c6b538b303dc44bccf7f078a2dd1a10405cd6338003f085b34f5c3"
+  },
+  {
+    "id": "drone",
+    "lang": "ko",
+    "file": "drone-ko.png",
+    "source": "drone/?lang=ko",
+    "sha256": "dc96dea480f5ff256d6d18b5a86a2afcec858d955fe31019b2a041fb928c8e72"
+  },
+  {
+    "id": "drone",
+    "lang": "en",
+    "file": "drone-en.png",
+    "source": "drone/?lang=en",
+    "sha256": "dc96dea480f5ff256d6d18b5a86a2afcec858d955fe31019b2a041fb928c8e72"
+  },
+  {
+    "id": "impedance-robot",
+    "lang": "ko",
+    "file": "impedance-robot-ko.png",
+    "source": "impedance-robot/?lang=ko",
+    "sha256": "423d2127234e211884815941728fc25695047a5f040788b63a6a53a08d3ad676"
+  },
+  {
+    "id": "impedance-robot",
+    "lang": "en",
+    "file": "impedance-robot-en.png",
+    "source": "impedance-robot/?lang=en",
+    "sha256": "a869f1ee79dc7ed729ee399164700ed68e70ca139edf090f9093d5bfef044156"
+  },
+  {
+    "id": "path-tracking",
+    "lang": "ko",
+    "file": "path-tracking-ko.png",
+    "source": "path-tracking/?lang=ko",
+    "sha256": "cfe6c450950c3e70eff140793946eaacb3207964a56ea0b30473c5a421e83944"
+  },
+  {
+    "id": "path-tracking",
+    "lang": "en",
+    "file": "path-tracking-en.png",
+    "source": "path-tracking/?lang=en",
+    "sha256": "9625f4710ab31920c68d7c2f9ed67a72f6980e620cb0536fbc9f3791af8f7aff"
+  },
+  {
+    "id": "suspension",
+    "lang": "ko",
+    "file": "suspension-ko.png",
+    "source": "suspension/?lang=ko",
+    "sha256": "ac35e8221bd77bb84e2b6e27d67f0da7d4da8c2007a5fb92865c9e6292f5f5fe"
+  },
+  {
+    "id": "suspension",
+    "lang": "en",
+    "file": "suspension-en.png",
+    "source": "suspension/?lang=en",
+    "sha256": "779be730f2bcdcf50343388f799e395dc7cfbe586ec529aa4cf3885ef18fd6ee"
+  },
+  {
+    "id": "cstr",
+    "lang": "ko",
+    "file": "cstr-ko.png",
+    "source": "cstr/?lang=ko",
+    "sha256": "be2bd9075fe55c42abd5e685ab7d226bc224ed8cd85816b46ac2887db7723adf"
+  },
+  {
+    "id": "cstr",
+    "lang": "en",
+    "file": "cstr-en.png",
+    "source": "cstr/?lang=en",
+    "sha256": "6952acdbf39353d50037139a568c95c8d298fb183ba71c6889a9a462ca9ab9e3"
+  },
+  {
+    "id": "aircraft-pitch",
+    "lang": "ko",
+    "file": "aircraft-pitch-ko.png",
+    "source": "aircraft-pitch/?lang=ko",
+    "sha256": "d1b7bae31fbffd6e377c9a6b6777826bbaec55b0d841ef7fe0588bf06d516e67"
+  },
+  {
+    "id": "aircraft-pitch",
+    "lang": "en",
+    "file": "aircraft-pitch-en.png",
+    "source": "aircraft-pitch/?lang=en",
+    "sha256": "3060a63c7328f645f122255961a4a41022dfa494dd7d750783afc662c2b9dffb"
+  },
+  {
+    "id": "research-tracking",
+    "lang": "ko",
+    "file": "research-tracking-ko.png",
+    "source": "https://icarlaboratory.github.io/research.html?sim=track&lang=ko#interactive",
+    "sha256": "a58844cbeb59c901d0a5db185cbb3a7276183e653bf10e42bd95b73b22d84d7a"
+  },
+  {
+    "id": "research-tracking",
+    "lang": "en",
+    "file": "research-tracking-en.png",
+    "source": "https://icarlaboratory.github.io/research.html?sim=track&lang=en#interactive",
+    "sha256": "a89ecaa300b495a223989a9c87069c73516b26e06f54c5d769eadaa17e9eb3b9"
+  },
+  {
+    "id": "research-contact",
+    "lang": "ko",
+    "file": "research-contact-ko.png",
+    "source": "https://icarlaboratory.github.io/research.html?sim=contact&lang=ko#interactive",
+    "sha256": "542f4855199ff2292fee0bd8258b51dbd985746b88fb9995ed24461df8a1cdf7"
+  },
+  {
+    "id": "research-contact",
+    "lang": "en",
+    "file": "research-contact-en.png",
+    "source": "https://icarlaboratory.github.io/research.html?sim=contact&lang=en#interactive",
+    "sha256": "80e3229603bd38fa017595fb8632e65ad018e8705e22d0c3b001af8dd48a02c7"
+  }
+]
