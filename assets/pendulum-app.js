@@ -1,11 +1,10 @@
-import {setupPlaybackPreference} from './playback-preference.js';
 import {setupLanguage, t, translateDOM} from './i18n.js';
 import {PendulumSimulation} from './pendulum-physics.js';
 
 const $ = id => document.getElementById(id);
 const simulation = new PendulumSimulation();
 const STEP = 0.005;
-let running = false, accumulator = 0, previous = null, lastDraw = 0;
+let running = false, accumulator = 0, previous = null;
 let notice = 'ready';
 const history = [];
 const copy = {
@@ -77,7 +76,6 @@ function localize() {
 }
 document.addEventListener('icar:lang', localize);
 setupLanguage();
-const reducedMotion = setupPlaybackPreference();
 $('reset').disabled = false;
 
 function sample() {
@@ -176,7 +174,7 @@ function frame(now) {
       simulation.step(STEP);accumulator-=STEP;sample();
       if(simulation.state.failed) pause();
     }
-    if(!reducedMotion.matches || now-lastDraw>=100 || !running){draw();lastDraw=now;}
+    draw();
   } else previous=null;
   requestAnimationFrame(frame);
 }

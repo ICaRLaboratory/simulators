@@ -1,4 +1,3 @@
-import {setupPlaybackPreference} from './playback-preference.js';
 import { catalog, filterCatalog } from './catalog.js';
 import { motionDistance } from './motion.js';
 import {setupLanguage, translateDOM, t, getLanguage, localizedHref} from './i18n.js';
@@ -163,9 +162,8 @@ async function setupSimulation(kind) {
   document.querySelectorAll('.unit').forEach(node=>node.textContent=sim.config.unit);
   $('#model-description').textContent=sim.config.model;
   $('#model-limits').textContent=kind==='cruise-control' ? '단순 질량·선형 저항 모델입니다. 기어, 엔진 지연, 공기저항의 비선형성은 제외합니다. 외란 버튼은 일정한 부하를 켜고 끕니다.' : kind==='dc-motor' ? '단순화한 2차 위치 모델입니다. 전기 회로, 마찰 비선형성 및 기어 백래시는 제외합니다. 외란 버튼은 일정한 부하를 켜고 끕니다.' : '공은 미끄러짐 없이 구르는 구로 근사합니다. 빔 구동기 지연은 제외하며, ±1 m 레일 끝에 도달하면 실험을 정지합니다. 외란 버튼으로 공의 움직임을 교란합니다.';
-  let running=false,lastFrame=0,accumulator=0,raf=0,lastSample=0,lastDraw=0,sceneDistance=0;
+  let running=false,lastFrame=0,accumulator=0,raf=0,lastSample=0,sceneDistance=0;
   const STEP=.005, MAX_ACCUMULATOR=.1;
-  const reducedMotion=setupPlaybackPreference();
   let history=[{t:0,y:sim.state.y,target:sim.params.target}];
   const message=$('#simulation-message');
   function render() {
@@ -205,7 +203,7 @@ async function setupSimulation(kind) {
         if(sim.state.t-lastSample>=.05){history.push({t:sim.state.t,y:sim.state.y,target:sim.params.target});lastSample=sim.state.t;}
       }
       while(history.length>1&&history[1].t<sim.state.t-15)history.shift();
-      if(!reducedMotion.matches||timestamp-lastDraw>=100){render();lastDraw=timestamp;}
+      render();
       raf=requestAnimationFrame(frame);
     } catch(error) { fail('계산 오류가 발생했습니다.'); console.error(error); }
   }

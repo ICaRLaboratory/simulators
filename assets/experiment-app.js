@@ -1,4 +1,3 @@
-import {setupPlaybackPreference} from './playback-preference.js';
 import {setupLanguage,translateDOM} from './i18n.js';
 const loaders={
  'rotary-pendulum':()=>import('./models/rotary-pendulum.js'),
@@ -45,8 +44,7 @@ try{
 }
 function boot({definition:d,Simulation,draw:drawModel}){
  const simulation=new Simulation(),history=[],STEP=.005;
- let running=false,accumulator=0,previous=null,lastDraw=0,notice='ready';
- const reducedMotion=setupPlaybackPreference();
+ let running=false,accumulator=0,previous=null,notice='ready';
  const parameterLabels=[];
  for(const p of d.parameters){
   const container=document.createElement('div');container.className='parameter';
@@ -91,6 +89,6 @@ function boot({definition:d,Simulation,draw:drawModel}){
  // Locale-only changes redraw the schematic, not graph pixels/history.
  const sizes=new WeakMap();const observer=new ResizeObserver(entries=>{let changed=false;for(const e of entries){const size=`${e.contentRect.width}:${e.contentRect.height}`;if(sizes.get(e.target)!==size){sizes.set(e.target,size);changed=true;}}if(changed)render();});
  observer.observe($('apparatus'));d.plots.forEach((_,i)=>observer.observe($(`plot-${i}`)));
- function frame(now){if(running&&!document.hidden){if(previous!==null)accumulator=Math.min(.1,accumulator+Math.max(0,(now-previous)/1000));previous=now;while(accumulator>=STEP&&running){simulation.step(STEP);accumulator-=STEP;sample();if(simulation.state.failed||simulation.state.complete)pause();}if(!reducedMotion.matches||now-lastDraw>=100||!running){render();lastDraw=now;}}else previous=null;requestAnimationFrame(frame);}
+ function frame(now){if(running&&!document.hidden){if(previous!==null)accumulator=Math.min(.1,accumulator+Math.max(0,(now-previous)/1000));previous=now;while(accumulator>=STEP&&running){simulation.step(STEP);accumulator-=STEP;sample();if(simulation.state.failed||simulation.state.complete)pause();}render();}else previous=null;requestAnimationFrame(frame);}
  sample();localize();render();requestAnimationFrame(frame);
 }
