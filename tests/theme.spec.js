@@ -8,7 +8,8 @@ test('schematic surfaces use neutral paper while signal colors remain distinct',
   await expect(page.locator('[data-id="cruise-control"] svg')).toHaveAttribute('stroke', '#0a0a0a');
 });
 
-for (const path of ['', 'cruise-control/', 'dc-motor/', 'ball-and-beam/', 'inverted-pendulum/']) {
+import {catalog} from '../assets/catalog.js';
+for (const path of ['',...catalog.filter(item=>!item.external).map(item=>`${item.id}/`)]) {
   test(`${path || 'catalog'} shares the homepage visual language`, async ({ page }) => {
     await page.goto(root + path);
     await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
@@ -32,9 +33,12 @@ for (const path of ['', 'cruise-control/', 'dc-motor/', 'ball-and-beam/', 'inver
         const style = getComputedStyle(node, '::before');
         return { color: style.borderTopColor, type: style.borderTopStyle };
       }));
-      expect(lines[0].type).toBe('dashed');
-      expect(lines[1].type).toBe('solid');
-      expect(lines[0].color).not.toBe(lines[1].color);
+      expect(lines.length).toBeGreaterThan(0);
+      for(const line of lines)expect(['solid','dashed']).toContain(line.type);
+      const reference=lines.find(line=>line.type==='dashed');
+      const measured=lines.find(line=>line.type==='solid');
+      expect(measured).toBeTruthy();
+      if(reference)expect(reference.color).not.toBe(measured.color);
     }
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 900 });

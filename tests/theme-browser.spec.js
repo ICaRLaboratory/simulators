@@ -1,7 +1,8 @@
 import {test,expect} from '@playwright/test';
+import {catalog} from '../assets/catalog.js';
 const root=process.env.SIM_BASE || 'http://127.0.0.1:8765/simulators/';
 test('lab theme and concise footer apply across simulator pages',async({page})=>{
- for(const route of ['', 'cruise-control/','dc-motor/','ball-and-beam/', 'inverted-pendulum/']){
+ for(const route of ['',...catalog.filter(item=>!item.external).map(item=>`${item.id}/`)]){
   await page.goto(root+route);
   await expect(page.locator('body')).toHaveCSS('background-color','rgb(255, 255, 255)');
   await expect(page.locator('header')).toHaveCSS('background-color','rgb(10, 10, 10)');

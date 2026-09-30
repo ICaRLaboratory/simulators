@@ -6,8 +6,8 @@ test('catalog search combines category, ready and case-insensitive text', async 
   const { filterCatalog } = await import('../assets/catalog.js');
   assert.equal(typeof filterCatalog, 'function');
   assert.equal(filterCatalog({query:'  DC MOTOR  '}).length, 1);
-  assert.equal(filterCatalog({ready:true}).length, 6);
-  assert.equal(filterCatalog({category:'모빌리티',ready:true}).length, 1);
+  assert.equal(filterCatalog({ready:true}).length, 17);
+  assert.equal(filterCatalog({category:'모빌리티',ready:true}).length, 4);
   assert.equal(filterCatalog({query:'존재하지않는실험'}).length, 0);
 });
 
@@ -24,12 +24,21 @@ test('pages expose keyboard accessible simulation and catalog controls', async (
   }
 });
 
-test('catalog has 17 unique sources, four local launches and two research links', async () => {
+test('all implemented projects have static catalog fallback links without stale planned copy', async()=>{
+  const {catalog}=await import('../assets/catalog.js');
+  const home=await readFile(new URL('../index.html',import.meta.url),'utf8');
+  assert.doesNotMatch(home,/준비 중인 실험/);
+  for(const item of catalog.filter(item=>!item.external))assert.ok(home.includes(`href="${item.id}/"`),item.id);
+});
+
+test('catalog has 17 unique sources, fifteen local launches and two research links', async () => {
   const { catalog } = await import('../assets/catalog.js');
   assert.equal(catalog.length, 17);
   assert.equal(new Set(catalog.map(item => item.id)).size, 17);
-  assert.deepEqual(catalog.filter(item => item.status === 'ready').map(item => item.id), ['cruise-control', 'dc-motor', 'ball-and-beam', 'inverted-pendulum', 'research-tracking', 'research-contact']);
-  assert.equal(catalog.filter(item => item.status==='planned').length,11);
+  assert.equal(catalog.filter(item => item.status === 'ready').length, 17);
+  assert.equal(catalog.filter(item => !item.external).length, 15);
+  assert.equal(catalog.filter(item => item.external).length, 2);
+  assert.equal(catalog.filter(item => item.status==='planned').length,0);
   for (const item of catalog) {
     for (const field of ['name', 'english', 'description', 'category', 'sourceName']) assert.ok(item[field], `${item.id}: ${field}`);
     assert.ok(item.features.length >= 2);
