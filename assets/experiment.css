@@ -4,10 +4,32 @@
 .sim-heading p:last-child { margin-top: 10px; max-width: 70ch; }
 .experiment,.controls,.sim-heading>div { min-width: 0; }
 .panel-heading { flex-wrap: wrap; }
-.metrics { grid-template-columns: repeat(auto-fit,minmax(125px,1fr)); }
+
+/* Like the research-tab simulator, the workspace stays dense: plots pair up
+   in rows instead of each taking the page's full width, and a lone trailing
+   plot takes the whole row. Children of .experiment are the apparatus panel,
+   the metrics strip, then the plots, so the plots start at child index 3.
+   Only these generated pages load this sheet. */
+.experiment { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; align-content: start; }
+.apparatus-panel, .experiment .metrics { grid-column: 1 / -1; }
+.experiment > .graph-panel:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.graph-panel + .graph-panel { margin-top: 0; }
+
+/* The homepage's stat pattern: one hairline grid, white cells. Flex rather
+   than grid so a short last row stretches to the full width instead of
+   leaving dead gray cells beside it. */
+.experiment .metrics { display: flex; flex-wrap: wrap; margin: 0; gap: 1px; background: var(--line-soft); }
+.experiment .metrics div { flex: 1 1 140px; background: var(--bg); border: 0; }
 .metrics strong { overflow-wrap: anywhere; }
-.graph-panel + .graph-panel { margin-top: 16px; }
-.response { height: 215px; }
+.response { height: 200px; }
+
+/* The research-tab simulator keeps its controls beside the figure at all
+   times; here the column of plots can outgrow the viewport, so the settings
+   panel follows the reader on wide screens. */
+@media (min-width: 1001px) {
+  .controls { position: sticky; top: 18px; max-height: calc(100vh - 36px); overflow-y: auto; }
+}
+
 .legend { flex-wrap: wrap; gap: 6px 16px; }
 .legend span::before { border-color: var(--series,var(--actual)); }
 .legend .target-line::before { border-color: var(--series,var(--target)); }
@@ -22,6 +44,8 @@
 .loop-details p { overflow-wrap: anywhere; }
 .simulation-message { min-height: 40px; }
 @media(max-width:720px){
+ .experiment { grid-template-columns: 1fr; }
+ .experiment > .graph-panel { grid-column: auto; }
  .metrics { grid-template-columns: repeat(2,minmax(0,1fr)); }
  .sim-heading { gap: 12px; }
  #parameter-controls { grid-template-columns: repeat(2,minmax(0,1fr)); }
