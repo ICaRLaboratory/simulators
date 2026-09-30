@@ -102,7 +102,7 @@
     "lang": "ko",
     "file": "parking-ko.png",
     "source": "parking/?lang=ko",
-    "sha256": "a964e829d2be2f825e6f0554e63c770fa7c3d0fd040f267a42f74a6e1c95f4bd"
+    "sha256": "28dbe617daa65287efd6be90a0250b8fe2f41464ec8a121a2845054d4396857a"
   },
   {
     "id": "parking",
@@ -158,14 +158,14 @@
     "lang": "ko",
     "file": "path-tracking-ko.png",
     "source": "path-tracking/?lang=ko",
-    "sha256": "cfe6c450950c3e70eff140793946eaacb3207964a56ea0b30473c5a421e83944"
+    "sha256": "f2601abf4fa665a78672be66ab329c78cfedf702cc7366f0eaa3d34d427f0907"
   },
   {
     "id": "path-tracking",
     "lang": "en",
     "file": "path-tracking-en.png",
     "source": "path-tracking/?lang=en",
-    "sha256": "9625f4710ab31920c68d7c2f9ed67a72f6980e620cb0536fbc9f3791af8f7aff"
+    "sha256": "16793220afad23658c4ec93492458893dd34630a0b43c477b3127f710e86e24b"
   },
   {
     "id": "suspension",
@@ -194,6 +194,20 @@
     "file": "cstr-en.png",
     "source": "cstr/?lang=en",
     "sha256": "6952acdbf39353d50037139a568c95c8d298fb183ba71c6889a9a462ca9ab9e3"
+  },
+  {
+    "id": "rocket-landing",
+    "lang": "ko",
+    "file": "rocket-landing-ko.png",
+    "source": "rocket-landing/?lang=ko",
+    "sha256": "1370e6cb800eced9bc6ab8658b6fade5ea6d8048f410c6ece0e4c73ff7b0571d"
+  },
+  {
+    "id": "rocket-landing",
+    "lang": "en",
+    "file": "rocket-landing-en.png",
+    "source": "rocket-landing/?lang=en",
+    "sha256": "c98ed2f43cb97633b0cbedeeb5970460bcec8331c61af224e0232cbd89dc0d4b"
   },
   {
     "id": "aircraft-pitch",

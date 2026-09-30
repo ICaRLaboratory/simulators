@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-const ids=['rotary-pendulum','ball-and-plate','robot-arm','parking','heat-exchanger','drone','impedance-robot','path-tracking','suspension','cstr','aircraft-pitch'];
+const ids=['rotary-pendulum','ball-and-plate','robot-arm','parking','heat-exchanger','drone','impedance-robot','path-tracking','suspension','cstr','aircraft-pitch','rocket-landing'];
 const base=process.env.SIM_BASE||'http://127.0.0.1:8765/simulators/';
 const pixels=page=>page.locator('.response').evaluateAll(nodes=>nodes.map(n=>n.toDataURL()));
 const ranges=page=>page.locator('input[type=range]').evaluateAll(nodes=>nodes.map(n=>[n.id,n.value]));

@@ -20,6 +20,7 @@ const entries = [
   ['path-tracking','차량 경로 추종','Pure pursuit','모빌리티','전방 주시점을 바꾸며 차량의 경로 추종 특성을 비교합니다.',['전방 주시 거리','차량 속도'],'https://github.com/mathworks/vehicle-pure-pursuit','MathWorks GitHub'],
   ['suspension','능동 서스펜션','Quarter-car suspension','모빌리티','노면 충격에 대한 차체 진동과 승차감의 관계를 탐색합니다.',['감쇠 계수','제어 이득'],'https://www.mathworks.com/matlabcentral/fileexchange/95308-quarter-car-suspension-active-control-demo-app-simulink','MATLAB File Exchange'],
   ['cstr','연속 교반 탱크 반응기','CSTR','공정·열','반응과 열전달이 결합된 공정의 온도 제어를 살펴봅니다.',['온도 설정값','PI 이득'],'https://www.mathworks.com/matlabcentral/fileexchange/103695-continuously-stirred-tank-reactor-cstr-pid-control','MATLAB File Exchange'],
+  ['rocket-landing','로켓 수직 착륙','Rocket landing','항공','두 엔진의 추력으로 자세와 하강 속도를 조절해 착륙합니다.',['착륙 위치','하강 속도','속도 외란'],'https://www.mathworks.com/help/mpc/ug/landing-rocket-with-mpc-example.html','MathWorks 공식 예제'],
   ['aircraft-pitch','항공기 피치 제어','Aircraft pitch','항공','승강타 입력으로 항공기 피치각을 조절하는 실험입니다.',['목표 피치각','제어 이득'],'https://www.mathworks.com/matlabcentral/fileexchange/40798-aircraft-pitch-control','MATLAB File Exchange']
 ];
 const research = (id, name, english, sim, description, features) => ({id,name,english,category:'로보틱스',description,features,sourceName:'연구 시뮬레이션',status:'ready',external:true,href:`https://icarlaboratory.github.io/research.html?sim=${sim}&lang=ko#interactive`,source:`https://icarlaboratory.github.io/research.html?sim=${sim}&lang=ko#interactive`});

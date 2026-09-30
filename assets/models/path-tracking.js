@@ -5,6 +5,10 @@ export const definition = {
  disturbanceHelp:["누를 때마다 차량 방향각에 +0.25 rad를 즉시 더합니다(반시계 방향). 반복 변화는 누적되며 지속 조향 입력은 아닙니다. 원형 경로에 대한 오차와 조향각이 어떻게 변하는지 관찰하세요.", "Each press immediately adds +0.25 rad to vehicle heading (counterclockwise). Repeated changes accumulate; this is not a sustained steering input. Observe the error relative to the circular path and the steering angle."],
   id: "path-tracking",
   title: ["차량 경로 추종", "Pure pursuit"],
+  explanation: [
+    "자전거 운동학 모델은 자동차의 좌우 바퀴를 축마다 합쳐 앞바퀴 하나와 뒷바퀴 하나로 단순화한 모델입니다. 타이어가 미끄러지지 않는다고 가정하고, 속도·조향각·축거(앞뒤 바퀴 축 사이 거리)로 위치와 방향의 변화를 계산합니다. 실제 자전거를 뜻하지 않으며, 차량에 작용하는 힘이나 타이어의 힘을 계산하는 모델도 아닙니다.",
+    "The kinematic bicycle model combines a car’s left and right wheels on each axle into one front wheel and one rear wheel. Assuming motion without tire slip, it uses speed, steering angle and wheelbase (the distance between the axles) to calculate changes in position and heading. It is not an actual bicycle and does not calculate vehicle or tire forces.",
+  ],
   description: [
     "자전거 운동학 모델로 표현한 차량이 전방 주시점을 이용해 원형 경로를 따라갑니다.",
     "A vehicle represented by a kinematic bicycle model follows a circular path using a lookahead point.",

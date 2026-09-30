@@ -12,6 +12,7 @@ const loaders={
  suspension:()=>import('./models/suspension.js'),
  cstr:()=>import('./models/cstr.js'),
  'aircraft-pitch':()=>import('./models/aircraft-pitch.js'),
+ 'rocket-landing':()=>import('./models/rocket-landing.js'),
 };
 const $=id=>document.getElementById(id);
 const localized=pair=>pair[document.documentElement.lang==='en'?1:0];
@@ -63,7 +64,7 @@ function boot({definition:d,Simulation,draw:drawModel}){
   $('run-status').textContent=localized(copy[s.failed?'failed':s.complete?'completed':running?'running':'paused']);
   $('start-pause').textContent=localized(copy[running?'pause':'start']);
   $('start-pause').disabled=Boolean(blocked);$('disturb').disabled=Boolean(blocked);$('reset').disabled=false;
-  const message=s.failed?(d.failureMessages?.[s.failure]||copy.failed):s.complete?copy.complete:notice==='impulse'?d.disturbance:copy[notice];
+  const message=s.failed?(d.failureMessages?.[s.failure]||copy.failed):s.complete?(d.completionMessage||copy.complete):notice==='impulse'?d.disturbance:copy[notice];
   $('simulation-message').textContent=localized(message);$('simulation-message').classList.toggle('error',Boolean(s.failed));
  }
  updateLocale=()=>{for(const [node,pair] of parameterLabels)node.textContent=localized(pair);$('apparatus').textContent=localized(d.description);$('reset').title=localized(['초기화','Reset']);status();apparatus();};

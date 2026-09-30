@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import {catalog} from '../assets/catalog.js';
 const base=process.env.SIM_BASE||'http://127.0.0.1:8765/simulators/';
 const local=catalog.filter(item=>item.status==='ready'&&!item.external);
-expect(local).toHaveLength(15);
+expect(local).toHaveLength(16);
 for(const {id} of local){
   test(`${id}: English-first accessible preference remains compact at 320px`,async({page})=>{
     await page.emulateMedia({reducedMotion:'no-preference'});

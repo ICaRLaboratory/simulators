@@ -4,7 +4,7 @@ const kinds=['cruise-control','dc-motor','ball-and-beam'];
 test('locale toggle translates catalog, persists only language and synchronizes research URLs',async({page})=>{
  await page.goto(root);
  await expect(page.locator('html')).toHaveAttribute('lang','ko');
- await expect(page.locator('.sim-card')).toHaveCount(17);
+ await expect(page.locator('.sim-card')).toHaveCount(18);
  await page.evaluate(()=>{document.addEventListener('icar:lang',()=>{window.languageEventSeen=true;});});
  await page.locator('[data-lang="en"]').click();
  expect(await page.evaluate(()=>window.languageEventSeen)).toBe(true);
@@ -42,7 +42,7 @@ test('blocked language storage still allows explicit locale and toggling',async(
  await page.goto(root+'?lang=en');
  await expect(page.locator('h1')).toHaveText('Adjust, observe, understand.');
  await page.locator('[data-lang="ko"]').click();
- await expect(page.locator('h1')).toHaveText('조절하고, 관찰하고, 이해하다.');
+ await expect(page.locator('h1')).toHaveText('조절하기, 관찰하기, 이해하기.');
 });
 for(const kind of kinds) test(`${kind}: language changes preserve running state, controls and translated accessible content`,async({page})=>{
  await page.goto(root+kind+'/?lang=ko');

@@ -6,7 +6,7 @@ test('catalog search combines category, ready and case-insensitive text', async 
   const { filterCatalog } = await import('../assets/catalog.js');
   assert.equal(typeof filterCatalog, 'function');
   assert.equal(filterCatalog({query:'  DC MOTOR  '}).length, 1);
-  assert.equal(filterCatalog({ready:true}).length, 17);
+  assert.equal(filterCatalog({ready:true}).length, 18);
   assert.equal(filterCatalog({category:'모빌리티',ready:true}).length, 4);
   assert.equal(filterCatalog({query:'존재하지않는실험'}).length, 0);
 });
@@ -31,12 +31,12 @@ test('all implemented projects have static catalog fallback links without stale 
   for(const item of catalog.filter(item=>!item.external))assert.ok(home.includes(`href="${item.id}/"`),item.id);
 });
 
-test('catalog has 17 unique sources, fifteen local launches and two research links', async () => {
+test('catalog has 18 unique experiments, sixteen local launches and two research links', async () => {
   const { catalog } = await import('../assets/catalog.js');
-  assert.equal(catalog.length, 17);
-  assert.equal(new Set(catalog.map(item => item.id)).size, 17);
-  assert.equal(catalog.filter(item => item.status === 'ready').length, 17);
-  assert.equal(catalog.filter(item => !item.external).length, 15);
+  assert.equal(catalog.length, 18);
+  assert.equal(new Set(catalog.map(item => item.id)).size, 18);
+  assert.equal(catalog.filter(item => item.status === 'ready').length, 18);
+  assert.equal(catalog.filter(item => !item.external).length, 16);
   assert.equal(catalog.filter(item => item.external).length, 2);
   assert.equal(catalog.filter(item => item.status==='planned').length,0);
   for (const item of catalog) {

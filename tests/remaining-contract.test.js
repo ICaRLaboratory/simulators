@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {catalog} from '../assets/catalog.js';
 
-export const remaining = ['rotary-pendulum','ball-and-plate','robot-arm','parking','heat-exchanger','drone','impedance-robot','path-tracking','suspension','cstr','aircraft-pitch'];
+export const remaining = ['rotary-pendulum','ball-and-plate','robot-arm','parking','heat-exchanger','drone','impedance-robot','path-tracking','suspension','cstr','aircraft-pitch','rocket-landing'];
 const pair = value => {
  assert.equal(value.length,2);
  for (const text of value) assert.ok(typeof text==='string' && text.trim());

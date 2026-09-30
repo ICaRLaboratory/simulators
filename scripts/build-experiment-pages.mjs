@@ -1,6 +1,6 @@
 import {mkdir,writeFile,access} from 'node:fs/promises';
 const root=new URL('../',import.meta.url);
-export const ids=['rotary-pendulum','ball-and-plate','robot-arm','parking','heat-exchanger','drone','impedance-robot','path-tracking','suspension','cstr','aircraft-pitch'];
+export const ids=['rotary-pendulum','ball-and-plate','robot-arm','parking','heat-exchanger','drone','impedance-robot','path-tracking','suspension','cstr','aircraft-pitch','rocket-landing'];
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const text=(tag,pair,attrs='')=>`<${tag} ${attrs} data-en="${esc(pair[1])}">${esc(pair[0])}</${tag}>`;
 const aria=pair=>`aria-label="${esc(pair[0])}" data-en-aria="${esc(pair[1])}"`;

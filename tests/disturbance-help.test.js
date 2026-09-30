@@ -83,7 +83,7 @@ test('CSTR explains the cooling jacket visibly below its introduction in both la
   assert.ok(match[1].includes(esc(d.explanation[0])));
   assert.ok(match[1].includes(`data-en="${esc(d.explanation[1])}"`));
   assert.doesNotMatch(match[1], /\bhidden\b|display:\s*none|<details/);
-  for (const id of ids.filter(id => !['cstr','rotary-pendulum'].includes(id))) assert.ok(!pages[id].includes('id="concept-help"'), id);
+  for (const id of ids.filter(id => !['cstr','rotary-pendulum','parking','path-tracking'].includes(id))) assert.ok(!pages[id].includes('id="concept-help"'), id);
 });
 
 test('all eleven generated pages explain disturbances visibly beside their buttons in both languages', async () => {
