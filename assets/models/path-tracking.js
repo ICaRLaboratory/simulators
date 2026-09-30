@@ -5,8 +5,8 @@ export const definition = {
   id: "path-tracking",
   title: ["차량 경로 추종", "Pure pursuit"],
   description: [
-    "전방 주시점으로 원형 경로를 추종하는 자전거 차량 모델입니다.",
-    "A bicycle vehicle tracks a circular reference using a lookahead point.",
+    "자전거 운동학 모델로 표현한 차량이 전방 주시점을 이용해 원형 경로를 따라갑니다.",
+    "A vehicle represented by a kinematic bicycle model follows a circular path using a lookahead point.",
   ],
   source: "https://github.com/mathworks/vehicle-pure-pursuit",
   parameters: [

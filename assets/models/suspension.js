@@ -237,58 +237,97 @@ export class Simulation {
 export function draw(ctx, s, p, width, height, language) {
   const ko = language === "ko",
     cx = width / 2,
-    scale = Math.min(500, height),
-    bodyY = height * 0.32 - s.zs * scale,
-    wheelY = height * 0.68 - s.zu * scale,
+    spacing = Math.min(85, (width - 100) / 2),
+    // Bounded display travel keeps the topology legible even at latched failure.
+    // Only springs and sliding rods change length; masses/cylinders stay rigid.
+    bodyY = 64 - 6 * Math.tanh(s.zs * 12),
+    wheelY = height - 67 - 6 * Math.tanh(s.zu * 12),
+    top = bodyY + 14,
+    bottom = wheelY - 22,
     road = roadAt(s.distance, s.bumpStart, p.height),
-    roadY = height * 0.86 - road * scale;
-  ctx.font = '12px "Pretendard Variable", sans-serif';
-  ctx.fillStyle = "#0a0a0a";
-  ctx.fillText(
-    ko ? "1/4 차량 · 변위 확대 도식" : "Quarter car · displacement magnified",
-    12,
-    20,
-  );
-  ctx.fillStyle = "#087f74";
-  ctx.fillRect(cx - 65, bodyY - 20, 130, 40);
-  ctx.fillStyle = "#fff";
-  ctx.fillText("mₛ = 300 kg", cx - 40, bodyY + 4);
-  ctx.fillStyle = "#555";
-  ctx.fillRect(cx - 40, wheelY - 12, 80, 24);
-  ctx.fillStyle = "#fff";
-  ctx.fillText("mᵤ = 40 kg", cx - 35, wheelY + 4);
-  const spring = (x, y1, y2) => {
+    roadY = height - 25 - 4 * Math.tanh(road * 12),
+    force = clamp(-p.gain * s.vs, -MAX_FORCE, MAX_FORCE);
+  const line = (x1, y1, x2, y2) => {
     ctx.beginPath();
-    ctx.moveTo(x, y1);
-    for (let i = 1; i <= 10; i++)
-      ctx.lineTo(
-        x + (i === 10 ? 0 : i % 2 ? 7 : -7),
-        y1 + ((y2 - y1) * i) / 10,
-      );
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
     ctx.stroke();
   };
-  ctx.strokeStyle = "#555";
-  spring(cx - 32, bodyY + 20, wheelY - 12);
-  spring(cx, wheelY + 12, roadY);
-  ctx.beginPath();
-  ctx.moveTo(cx + 20, bodyY + 20);
-  ctx.lineTo(cx + 20, wheelY - 12);
-  ctx.stroke();
-  ctx.strokeRect(cx + 12, (bodyY + wheelY) / 2 - 8, 16, 16);
-  ctx.strokeStyle = "#087f74";
-  ctx.beginPath();
-  ctx.moveTo(cx + 53, bodyY + 20);
-  ctx.lineTo(cx + 53, wheelY - 12);
-  ctx.stroke();
-  ctx.strokeStyle = "#c56b31";
-  ctx.setLineDash([6, 4]);
-  ctx.beginPath();
-  ctx.moveTo(20, roadY);
-  ctx.lineTo(width - 20, roadY);
-  ctx.stroke();
+  const spring = (x, y1, y2, turns = 10) => {
+    ctx.beginPath();
+    ctx.moveTo(x, y1);
+    ctx.lineTo(x, y1 + 3);
+    for (let i = 1; i <= turns; i++)
+      ctx.lineTo(x + (i === turns ? 0 : i % 2 ? 7 : -7),
+        y1 + 3 + ((y2 - y1 - 6) * i) / turns);
+    ctx.lineTo(x, y2);
+    ctx.stroke();
+  };
+  ctx.font = '12px "Pretendard Variable", sans-serif';
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.lineWidth = 2;
   ctx.setLineDash([]);
   ctx.fillStyle = "#0a0a0a";
-  ctx.fillText(`r = ${road.toFixed(3)} m`, 12, height - 12);
-  ctx.fillText(`zₛ = ${s.zs.toFixed(3)} m`, 12, 56);
-  ctx.fillText(`zᵤ = ${s.zu.toFixed(3)} m`, 12, 74);
+  ctx.fillText(ko ? "1/4 차량 · 변위 도식 (비례 아님)" : "Quarter car · motion not to scale", cx, 16);
+  ctx.fillText(ko ? "스프링 kₛ" : "Spring kₛ", cx - spacing, 37);
+  ctx.fillText(ko ? "댐퍼 c" : "Damper c", cx, 37);
+  ctx.fillText(ko ? "구동기 u" : "Actuator u", cx + spacing, 37);
+  ctx.fillStyle = "#087f74";
+  ctx.fillRect(cx - spacing - 16, bodyY - 14, 2 * spacing + 32, 28);
+  ctx.fillStyle = "#fff";
+  ctx.fillText(ko ? "차체 mₛ = 300 kg" : "Body mₛ = 300 kg", cx, bodyY + 4);
+  ctx.fillStyle = "#555";
+  ctx.fillRect(cx - 57, wheelY - 12, 114, 26);
+  ctx.fillStyle = "#fff";
+  ctx.fillText(ko ? "휠 mᵤ = 40 kg" : "Wheel mᵤ = 40 kg", cx, wheelY + 5);
+  ctx.strokeStyle = "#555";
+  line(cx - spacing, bottom, cx + spacing, bottom);
+  line(cx, bottom, cx, wheelY - 12);
+  spring(cx - spacing, top, bottom);
+  spring(cx, wheelY + 14, roadY, 4);
+  // Open cylinder belongs to the wheel; piston and its rod to the body.
+  // The rod stops at the piston, never running through the cylinder floor.
+  const cylinderTop = bottom - 46,
+    cylinderBottom = bottom - 12,
+    pistonY = top + height - 194;
+  line(cx, top, cx, pistonY);
+  line(cx - 8, pistonY, cx + 8, pistonY);
+  ctx.beginPath();
+  ctx.moveTo(cx - 11, cylinderTop);
+  ctx.lineTo(cx - 11, cylinderBottom);
+  ctx.lineTo(cx + 11, cylinderBottom);
+  ctx.lineTo(cx + 11, cylinderTop);
+  ctx.stroke();
+  line(cx, cylinderBottom, cx, bottom);
+  // Powered telescopic actuator, with a fixed-size housing on the wheel.
+  const ax = cx + spacing;
+  ctx.strokeStyle = "#087f74";
+  ctx.strokeRect(ax - 9, bottom - 44, 18, 32);
+  line(ax, top, ax, bottom - 44);
+  line(ax, bottom - 12, ax, bottom);
+  const arrow = (y, direction) => {
+    const x = ax + 23, tip = y + direction * 13;
+    line(x, y, x, tip);
+    ctx.beginPath();
+    ctx.moveTo(x - 4, tip - direction * 5);
+    ctx.lineTo(x, tip);
+    ctx.lineTo(x + 4, tip - direction * 5);
+    ctx.stroke();
+  };
+  // Positive u pushes the body up and the wheel down (screen y is down).
+  // No force arrows at u=0: avoid implying force in passive mode.
+  if (force !== 0) {
+    arrow(top + 21, force > 0 ? -1 : 1);
+    arrow(bottom - 21, force > 0 ? 1 : -1);
+  }
+  ctx.fillStyle = "#087f74";
+  ctx.fillText(`u = ${force.toFixed(0)} N`, cx - spacing, roadY - 8);
+  ctx.fillStyle = "#0a0a0a";
+  ctx.textAlign = "left";
+  ctx.fillText(ko ? "타이어 kₜ" : "Tire kₜ", cx + 16, roadY - 8);
+  ctx.strokeStyle = "#c56b31";
+  line(16, roadY, width - 16, roadY);
+  ctx.textAlign = "center";
+  ctx.fillText(`${ko ? "노면" : "Road"} r = ${road.toFixed(3)} m`, cx, height - 7);
 }

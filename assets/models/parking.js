@@ -13,7 +13,7 @@ export const definition = {
   parameters: [
     {
       key: "target",
-      label: ["주차 목표 횡위치", "Parking target lateral position"],
+      label: ["목표 주차 위치(y)", "Target parking position (y)"],
       unit: "m",
       min: -4,
       max: 4,
@@ -51,7 +51,7 @@ export const definition = {
   metrics: [
     {
       key: "distance",
-      label: ["목표 거리", "Goal distance"],
+      label: ["목표까지의 거리", "Distance to goal"],
       unit: "m",
       digits: 2,
     },
@@ -70,7 +70,7 @@ export const definition = {
   ],
   plots: [
     {
-      label: ["목표 거리", "Goal distance"],
+      label: ["목표까지의 거리", "Distance to goal"],
       unit: "m",
       range: [0, 28],
       series: [

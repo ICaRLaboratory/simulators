@@ -22,6 +22,8 @@
 .experiment .metrics div { flex: 1 1 140px; background: var(--bg); border: 0; }
 .metrics strong { overflow-wrap: anywhere; }
 .response { height: 200px; }
+/* Keep fixed-link articulation legible without state-dependent zoom. */
+body[data-experiment="impedance-robot"] #apparatus { height: 420px; }
 
 /* The research-tab simulator keeps its controls beside the figure at all
    times; here the column of plots can outgrow the viewport, so the settings

@@ -12,7 +12,7 @@ test('endpoint contact is unilateral and settles at spring-series equilibrium',a
 });
 
 
-import {definition, Simulation, draw} from '../assets/models/impedance-robot.js';
+import {definition, Simulation, draw, kinematics} from '../assets/models/impedance-robot.js';
 import {catalog} from '../assets/catalog.js';
 import {translate} from '../assets/i18n.js';
 const run=(s,seconds)=>{for(let i=0;i<Math.round(seconds/.005);i++)s.step(.005);};
@@ -51,20 +51,21 @@ test('impedance-robot draw accepts small canvas and cannot mutate frozen physics
 });
 
 
-test('impedance independently matches free-space damped oscillator derivative',()=>{
- const s=new Simulation();s.params.target=.4;Object.assign(s.state,{x:.2,v:.1});const dt=1e-7;const expected=100*(.4-.2)-20*.1;s.step(dt);assert.ok(Math.abs((s.state.v-.1)/dt-expected)<.0001);
-});
-test('impedance damped motion dissipates mechanical energy in free space',()=>{
- const s=new Simulation();s.params.target=.3;s.state.x=.2;
- const energy=()=>.5*s.state.v**2+.5*s.params.stiffness*(s.state.x-s.params.target)**2;
+test('impedance damped articulated motion dissipates kinetic plus virtual spring energy',()=>{
+ const s=new Simulation();s.params.target=.3;
+ const energy=()=>{const {q1,q2,dq1,dq2}=s.state,k=kinematics([q1,q2]);
+  // Independent uniform-rod COM kinetic energy; gravity is canceled by the controller.
+  const vx1=-.275*Math.sin(q1)*dq1,vy1=.275*Math.cos(q1)*dq1;
+  const vx2=-.55*Math.sin(q1)*dq1-.25*Math.sin(q1+q2)*(dq1+dq2),vy2=.55*Math.cos(q1)*dq1+.25*Math.cos(q1+q2)*(dq1+dq2);
+  return .5*(vx1**2+vy1**2+vx2**2+vy2**2)+(.55**2*dq1**2+.5**2*(dq1+dq2)**2)/24+50*((k.x-.3)**2+(k.y-.15)**2);};
  let last=energy();for(let i=0;i<1000;i++){s.step(.005);const next=energy();assert.ok(next<=last+1e-10);last=next;}assert.ok(last<1e-10);
 });
 test('impedance contact disturbance recovers; free-space target releases wall',()=>{
- const s=new Simulation();run(s,5);const before=s.state.v;s.disturb();assert.equal(s.state.v,before+.6);assert.ok(s.observe().force>s.observe().equilibriumForce);run(s,5);assert.ok(Math.abs(s.observe().force-s.observe().equilibriumForce)<1e-6);s.params.target=.25;run(s,5);assert.ok(Math.abs(s.state.x-.25)<1e-7);assert.equal(s.observe().force,0);assert.equal(s.observe().equilibriumForce,0);
+ const s=new Simulation();run(s,5);const before=s.state.v;s.disturb();assert.ok(s.state.v>before);assert.ok(s.observe().force>s.observe().equilibriumForce);run(s,5);assert.ok(Math.abs(s.observe().force-s.observe().equilibriumForce)<1e-6);s.params.target=.25;run(s,5);assert.ok(Math.abs(s.state.x-.25)<1e-7);assert.equal(s.observe().force,0);assert.equal(s.observe().equilibriumForce,0);
 });
 test('impedance actuator-limited contact matches capped equilibrium',()=>{
  const s=new Simulation();Object.assign(s.params,{stiffness:300,wallStiffness:1500,target:.8});s.step(.005);assert.equal(s.observe().actuator,60);run(s,6);assert.equal(s.state.failed,false);assert.ok(Math.abs(s.observe().force-60)<1e-6);assert.ok(Math.abs(s.state.x-.54)<1e-8);assert.equal(s.observe().equilibriumForce,60);
 });
-test('impedance workspace bounds latch and reset',()=>{
- for(const x of [-.2,1.1]){const s=new Simulation();s.state.x=x;s.step(.005);assert.equal(s.state.failure,'workspace');assert.equal(s.state.failed,true);const before=structuredClone(s.state);s.disturb();s.step(.1);assert.deepEqual(s.state,before);s.reset();assert.equal(s.state.failed,false);s.step(.005);assert.ok(s.state.t>0);}
+test('impedance numerical bounds latch before integration, restore finite display and reset',()=>{
+ for(const [key,value] of [['dq1',80],['dq2',-80],['q1',NaN],['q2',Infinity],['t',NaN]]){const s=new Simulation();s.state[key]=value;s.step(.005);assert.equal(s.state.failure,'numerical');assert.equal(s.state.failed,true);for(const v of Object.values(s.observe()))assert.ok(Number.isFinite(v));const before=structuredClone(s.state);s.disturb();s.step(.1);assert.deepEqual(s.state,before);s.reset();assert.equal(s.state.failed,false);s.step(.005);assert.ok(s.state.t>0);}
 });

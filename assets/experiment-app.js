@@ -14,7 +14,7 @@ const loaders={
 };
 const $=id=>document.getElementById(id);
 const localized=pair=>pair[document.documentElement.lang==='en'?1:0];
-const copy={ready:['시작을 누르고 목표 또는 이득을 조절하세요.','Press Start, then adjust the target or gains.'],start:['시작','Start'],pause:['일시정지','Pause'],paused:['일시정지','Paused'],running:['실행 중','Running'],failed:['실험이 정지했습니다. 초기화하세요.','Experiment stopped. Reset to try again.'],complete:['목표에 도달하여 정지했습니다. 초기화하여 다시 실행하세요.','Goal reached. Paused; reset to run again.'],completed:['완료','Complete'],hidden:['탭이 숨겨져 일시정지했습니다. 시작을 눌러 재개하세요.','Paused because this tab was hidden. Press Start to resume.'],unavailable:['모델을 불러올 수 없습니다. 페이지를 새로고침하세요.','Model unavailable. Reload this page to try again.']};
+const copy={ready:['시작을 누른 뒤 설정을 하나씩 바꾸며 응답을 관찰하세요.','Press Start, then change one setting at a time and observe the response.'],start:['시작','Start'],pause:['일시정지','Pause'],paused:['일시정지','Paused'],running:['실행 중','Running'],failed:['실험이 정지했습니다. 초기화하세요.','Experiment stopped. Reset to try again.'],complete:['목표에 도달하여 정지했습니다. 초기화하여 다시 실행하세요.','Goal reached. Paused; reset to run again.'],completed:['완료','Complete'],hidden:['탭이 숨겨져 일시정지했습니다. 시작을 눌러 재개하세요.','Paused because this tab was hidden. Press Start to resume.'],unavailable:['모델을 불러올 수 없습니다. 페이지를 새로고침하세요.','Model unavailable. Reload this page to try again.']};
 // Capture original Korean before shared i18n sees any text. Never replace containers.
 const bindings=[...document.querySelectorAll('[data-en],[data-en-aria],[data-en-content],[data-en-title]')].map(node=>({node,text:node.hasAttribute('data-en')?node.textContent:null,aria:node.getAttribute('aria-label'),content:node.getAttribute('content'),title:node.getAttribute('title')}));
 let updateLocale=()=>{};
