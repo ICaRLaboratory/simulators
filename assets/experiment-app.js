@@ -1,3 +1,4 @@
+import {setupPlaybackPreference} from './playback-preference.js';
 import {setupLanguage,translateDOM} from './i18n.js';
 const loaders={
  'rotary-pendulum':()=>import('./models/rotary-pendulum.js'),
@@ -44,7 +45,7 @@ try{
 function boot({definition:d,Simulation,draw:drawModel}){
  const simulation=new Simulation(),history=[],STEP=.005;
  let running=false,accumulator=0,previous=null,lastDraw=0,notice='ready';
- const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
+ const reducedMotion=setupPlaybackPreference();
  const parameterLabels=[];
  for(const p of d.parameters){
   const container=document.createElement('div');container.className='parameter';

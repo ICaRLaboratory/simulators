@@ -1,3 +1,4 @@
+import {setupPlaybackPreference} from './playback-preference.js';
 import {setupLanguage, t, translateDOM} from './i18n.js';
 import {PendulumSimulation} from './pendulum-physics.js';
 
@@ -7,7 +8,6 @@ const STEP = 0.005;
 let running = false, accumulator = 0, previous = null, lastDraw = 0;
 let notice = 'ready';
 const history = [];
-const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const copy = {
   ready: ['시작을 누르고 목표 또는 이득을 조절하세요.', 'Press Start, then adjust the target or gains.'],
   impulse: ['각속도에 +0.5 rad/s를 한 번 더했습니다.', 'Added +0.5 rad/s to angular velocity once.'],
@@ -77,6 +77,7 @@ function localize() {
 }
 document.addEventListener('icar:lang', localize);
 setupLanguage();
+const reducedMotion = setupPlaybackPreference();
 $('reset').disabled = false;
 
 function sample() {
