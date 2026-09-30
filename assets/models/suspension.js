@@ -5,6 +5,7 @@ const MS = 300,
   MAX_FORCE = 1500,
   clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 export const definition = {
+ disturbanceParameters:['height'],
  disturbanceHelp:["현재 위치에서 길이 2 m의 새 노면 돌기를 시작합니다. 높이는 ‘노면 돌기 높이’ 설정값(m, 기본 0.05)을 따릅니다. 다시 누르면 기존 돌기에 더하지 않고 현재 위치에서 새로 시작합니다. 차체·휠 변위와 차체 가속도·능동 힘을 관찰하세요.", "Starts a new 2 m road bump at the current position, using the Road bump height setting (m, default 0.05). Pressing again replaces the bump with a new one starting at the current position rather than adding bumps together. Observe body/wheel displacement, body acceleration and active force."],
   id: "suspension",
   title: ["능동 서스펜션", "Quarter-car suspension"],

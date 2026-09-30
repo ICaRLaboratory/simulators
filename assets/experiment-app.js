@@ -55,7 +55,7 @@ function boot({definition:d,Simulation,draw:drawModel}){
   const input=document.createElement('input');Object.assign(input,{id:p.key,type:'range',min:p.min,max:p.max,step:p.step,value:simulation.params[p.key]});
   const limits=document.createElement('div');limits.className='range-limits';for(const value of [p.min,p.max]){const n=document.createElement('span');n.textContent=`${value} ${p.unit}`;limits.append(n);}
   input.addEventListener('input',()=>{const value=Number(input.value);if(!Number.isFinite(value))return;simulation.params[p.key]=Math.max(p.min,Math.min(p.max,value));output.textContent=String(simulation.params[p.key]);render();});
-  container.append(label,input,limits);$('parameter-controls').append(container);
+  container.append(label,input,limits);$(d.disturbanceParameters?.includes(p.key)?'disturbance-parameters':'parameter-controls').append(container);
  }
  function status(){
   const s=simulation.state;const blocked=s.failed||s.complete;

@@ -3,6 +3,7 @@ const param=(key,ko,en,unit,min,max,step,value)=>({key,label:[ko,en],unit,min,ma
 const metric=(key,ko,en,unit,digits=3)=>({key,label:[ko,en],unit,digits});
 const series=(key,ko,en,target=false)=>({key,label:[ko,en],color:target?'#c56b31':'#087f74',dash:target});
 export const definition={
+ disturbanceParameters:['kick'],
  explanation:['Furuta(후루타)는 수평으로 회전하는 암 끝에 진자가 달린 회전 도립진자 구조의 이름입니다. 질량 행렬은 암과 진자의 회전 관성, 그리고 두 운동이 서로 영향을 주는 정도를 정리한 2×2 행렬입니다. 암을 돌리면 진자도 영향을 받으므로, 두 운동을 함께 계산합니다.','Furuta names a rotary pendulum with a pole attached to the end of a horizontally rotating arm. Its mass matrix is a 2×2 matrix describing rotational inertia and coupling between the arm and pole. Turning the arm also affects the pole, so both motions are solved together.'],
  disturbanceHelp:["누를 때마다 진자 각도에 ‘각도 외란’ 설정값(rad, 기본 +0.04)을 즉시 더합니다. 지속 토크가 아닌 순간 각도 변화이며 반복하면 누적됩니다. 진자의 직립 오차와 암 각도·모터 토크가 어떻게 변하는지 관찰하세요.", "Each press immediately adds the Angle kick setting (rad, default +0.04) to the pole angle. This is an instantaneous angle change, not a sustained torque; repeated presses accumulate. Observe upright error, arm angle and motor torque."],
  id:'rotary-pendulum',title:['회전 도립진자','Rotary pendulum'],

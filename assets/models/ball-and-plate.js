@@ -2,6 +2,7 @@ const param=(key,ko,en,unit,min,max,step,value)=>({key,label:[ko,en],unit,min,ma
 const metric=(key,ko,en,unit)=>({key,label:[ko,en],unit,digits:3});
 const series=(key,ko,en,target=false)=>({key,label:[ko,en],color:target?'#c56b31':'#087f74',dash:target});
 export const definition={
+ disturbanceParameters:['impulse'],
  disturbanceHelp:["누를 때마다 x 속도에 ‘속도 외란’ 설정값(m/s, 기본 0.15)을 더하고 y 속도에서는 뺍니다. 순간 속도 변화가 반복해서 누적되며 지속 힘은 아닙니다. 공의 x·y 위치와 판 기울기를 관찰하세요.", "Each press adds the Velocity impulse setting (m/s, default 0.15) to x velocity and subtracts it from y velocity. These instantaneous velocity changes accumulate with repeated presses; no sustained force is applied. Observe the ball’s x/y positions and plate tilt."],
  id:'ball-and-plate',title:['볼 앤 플레이트','Ball and plate'],description:['두 축 PD 제어로 공을 목표 좌표에 유지합니다.','Hold a rolling ball at a target coordinate with two-axis PD control.'],source:'https://github.com/MathWorks-Teaching-Resources/Virtual-Controls-Laboratory',
  parameters:[param('targetX','목표 x','Target x','m',-.2,.2,.01,.1),param('targetY','목표 y','Target y','m',-.2,.2,.01,-.08),param('kpX','x 위치 이득','x position gain','rad/m',0,2,.05,.8),param('kdX','x 속도 이득','x rate gain','rad·s/m',0,1.5,.05,.65),param('kpY','y 위치 이득','y position gain','rad/m',0,2,.05,.8),param('kdY','y 속도 이득','y rate gain','rad·s/m',0,1.5,.05,.65),param('tiltLimit','기울기 한계','Tilt limit','rad',.02,.3,.01,.2),param('impulse','속도 외란','Velocity impulse','m/s',.05,.5,.05,.15)],

@@ -39,6 +39,10 @@ body[data-experiment="impedance-robot"] #apparatus { height: 420px; }
 .parameter label>span { overflow-wrap: anywhere; }
 .parameter output { white-space: nowrap; flex-shrink: 0; }
 .parameter .range-limits { font-size: 12px; }
+.disturbance-controls { min-width: 0; margin: 0; padding: 0; border: 0; }
+.disturbance-controls legend { padding: 0 19px 10px; font-size: 13px; font-weight: 600; }
+.disturbance-controls .parameter { padding: 0 19px 14px; }
+.disturbance-controls .parameter label { flex-direction: row; align-items: center; }
 .loop-diagram { min-width: 1040px; }
 .loop-scroll-help { display: block; }
 .loop-details ul { padding-left: 18px; font-size: 13px; }
