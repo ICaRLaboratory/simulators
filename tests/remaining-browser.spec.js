@@ -43,7 +43,7 @@ for(const id of ids){
   }
   for(const lang of ['ko','en']){
    await page.locator(`[data-lang=${lang}]`).click();
-   expect(await page.locator('.loop-diagram').evaluate(svg=>[...svg.querySelectorAll('text')].every(n=>{const b=n.getBBox();const x=Number(n.getAttribute('x'));const box=x===115?[15,215]:x===405?[260,550]:x===710?[580,840]:x===1030?[880,1180]:[420,1180];return b.x>=box[0]&&b.x+b.width<=box[1]&&b.y>=0&&b.y+b.height<=330;}))).toBe(true);
+   expect(await page.locator('.loop-diagram').evaluate(svg=>[...svg.querySelectorAll('text')].every(n=>{const b=n.getBBox();const x=Number(n.getAttribute('x'));const box=x===90?[10,205]:x===340?[205,475]:x===615?[505,725]:x===880?[755,1005]:[400,1005];return b.x>=box[0]&&b.x+b.width<=box[1]&&b.y>=0&&b.y+b.height<=300;}))).toBe(true);
   }
   await page.setViewportSize({width:320,height:900});const region=page.locator('.loop-viewport');await region.focus();await page.keyboard.press('ArrowRight');await expect.poll(()=>region.evaluate(n=>n.scrollLeft)).toBeGreaterThan(0);
  });

@@ -21,7 +21,17 @@ let updateLocale=()=>{};
 function localize(){
  translateDOM();const english=document.documentElement.lang==='en';
  for(const b of bindings){if(b.text!==null)b.node.textContent=english?b.node.dataset.en:b.text;for(const [attr,key] of [['aria-label','aria'],['content','content'],['title','title']]){const data=key==='aria'?'enAria':key==='content'?'enContent':'enTitle';if(b.node.dataset[data]!==undefined)b.node.setAttribute(attr,english?b.node.dataset[data]:b[key]);}}
- updateLocale();
+ updateLocale();recenterLoop();
+}
+// Bilingual loop labels: KO and EN wrap to different line counts, so after a
+// language swap the visible lines are recentered on the label's anchor row
+// instead of padding the shorter language with blank filler lines.
+function recenterLoop(){
+ for(const t of document.querySelectorAll('.loop-diagram text[data-loop-label]')){
+  const base=Number(t.dataset.y);if(!Number.isFinite(base))continue;
+  const visible=[...t.querySelectorAll('tspan')].filter(s=>s.textContent.trim());
+  visible.forEach((s,i)=>s.setAttribute('y',String(base+(i-(visible.length-1)/2)*21)));
+ }
 }
 document.addEventListener('icar:lang',localize);setupLanguage();
 try{

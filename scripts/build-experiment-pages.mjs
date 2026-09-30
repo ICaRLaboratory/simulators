@@ -5,16 +5,23 @@ const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>
 const text=(tag,pair,attrs='')=>`<${tag} ${attrs} data-en="${esc(pair[1])}">${esc(pair[0])}</${tag}>`;
 const aria=pair=>`aria-label="${esc(pair[0])}" data-en-aria="${esc(pair[1])}"`;
 function loop(d){
- const positions={reference:[115,142],controller:[405,142],actuator:[710,142],plant:[1030,142],feedback:[730,278],disturbance:[1030,42]};
+ // Compact 1040-wide loop that fits the desktop container without scrolling,
+ // shaped like the hand-made diagrams: the reference is a dashed labelled
+ // wire (not a box), and the plant output bends straight into the feedback
+ // return instead of dangling off the right edge.
+ const positions={reference:[90,104],controller:[340,142],actuator:[615,142],plant:[880,142],feedback:[680,248],disturbance:[880,40]};
+ const budgets={reference:160,controller:250,actuator:200,plant:230,feedback:420,disturbance:230};
  // Separate bilingual lines avoid shrinking long technical labels on mobile.
  const labels=Object.entries(positions).map(([key,[x,y]])=>{
-  const budget=key==='reference'?172:key==='actuator'?232:266;
+  const budget=budgets[key];
   const width=s=>[...s].reduce((sum,c)=>sum+(/[가-힣]/.test(c)?15:/[MW]/.test(c)?13:8.2),0);
   const wrap=s=>{const lines=[];let line='';for(const word of s.split(/\s+/)){if(width(line+' '+word)>budget&&line){lines.push(line);line=word;}else line+=(line?' ':'')+word;}if(line)lines.push(line);return lines;};
   const ko=wrap(d.loop[key][0]),en=wrap(d.loop[key][1]),n=Math.max(ko.length,en.length);
-  return `<text x="${x}" data-loop-label="${key}">`+Array.from({length:n},(_,i)=>text('tspan',[ko[i]||'\u00a0',en[i]||'\u00a0'],`x="${x}" y="${y+(i-(n-1)/2)*21}"`)).join('')+'</text>';
+  // Static y centers the Korean lines (the no-JS rendering); the runtime
+  // recenters whichever language is showing, so no filler glyphs are needed.
+  return `<text x="${x}" data-loop-label="${key}" data-y="${y}">`+Array.from({length:n},(_,i)=>text('tspan',[ko[i]||'',en[i]||''],`x="${x}" y="${y+(i-(ko.length-1)/2)*21}"`)).join('')+'</text>';
  }).join('');
- return `<div class="loop-viewport" role="region" tabindex="0" ${aria([d.title[0]+' 제어 구조',d.title[1]+' control structure'])} aria-describedby="loop-scroll-help"><svg class="loop-diagram" viewBox="0 0 1240 330" role="img" aria-labelledby="loop-svg-title loop-svg-desc">${text('title',[d.title[0]+' 피드백 제어',d.title[1]+' feedback control'],'id="loop-svg-title"')}${text('desc',['목표와 측정 상태가 제어기에 전달됩니다. 구동기 출력은 제어 대상을 구동하며 외란은 제어 대상에 직접 작용합니다.','Reference and measured states enter the controller. The actuator drives the plant; disturbance enters the plant directly.'],'id="loop-svg-desc"')}<defs><marker id="loop-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z"/></marker></defs><g class="loop-wires"><rect x="15" y="85" width="200" height="115" rx="7"/><path class="loop-target" d="M215 142H260" marker-end="url(#loop-arrow)"/><rect x="260" y="85" width="290" height="115" rx="7"/><path d="M550 142H580" marker-end="url(#loop-arrow)"/><rect x="580" y="85" width="260" height="115" rx="7"/><path d="M840 142H880" marker-end="url(#loop-arrow)"/><rect x="880" y="85" width="300" height="115" rx="7"/><path d="M1180 142H1220" marker-end="url(#loop-arrow)"/><path data-signal="feedback" d="M1205 142V308H405V202" marker-end="url(#loop-arrow)"/><path data-signal="disturbance" d="M1030 66V83" marker-end="url(#loop-arrow)"/></g>${labels}</svg></div>`;
+ return `<div class="loop-viewport" role="region" tabindex="0" ${aria([d.title[0]+' 제어 구조',d.title[1]+' control structure'])} aria-describedby="loop-scroll-help"><svg class="loop-diagram" viewBox="0 0 1040 300" role="img" aria-labelledby="loop-svg-title loop-svg-desc">${text('title',[d.title[0]+' 피드백 제어',d.title[1]+' feedback control'],'id="loop-svg-title"')}${text('desc',['목표와 측정 상태가 제어기에 전달됩니다. 구동기 출력은 제어 대상을 구동하며 외란은 제어 대상에 직접 작용합니다.','Reference and measured states enter the controller. The actuator drives the plant; disturbance enters the plant directly.'],'id="loop-svg-desc"')}<defs><marker id="loop-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z"/></marker></defs><g class="loop-wires"><path class="loop-target" d="M15 142H203" marker-end="url(#loop-arrow)"/><rect x="205" y="85" width="270" height="115" rx="7"/><path d="M475 142H503" marker-end="url(#loop-arrow)"/><rect x="505" y="85" width="220" height="115" rx="7"/><path d="M725 142H753" marker-end="url(#loop-arrow)"/><rect x="755" y="85" width="250" height="115" rx="7"/><path data-signal="feedback" d="M1005 142H1022V268H340V202" marker-end="url(#loop-arrow)"/><path data-signal="disturbance" d="M880 60V83" marker-end="url(#loop-arrow)"/></g>${labels}</svg></div>`;
 }
 function page(d){
  const metrics=[{key:'t',label:['시간','Time'],unit:'s',digits:2},...d.metrics];

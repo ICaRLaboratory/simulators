@@ -37,7 +37,7 @@
 .parameter label>span { overflow-wrap: anywhere; }
 .parameter output { white-space: nowrap; flex-shrink: 0; }
 .parameter .range-limits { font-size: 12px; }
-.loop-diagram { min-width: 1240px; }
+.loop-diagram { min-width: 1040px; }
 .loop-scroll-help { display: block; }
 .loop-details ul { padding-left: 18px; font-size: 13px; }
 .loop-details li { margin-bottom: 5px; overflow-wrap: anywhere; }
