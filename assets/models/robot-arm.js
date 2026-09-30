@@ -2,6 +2,7 @@ const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
 const parameter = (key, ko, en, unit, min, max, step, value) => ({key,label:[ko,en],unit,min,max,step,default:value});
 const signal = (key, ko, en, target=false) => ({key,label:[ko,en],color:target?'#c56b31':'#087f74',...(target?{dash:true}:{})});
 export const definition = {
+ disturbanceHelp:["누를 때마다 관절 1 각속도에 +0.45 rad/s, 관절 2 각속도에 −0.7 rad/s를 즉시 더합니다. 반복하면 누적되는 속도 충격이며 지속 토크는 아닙니다. 두 관절의 각도와 구동 토크를 관찰하세요.", "Each press immediately adds +0.45 rad/s to joint 1 velocity and −0.7 rad/s to joint 2 velocity. Repeated velocity impulses accumulate; they are not sustained torques. Observe both joint angles and actuator torques."],
   id:'robot-arm',title:['로봇 암 다중 루프 제어','Robot arm'],
   description:['관절별 제어 루프가 연결된 로봇 암의 위치 응답을 살펴봅니다.','Observe robot-arm position responses with connected joint control loops.'],
   source:'https://www.mathworks.com/help/control/ug/multi-loop-pid-control-of-a-robot-arm.html',

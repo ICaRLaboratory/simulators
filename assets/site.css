@@ -179,6 +179,8 @@ canvas { display: block; width: 100%; }
 .primary:hover:not(:disabled) { background: var(--ink); color: var(--bg); opacity: .86; }
 .disturb-button { display: block; width: calc(100% - 38px); margin: 0 19px; font-size: 13px; background: var(--bg-soft); }
 .control-help { padding: 12px 19px 16px; color: var(--muted); font-size: 12px; border-bottom: 1px solid var(--line-soft); }
+/* Action explanations remain visible, including in the compact mobile controls. */
+#disturbance-help { display: block; font-size: 13px; line-height: 1.65; }
 .parameter { padding: 16px 19px 0; }
 .parameter label { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 13px; font-weight: 600; }
 .parameter output { font: 12px var(--mono); color: var(--ink); padding: 3px 7px; background: var(--bg-soft); border-radius: 5px; }

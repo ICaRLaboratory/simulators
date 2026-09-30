@@ -2,6 +2,7 @@ const L = 2.7,
   clamp = (x, a, b) => Math.max(a, Math.min(b, x)),
   wrap = (x) => Math.atan2(Math.sin(x), Math.cos(x));
 export const definition = {
+ disturbanceHelp:["누를 때마다 차량 방향각에 +0.12 rad를 즉시 더합니다(반시계 방향). 반복 변화는 누적되며 지속 조향 입력은 아닙니다. 차량 경로와 남은 거리·방향 오차를 관찰하세요. 주차 완료나 실패 후에는 초기화해야 합니다.", "Each press immediately adds +0.12 rad to vehicle heading (counterclockwise). Repeated changes accumulate; this is not a sustained steering input. Observe the vehicle path, distance to go and heading error. Reset after parking completes or fails."],
   id: "parking",
   title: ["자동 주차", "Automated parking"],
   description: [

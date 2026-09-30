@@ -1,5 +1,6 @@
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 export const definition={
+ disturbanceHelp:["입구 온도를 설정값보다 10 °C 낮춘 상태로 초기화 전까지 유지합니다. 다시 눌러도 더 낮아지거나 해제되지 않습니다. 출구 온도가 순간적으로 바뀌는 것은 아닙니다. 이후 출구 온도와 가열 전력을 관찰하세요.", "Sets inlet temperature 10 °C below its setting until reset. Pressing again neither lowers it further nor switches it off. Outlet temperature does not jump instantly. Observe the subsequent outlet temperature and heating power."],
  id:'heat-exchanger',title:['열교환기 온도 제어','Heat exchanger temperature control'],description:['완전히 혼합된 유체의 열수지를 바탕으로 PI 제어에 따른 온도 응답을 관찰합니다.','Well-mixed thermal energy balance with PI temperature control'],
  source:'https://www.mathworks.com/help/control/ug/temperature-control-in-a-heat-exchanger.html',
  parameters:[

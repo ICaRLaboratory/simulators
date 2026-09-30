@@ -2,6 +2,7 @@ const R = 14,
   L = 2.7,
   clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 export const definition = {
+ disturbanceHelp:["누를 때마다 차량 방향각에 +0.25 rad를 즉시 더합니다(반시계 방향). 반복 변화는 누적되며 지속 조향 입력은 아닙니다. 원형 경로에 대한 오차와 조향각이 어떻게 변하는지 관찰하세요.", "Each press immediately adds +0.25 rad to vehicle heading (counterclockwise). Repeated changes accumulate; this is not a sustained steering input. Observe the error relative to the circular path and the steering angle."],
   id: "path-tracking",
   title: ["차량 경로 추종", "Pure pursuit"],
   description: [
