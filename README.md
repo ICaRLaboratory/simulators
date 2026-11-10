@@ -52,6 +52,16 @@ python3 -m http.server 8765 --directory ..
 
 ES modules를 사용하므로 파일 더블클릭 대신 HTTP 서버로 여세요.
 
+## 장치 시각화
+
+16개 장치 화면은 자체 호스팅한 Three.js 0.187.0으로 표시합니다. 동역학·제어기·고정 시간 간격 계산과 응답 그래프는 기존 구현을 유지합니다. 입체 표현이 평면 모델의 물리적 자유도를 추가하지는 않습니다.
+
+- `assets/three/`: 장치별 읽기 전용 장면과 공통 카메라·렌더러. 드래그 회전, 스크롤 확대·축소, 방향키 회전, `+`/`-` 확대·축소, `Home` 및 시점 초기화 버튼을 지원합니다.
+- 카메라 조작은 시뮬레이션을 진행하거나 초기화하지 않습니다. 자동 카메라 회전은 없습니다.
+- WebGL2가 없거나 그래픽 컨텍스트를 잃으면 기존 Canvas 2D 장치 화면을 사용합니다.
+- `assets/vendor/three.js`는 정확한 버전을 고정한 로컬 파일입니다. 방문자가 npm이나 CDN에 연결할 필요가 없습니다. 라이선스와 재생성 절차는 `assets/vendor/README.md`를 참고합니다.
+- `tests/three-*.test.js`는 실제 상태와 장면 좌표·비변경성을, `tests/three-view.spec.js` 및 `tests/three-integration.spec.js`는 실제 WebGL·카메라·폴백·반응형을 검사합니다.
+
 공통 형식의 12개 실험의 모델·번역·제어 구조 정의는 `assets/models/`에 있습니다. 정의 변경 후 `node scripts/build-experiment-pages.mjs`로 정적 페이지를 다시 생성합니다. 기존 4개 실험은 독립 모듈을 유지합니다.
 
 ## 재생 방식

@@ -6,6 +6,7 @@ const simulation = new PendulumSimulation();
 const STEP = 0.005;
 let running = false, accumulator = 0, previous = null;
 let notice = 'ready';
+let apparatus3D = null;
 const history = [];
 const copy = {
   ready: ['시작을 누르고 목표 또는 이득을 조절하세요.', 'Press Start, then adjust the target or gains.'],
@@ -93,6 +94,7 @@ function canvasContext(id) {
   return {ctx,w:box.width,h:box.height};
 }
 function apparatus() {
+  if (apparatus3D?.update(simulation.state, simulation.params)) return;
   const {ctx:c,w,h} = canvasContext('apparatus');
   const s = simulation.state, scale = (w-96)/4, center = w/2+s.x*scale, pivot = h-88;
   // Fixed rod length and positive-right angle follow the actual state convention.
@@ -165,7 +167,9 @@ $('disturb').addEventListener('click',()=>{simulation.disturb();notice='impulse'
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden && running){notice='hidden';pause();draw();}
 });
-new ResizeObserver(draw).observe($('apparatus'));
+// The 3D upgrade hides the original apparatus canvas; observe the stable panels instead.
+const resizeObserver = new ResizeObserver(draw);
+for (const id of ['apparatus','response','angle-response']) resizeObserver.observe($(id).parentElement);
 function frame(now) {
   if(running && !document.hidden) {
     if(previous !== null) accumulator=Math.min(0.1,accumulator+Math.max(0,(now-previous)/1000));
@@ -179,3 +183,5 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 sample();draw();requestAnimationFrame(frame);
+import('./three/catalog.js').then(({attachApparatus}) => attachApparatus($('apparatus'), 'inverted-pendulum', {onFallback:draw}))
+  .then(view => { apparatus3D=view; draw(); }).catch(error => console.warn('3D view unavailable; keeping the 2D apparatus.',error));

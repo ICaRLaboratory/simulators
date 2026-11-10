@@ -27,6 +27,13 @@ test('dashboard does not get a simulation playback control',async({page})=>{
 });
 const runtimes=[['cruise-control','app.js','sim'],['inverted-pendulum','pendulum-app.js','simulation'],['rotary-pendulum','experiment-app.js','simulation']];
 async function controlledPlayback(page,file,state){
+  // Count actual presentation calls in either renderer, not 2D clears alone.
+  await page.route('**/assets/three/view.js',async route=>{
+    const response=await route.fetch();const source=await response.text();
+    expect(source).toContain('renderer.render(scene, camera);');
+    await route.fulfill({response,body:source.replace('renderer.render(scene, camera);',
+      'if(canvas.id === "apparatus") window.playbackDraws++; renderer.render(scene, camera);')});
+  });
   // Observe real private state/history without replacing model or frame logic.
   await page.route(`**/assets/${file}`,async route=>{
     const response=await route.fetch();const source=await response.text();
@@ -50,6 +57,7 @@ for(const [id,file,state] of runtimes){
   test(`${id}: Start/resume draws every RAF in both OS modes with identical physics`,async({page})=>{
     await controlledPlayback(page,file,state);
     await page.goto(`${base}${id}/?lang=ko`);await expect(page.locator('#start-pause')).toBeEnabled();
+    await expect(page.locator('#apparatus')).toHaveAttribute('data-renderer','three');
     let baseline;
     for(const motion of ['no-preference','reduce']){
       await page.emulateMedia({reducedMotion:motion});

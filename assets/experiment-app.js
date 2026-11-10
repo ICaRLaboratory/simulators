@@ -44,6 +44,7 @@ try{
 }
 function boot({definition:d,Simulation,draw:drawModel}){
  const simulation=new Simulation(),history=[],STEP=.005;
+ let apparatus3D=null;
  let running=false,accumulator=0,previous=null,notice='ready';
  const parameterLabels=[];
  for(const p of d.parameters){
@@ -68,7 +69,7 @@ function boot({definition:d,Simulation,draw:drawModel}){
  updateLocale=()=>{for(const [node,pair] of parameterLabels)node.textContent=localized(pair);$('apparatus').textContent=localized(d.description);$('reset').title=localized(['초기화','Reset']);status();apparatus();};
  function sample(){history.push({...simulation.observe()});while(history.length>1&&history[1].t<simulation.state.t-15)history.shift();}
  function context(id){const canvas=$(id),box=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);const width=Math.round(box.width*dpr),height=Math.round(box.height*dpr);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,box.width,box.height);return {ctx,w:box.width,h:box.height};}
- function apparatus(){const {ctx,w,h}=context('apparatus');ctx.save();drawModel(ctx,simulation.state,simulation.params,w,h,document.documentElement.lang);ctx.restore();}
+ function apparatus(){if(apparatus3D?.update(simulation.state,simulation.params))return;const {ctx,w,h}=context('apparatus');ctx.save();drawModel(ctx,simulation.state,simulation.params,w,h,document.documentElement.lang);ctx.restore();}
  function plot(p,i){
   const {ctx:c,w,h}=context(`plot-${i}`);c.font='12px "Pretendard Variable", sans-serif';
   const [min,max]=p.range,format=v=>Math.abs(v)>=1000?v.toExponential(1):Number(v.toPrecision(3)).toString();
@@ -91,4 +92,6 @@ function boot({definition:d,Simulation,draw:drawModel}){
  observer.observe($('apparatus'));d.plots.forEach((_,i)=>observer.observe($(`plot-${i}`)));
  function frame(now){if(running&&!document.hidden){if(previous!==null)accumulator=Math.min(.1,accumulator+Math.max(0,(now-previous)/1000));previous=now;while(accumulator>=STEP&&running){simulation.step(STEP);accumulator-=STEP;sample();if(simulation.state.failed||simulation.state.complete)pause();}render();}else previous=null;requestAnimationFrame(frame);}
  sample();localize();render();requestAnimationFrame(frame);
+ import('./three/catalog.js').then(({attachApparatus})=>attachApparatus($('apparatus'),d.id,{onFallback:render}))
+  .then(view=>{apparatus3D=view;render();}).catch(error=>console.warn('3D view unavailable; keeping the 2D apparatus.',error));
 }

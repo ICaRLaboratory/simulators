@@ -16,7 +16,7 @@ test('cart-pole has a carriage housing, wheel hubs and rigid highlighted rod',()
   const code=source.slice(source.indexOf('function apparatus()'),source.indexOf('function plot('));
   let housings=0;const arcs=[];
   const c=new Proxy({roundRect(){housings++;},arc(...args){arcs.push(args);}}, {get(o,k){return k in o?o[k]:()=>{};}});
-  vm.runInNewContext(`${code}\napparatus();`,{canvasContext:()=>({ctx:c,w:272,h:270}),simulation:{state:{x:0.3,theta:0.08},params:{target:0.5}},t:x=>x});
+  vm.runInNewContext(`${code}\napparatus();`,{apparatus3D:null,canvasContext:()=>({ctx:c,w:272,h:270}),simulation:{state:{x:0.3,theta:0.08},params:{target:0.5}},t:x=>x});
   assert.ok(housings>=2,'carriage and track need physical housings');
   assert.ok(arcs.length>=8,'wheels, hubs, pivot and highlighted bob');
 });

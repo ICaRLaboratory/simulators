@@ -12,6 +12,7 @@ test('each experiment has a unique actual apparatus capture in both locales',()=
   for(const item of catalog){
    const entries=manifest.filter(x=>x.id===item.id&&x.lang===lang);assert.equal(entries.length,1,item.id);
    const entry=entries[0];assert.equal(entry.file,`${item.id}-${lang}.png`);
+   assert.equal(entry.renderer,'three',`${item.id}: preview must come from the real Three.js device view`);
    const bytes=readFileSync(new URL(entry.file,root));assert.equal(bytes.subarray(1,4).toString(),'PNG');
    const hash=createHash('sha256').update(bytes).digest('hex');assert.equal(hash,entry.sha256);hashes.push(hash);
   }

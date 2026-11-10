@@ -1,0 +1,9 @@
+{
+  "name": "three",
+  "version": "0.187.0",
+  "license": "MIT",
+  "source": "https://registry.npmjs.org/three/-/three-0.187.0.tgz",
+  "integrity": "sha512-Qiu7R+Cmh8CstZsY1uJOSWnVlfo7ZtNLV7mF8Jltk3LB3AtDu9cRZlcnRKkAk8Y4z6KKw35z7Y7Urd7jWY8etA==",
+  "bundler": "esbuild@0.28.2",
+  "sha256": "86a852f22bf981c8f025b4c23c1e860f9cac24b01af2046f7d1f19975091b4d1"
+}
