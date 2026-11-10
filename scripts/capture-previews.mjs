@@ -15,7 +15,17 @@ try{
   for(const lang of ['ko','en']){
    const context=await browser.newContext({viewport:{width:1280,height:900},deviceScaleFactor:1,reducedMotion:'reduce'});
    const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
-   if(!item.external)await page.addInitScript(()=>{let callbacks=[],now=0;window.requestAnimationFrame=fn=>{callbacks.push(fn);return callbacks.length;};window.previewFrames=count=>{for(let i=0;i<count;i++){now+=20;const current=callbacks;callbacks=[];for(const fn of current)fn(now);}};});
+   if(!item.external)await page.addInitScript(()=>{
+    const nativeRequest=window.requestAnimationFrame.bind(window);
+    let callbacks=[],now=0;window.requestAnimationFrame=fn=>{callbacks.push(fn);return callbacks.length;};
+    window.previewFrames=async count=>{
+     for(let i=0;i<count;i++){
+      now+=20;const current=callbacks;callbacks=[];for(const fn of current)fn(now);
+      if((i+1)%8===0&&callbacks.length)await new Promise(resolve=>nativeRequest(resolve));
+     }
+     await new Promise(resolve=>nativeRequest(resolve));
+    };
+   });
    const canonical=item.external?new URL(item.href):null;
    if(canonical)canonical.searchParams.set('lang',lang);
    const url=item.external?(process.env.RESEARCH_BASE?new URL(`research.html${canonical.search}${canonical.hash}`,process.env.RESEARCH_BASE).href:canonical.href):`${base}${item.id}/?lang=${lang}`;

@@ -41,6 +41,8 @@ async function controlledPlayback(page,file,state){
     await route.fulfill({response,body:source.replace('function frame(',`window.playbackSnapshot=()=>structuredClone({state:${state}.state,history});\nfunction frame(`)});
   });
   await page.addInitScript(()=>{
+    const nativeRequest=window.requestAnimationFrame.bind(window);
+    window.playbackNativeFrame=()=>new Promise(resolve=>nativeRequest(resolve));
     let next=0,now=0;const callbacks=new Map();
     window.requestAnimationFrame=callback=>{callbacks.set(++next,callback);return next;};
     window.cancelAnimationFrame=id=>callbacks.delete(id);
@@ -51,10 +53,23 @@ async function controlledPlayback(page,file,state){
     CanvasRenderingContext2D.prototype.clearRect=function(...args){if(this.canvas.id==='apparatus')window.playbackDraws++;return clear.apply(this,args);};
   });
 }
-async function frames(page,count,interval=1000/60){return page.evaluate(({count,interval})=>{window.playbackDraws=0;window.advanceFrames(count,interval);return window.playbackDraws;},{count,interval});}
+async function frames(page,count,interval=1000/60){
+  return page.evaluate(async({count,interval})=>{
+    await window.playbackNativeFrame();
+    window.playbackDraws=0;
+    for(let i=0;i<count;i++){
+      window.advanceFrames(1,interval);
+      if((i+1)%8===0&&window.playbackDraws)await window.playbackNativeFrame();
+    }
+    await window.playbackNativeFrame();
+    return window.playbackDraws;
+  },{count,interval});
+}
 async function hidden(page,value){await page.evaluate(value=>{Object.defineProperty(document,'hidden',{configurable:true,value});document.dispatchEvent(new Event('visibilitychange'));},value);}
 for(const [id,file,state] of runtimes){
   test(`${id}: Start/resume draws every RAF in both OS modes with identical physics`,async({page})=>{
+    // Budget the full genuine-GPU workload in both OS modes; assertion deadlines stay unchanged.
+    test.setTimeout(90000);
     await controlledPlayback(page,file,state);
     await page.goto(`${base}${id}/?lang=ko`);await expect(page.locator('#start-pause')).toBeEnabled();
     await expect(page.locator('#apparatus')).toHaveAttribute('data-renderer','three');

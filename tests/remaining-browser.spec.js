@@ -60,9 +60,21 @@ for(const id of ids){
  });
 }
 async function controlledFrames(page){
- await page.addInitScript(()=>{let callbacks=[],now=0;window.requestAnimationFrame=callback=>{callbacks.push(callback);return callbacks.length;};window.advanceFrames=(count,step=20)=>{for(let i=0;i<count;i++){now+=step;const current=callbacks;callbacks=[];for(const callback of current)callback(now);}};});
+ await page.addInitScript(()=>{
+  const nativeRequest=window.requestAnimationFrame.bind(window);
+  let callbacks=[],now=0;window.requestAnimationFrame=callback=>{callbacks.push(callback);return callbacks.length;};
+  window.advanceFrames=async(count,step=20)=>{
+   for(let i=0;i<count;i++){
+    now+=step;const current=callbacks;callbacks=[];for(const callback of current)callback(now);
+    if((i+1)%8===0&&callbacks.length)await new Promise(resolve=>nativeRequest(resolve));
+   }
+   await new Promise(resolve=>nativeRequest(resolve));
+  };
+ });
 }
 test('real parking completion pauses and reset clears completion',async({page})=>{
+ // Budget the complete real-GPU maneuver without changing assertions.
+ test.setTimeout(120000);
  await controlledFrames(page);await page.goto(`${base}parking/?lang=en`);await expect(page.locator('#start-pause')).toBeEnabled();await page.locator('#start-pause').click();await page.evaluate(()=>window.advanceFrames(1200));
  await expect(page.locator('#run-status')).toHaveText('Complete');await expect(page.locator('#simulation-message')).toContainText('Goal reached');await expect(page.locator('#start-pause')).toBeDisabled();await expect(page.locator('#disturb')).toBeDisabled();
  const time=await page.locator('#sim-time').textContent();await page.evaluate(()=>window.advanceFrames(30));await expect(page.locator('#sim-time')).toHaveText(time);await page.locator('[data-lang=ko]').click();await expect(page.locator('#run-status')).toHaveText('완료');await page.locator('#reset').click();await expect(page.locator('#start-pause')).toBeEnabled();await expect(page.locator('#sim-time')).toHaveText('0.00');
@@ -74,7 +86,7 @@ test('real rotary balance failure latches with localized reason',async({page})=>
  const time=await page.locator('#sim-time').textContent();await page.locator('[data-lang=ko]').click();await expect(page.locator('#simulation-message')).toContainText(/[가-힣]/);await page.evaluate(()=>window.advanceFrames(30));await expect(page.locator('#sim-time')).toHaveText(time);await page.locator('#reset').click();await expect(page.locator('#start-pause')).toBeEnabled();
 });
 test('fixed-step runtime bounds catch-up after a long animation gap',async({page})=>{
- await controlledFrames(page);await page.goto(`${base}heat-exchanger/`);await expect(page.locator('#start-pause')).toBeEnabled();await page.locator('#start-pause').click();await page.evaluate(()=>{window.advanceFrames(1);window.advanceFrames(1,10000);});expect(Number(await page.locator('#sim-time').textContent())).toBeLessThanOrEqual(.1);
+ await controlledFrames(page);await page.goto(`${base}heat-exchanger/`);await expect(page.locator('#start-pause')).toBeEnabled();await page.locator('#start-pause').click();await page.evaluate(async()=>{await window.advanceFrames(1);await window.advanceFrames(1,10000);});expect(Number(await page.locator('#sim-time').textContent())).toBeLessThanOrEqual(.1);
 });
 test('module fetch failure is localized and does not pretend to run',async({page})=>{
  await page.route('**/assets/models/drone.js',route=>route.abort());await page.setViewportSize({width:320,height:844});await page.goto(`${base}drone/?lang=en`);

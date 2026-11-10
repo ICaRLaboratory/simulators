@@ -6,6 +6,7 @@ import { motionDistance } from '../assets/motion.js';
 import { PendulumSimulation } from '../assets/pendulum-physics.js';
 import { Simulation as RotarySimulation } from '../assets/models/rotary-pendulum.js';
 import { Simulation as PlateSimulation } from '../assets/models/ball-and-plate.js';
+import { createApparatusCamera } from '../assets/three/camera.js';
 
 const near = (a, b, tolerance = 1e-9) => assert.ok(Math.abs(a - b) <= tolerance, `${a} != ${b}`);
 const vectorNear = (a, b, tolerance = 1e-9) => a.forEach((value, i) => near(value, b[i], tolerance));
@@ -80,51 +81,135 @@ function rodEnds(scene, name) {
 }
 
 function fixedCamera(scene, aspect) {
-  // Match view.js render(): span is NOT the vertical extent on wide canvases.
-  const span = scene.camera.span, vertical = span / Math.min(aspect, 1.6);
-  const camera = new T.OrthographicCamera(-vertical * aspect / 2, vertical * aspect / 2,
-    vertical / 2, -vertical / 2, .01, span * 100);
-  camera.position.fromArray(scene.camera.position);
-  camera.lookAt(...scene.camera.target);
-  camera.updateMatrixWorld(true);
-  return camera;
+  return createApparatusCamera(scene.camera, aspect);
 }
 function apparatusGeometry(scene) {
   const parts = [];
   function visit(node) {
-    if (node.name === 'stage') return; // Background floor, not the physical apparatus.
+    if (node.userData.environment) return;
     if (node.geometry) parts.push(node);
     node.children.forEach(visit);
   }
   visit(scene.root);
-  assert.ok(parts.includes(object(scene, 'rotary-tip')));
-  assert.ok(parts.includes(object(scene, 'rotary-pole')));
   return parts;
 }
+const boundsCache = new WeakMap();
 function assertProjected(parts, camera, label, worldMargin = 0) {
-  const point = new T.Vector3();
-  const limitX = 1 - worldMargin * camera.projectionMatrix.elements[0];
-  const limitY = 1 - worldMargin * camera.projectionMatrix.elements[5];
+  const point = new T.Vector3(), transform = new T.Matrix4();
   let maxXY = 0;
   for (const part of parts) {
+    // Road markings intentionally enter/leave the rolling road, not the car.
+    if (!part.visible && part.name.startsWith('road-mark-')) continue;
     for (let parent = part; parent; parent = parent.parent) assert.ok(parent.visible, `${label}: ${part.name} hidden`);
     assert.ok(part.material.visible && part.material.opacity > 0, `${label}: ${part.name} invisible material`);
     const vertices = part.geometry.getAttribute('position');
     assert.ok(vertices.count > 0, `${label}: ${part.name} has no geometry`);
+    let cached = boundsCache.get(part.geometry);
+    if (!cached || cached.version !== vertices.version) {
+      part.geometry.computeBoundingBox();
+      cached = {version: vertices.version, bounds: part.geometry.boundingBox.clone()};
+      boundsCache.set(part.geometry, cached);
+    }
+    // The transformed local box includes every vertex. Project its corners
+    // directly (do not replace it with a loose camera-space AABB). Minkowski
+    // sum with a camera-space margin cube encloses every inter-sample sphere;
+    // the expanded polytope's vertices also bound perspective depth changes.
+    transform.multiplyMatrices(camera.matrixWorldInverse, part.matrixWorld);
+    const bounds = cached.bounds, offsets = worldMargin ? [-worldMargin, worldMargin] : [0];
     const min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
-    for (let i = 0; i < vertices.count; i++) {
-      point.fromBufferAttribute(vertices, i).applyMatrix4(part.matrixWorld).project(camera);
-      for (const [axis, value] of [point.x, point.y, point.z].entries()) {
-        min[axis] = Math.min(min[axis], value); max[axis] = Math.max(max[axis], value);
+    for (const x of [bounds.min.x, bounds.max.x]) for (const y of [bounds.min.y, bounds.max.y]) for (const z of [bounds.min.z, bounds.max.z]) {
+      point.set(x, y, z).applyMatrix4(transform);
+      const cx = point.x, cy = point.y, cz = point.z;
+      for (const dx of offsets) for (const dy of offsets) for (const dz of offsets) {
+        assert.ok(cz + dz < -camera.near, `${label}: ${part.name} crosses camera near plane`);
+        point.set(cx + dx, cy + dy, cz + dz).applyMatrix4(camera.projectionMatrix);
+        for (const [axis, value] of [point.x, point.y, point.z].entries()) {
+          min[axis] = Math.min(min[axis], value); max[axis] = Math.max(max[axis], value);
+        }
       }
     }
-    assert.ok(min[0] >= -limitX && max[0] <= limitX && min[1] >= -limitY && max[1] <= limitY
-      && min[2] >= -1 && max[2] <= 1,
-    `${label}: ${part.name || part.parent.name} clips; NDC min=${min}, max=${max}, limits=${limitX},${limitY}`);
+    assert.ok(min[0] >= -1 && max[0] <= 1 && min[1] >= -1 && max[1] <= 1 && min[2] >= -1 && max[2] <= 1,
+      `${label}: ${part.name || part.parent.name} clips; NDC min=${min}, max=${max}`);
     maxXY = Math.max(maxXY, ...min.slice(0, 2).map(Math.abs), ...max.slice(0, 2).map(Math.abs));
   }
   return maxXY;
 }
+function engineeringParts(scene, parts) {
+  for (const [name, role] of parts) {
+    const node = object(scene, name);
+    assert.equal(node.material?.userData.finish, role, `${name} needs a material appropriate to its construction`);
+    if (['steel', 'aluminium', 'dark-metal'].includes(role)) {
+      assert.ok(node.material.metalness >= .7);
+      assert.ok(node.material.roughnessMap?.isDataTexture, `${name} needs restrained machining grain`);
+    }
+    if (role === 'rubber') assert.ok(node.material.metalness === 0 && node.material.roughness > .8);
+  }
+}
+function readoutValues(scene, expected) {
+  assert.equal(typeof scene.readouts, 'function', 'Anchored measurements are missing');
+  const entries = scene.readouts();
+  assert.ok(entries.length > 0 && entries.length <= 2);
+  assert.equal(new Set(entries.map(entry => entry.id)).size, entries.length);
+  for (const [i, [anchor, value]] of expected.entries()) {
+    assert.equal(entries[i].anchor, object(scene, anchor));
+    assert.equal(entries[i].value, value);
+    assert.ok(entries[i].label.ko && entries[i].label.en);
+    assert.ok(['left', 'right'].includes(entries[i].side));
+  }
+  return entries;
+}
+function identitySnapshot(scene) {
+  const rows = [];
+  scene.root.traverse(node => {
+    if (node.geometry) assert.ok(Array.from(node.geometry.getAttribute('position').array).every(Number.isFinite), `${node.name} has nonfinite geometry`);
+    rows.push([node, node.geometry, node.material]);
+  });
+  return rows;
+}
+
+test('cruise construction has wheel-arch shells, rubber tire profiles and actual speed/distance readouts', async () => {
+  const scene = await create('cruise-control'), sim = new Simulation('cruise-control');
+  engineeringParts(scene, [['body', 'paint'], ['chassis', 'dark-metal'], ['wheel-front-left-tire', 'rubber'], ['wheel-front-left-rim-1', 'aluminium']]);
+  assert.equal(object(scene, 'body').geometry.type, 'ExtrudeGeometry', 'A car needs a shaped body, not a cuboid');
+  assert.equal(object(scene, 'wheel-front-left-tire').geometry.type, 'LatheGeometry');
+  object(scene, 'wheel-arch-front-left'); object(scene, 'underbody-crossmember-front');
+  const before = identitySnapshot(scene);
+  pureUpdate(scene, {...sim.state, y: 12.25}, sim.params, {distance: 8.5});
+  const entries = readoutValues(scene, [['car', '12.250 m/s'], ['wheel-front-left', '8.500 m']]);
+  pureUpdate(scene, {...sim.state, y: -1.75}, sim.params, {distance: -2});
+  assert.equal(scene.readouts(), entries);
+  readoutValues(scene, [['car', '-1.750 m/s'], ['wheel-front-left', '-2.000 m']]);
+  assert.deepEqual(identitySnapshot(scene), before);
+});
+
+test('cruise tire construction preserves the physical .34 m rolling radius and genuinely open wheel wells', async () => {
+  const scene = await create('cruise-control');
+  pureUpdate(scene, {y: 0}, {target: 0}, {distance: 0});
+  const wheel = object(scene, 'wheel-front-left'), point = new T.Vector3();
+  let radius = 0;
+  wheel.traverse(node => {
+    if (!node.geometry) return;
+    const positions = node.geometry.getAttribute('position');
+    for (let i = 0; i < positions.count; i++) {
+      point.fromBufferAttribute(positions, i); wheel.worldToLocal(node.localToWorld(point));
+      radius = Math.max(radius, Math.hypot(point.x, point.y));
+    }
+  });
+  near(radius, .34, 1e-6);
+  const ray = new T.Raycaster(new T.Vector3(1.22, .39, 3), new T.Vector3(0, 0, -1));
+  assert.equal(ray.intersectObject(object(scene, 'body')).length, 0, 'Wheel openings must remove body material');
+});
+
+test('each mechanism is grounded on an environment-only plane rather than a floating grid stage', async () => {
+  for (const id of ['cruise-control', 'dc-motor', 'ball-and-beam', 'inverted-pendulum', 'rotary-pendulum', 'ball-and-plate']) {
+    const scene = await create(id), ground = object(scene, 'stage-surface');
+    assert.equal(ground.geometry.type, 'PlaneGeometry');
+    assert.equal(ground.userData.environment, true);
+    assert.equal(scene.root.getObjectByName('stage-grid'), undefined);
+    assert.ok(!apparatusGeometry(scene).includes(ground));
+  }
+});
+
 function assertRotaryDimensions(scene) {
   for (const [name, length] of [['rotary-arm', .18], ['rotary-pole', .22]]) {
     const [a, b] = rodEnds(scene, name).map(p => new T.Vector3(...p));
@@ -171,6 +256,30 @@ test('cruise apparatus uses integrated distance, not speed times elapsed time', 
   near(wheel.rotation.z, 0, 1e-12);
 });
 
+test('motor construction exposes machined endbells, shaft coupling, supported bearing and real encoder readouts', async () => {
+  const scene = await create('dc-motor'), sim = new Simulation('dc-motor');
+  engineeringParts(scene, [['motor-housing', 'aluminium'], ['motor-front-cap', 'aluminium'], ['shaft-coupling', 'steel'],
+    ['front-bearing-support', 'aluminium'], ['encoder-housing', 'dark-metal'], ['motor-cable', 'rubber']]);
+  assert.equal(object(scene, 'motor-housing').geometry.type, 'LatheGeometry');
+  assert.ok(object(scene, 'motor-front-cap').geometry.type !== 'BoxGeometry');
+  for (const name of ['motor-saddle-front', 'motor-saddle-rear']) {
+    const saddle = object(scene, name); saddle.geometry.computeBoundingBox();
+    assert.equal(saddle.geometry.type, 'ExtrudeGeometry');
+    assert.ok(saddle.geometry.boundingBox.min.y <= .161 && saddle.geometry.boundingBox.max.y >= .94,
+      'A real saddle must bridge the baseplate to the motor centreline');
+  }
+  assert.ok(object(scene, 'rotor-disc').userData.bore >= .6, 'The angle witness must be open, not a giant toy flywheel');
+  const before = identitySnapshot(scene);
+  pureUpdate(scene, {...sim.state, y: -1.25, v: 2.5}, sim.params);
+  const entries = readoutValues(scene, [['motor-shaft', '-1.250 rad'], ['encoder-housing', '2.500 rad/s']]);
+  const fixedEncoder = object(scene, 'encoder-housing').matrix.clone();
+  pureUpdate(scene, {...sim.state, y: 2, v: -1, t: 500}, sim.params);
+  assert.equal(scene.readouts(), entries);
+  readoutValues(scene, [['motor-shaft', '2.000 rad'], ['encoder-housing', '-1.000 rad/s']]);
+  assert.deepEqual(object(scene, 'encoder-housing').matrix, fixedEncoder);
+  assert.deepEqual(identitySnapshot(scene), before);
+});
+
 test('motor disc and pointers use actual shaft angle with counterclockwise positive rotation', async () => {
   const scene = await create('dc-motor');
   validate(scene, ['motor-housing', 'motor-mount', 'motor-shaft', 'rotor', 'rotor-disc', 'actual-pointer', 'actual-pointer-tip', 'motor-target', 'target-pointer-tip']);
@@ -187,7 +296,24 @@ test('motor disc and pointers use actual shaft angle with counterclockwise posit
   pureUpdate(scene, { ...sim.state, y: 7, v: 80, t: 100 }, sim.params);
   assert.deepEqual(poses(scene), snapshot, 'Rotor angle is a state, not an animation clock');
   assert.ok(object(scene, 'motor-shaft').isMesh);
-  assert.ok(object(scene, 'rotor-disc').geometry.parameters.radiusTop > .5);
+  object(scene, 'rotor-disc').geometry.computeBoundingBox();
+  near(object(scene, 'rotor-disc').geometry.boundingBox.max.x, .72, 1e-7);
+  assert.ok(object(scene, 'rotor-disc').userData.bore > .7, 'The original .72 m angle scale is retained as an open witness');
+});
+
+test('beam construction uses a structural guide profile and bored pivot supports with state-linked readouts', async () => {
+  const scene = await create('ball-and-beam'), sim = new Simulation('ball-and-beam');
+  engineeringParts(scene, [['beam-deck', 'aluminium'], ['pivot-bearing', 'steel'], ['mount-left', 'aluminium'], ['beam-ball', 'steel'], ['beam-servo-cable', 'rubber']]);
+  assert.equal(object(scene, 'beam-deck').geometry.type, 'ExtrudeGeometry');
+  assert.ok(object(scene, 'pivot-bearing').userData.bore > 0);
+  object(scene, 'beam-guide-web'); object(scene, 'beam-encoder');
+  const before = identitySnapshot(scene);
+  pureUpdate(scene, {...sim.state, y: -.4, u: .2}, sim.params);
+  const entries = readoutValues(scene, [['beam-ball', '-0.400 m'], ['beam-pivot', '0.200 rad']]);
+  pureUpdate(scene, {...sim.state, y: .8, u: -.15}, sim.params);
+  assert.equal(scene.readouts(), entries);
+  readoutValues(scene, [['beam-ball', '0.800 m'], ['beam-pivot', '-0.150 rad']]);
+  assert.deepEqual(identitySnapshot(scene), before);
 });
 
 test('beam keeps its metre scale and slopes downhill for positive held input', async () => {
@@ -213,6 +339,22 @@ test('beam keeps its metre scale and slopes downhill for positive held input', a
   assert.deepEqual(poses(scene), frozen, 'A failed state must remain visible, not animate or clamp back onto the rail');
 });
 
+test('cart construction has a profile rail, belt drive and bearing carriage without invented motor rotation', async () => {
+  const scene = await create('inverted-pendulum'), sim = new PendulumSimulation();
+  engineeringParts(scene, [['rail-bed', 'aluminium'], ['rail-front', 'steel'], ['cart-body', 'aluminium'], ['drive-belt-upper', 'rubber'], ['cart-encoder-cable', 'rubber']]);
+  assert.equal(object(scene, 'rail-bed').geometry.type, 'ExtrudeGeometry');
+  object(scene, 'drive-pulley'); object(scene, 'idler-pulley'); object(scene, 'cart-bearing-front');
+  const before = identitySnapshot(scene);
+  pureUpdate(scene, {...sim.state, x: -.65, theta: .2}, sim.params);
+  const entries = readoutValues(scene, [['cart', '-0.650 m'], ['cart-pivot', '0.200 rad']]);
+  const pulley = object(scene, 'drive-pulley').matrix.clone();
+  pureUpdate(scene, {...sim.state, x: .4, theta: -.1, t: 200, v: 5}, sim.params);
+  assert.equal(scene.readouts(), entries);
+  readoutValues(scene, [['cart', '0.400 m'], ['cart-pivot', '-0.100 rad']]);
+  assert.deepEqual(object(scene, 'drive-pulley').matrix, pulley);
+  assert.deepEqual(identitySnapshot(scene), before);
+});
+
 test('cart pendulum uses a fixed half-metre pole, upright zero and positive-right lean', async () => {
   const scene = await create('inverted-pendulum');
   validate(scene, ['cart', 'cart-body', 'cart-pivot', 'cart-wheel-front-left', 'cart-wheel-rear-right', 'pole', 'pole-tip', 'cart-target', 'upright-reference', 'rail-front', 'rail-rear', 'cart-drive']);
@@ -235,6 +377,23 @@ test('cart pendulum uses a fixed half-metre pole, upright zero and positive-righ
   const snapshot = poses(scene);
   pureUpdate(scene, { ...states.at(-1), t: 50, v: 3, omega: 8 }, sim.params);
   assert.deepEqual(poses(scene), snapshot, 'Travel/fall failure is displayed exactly without visual physics');
+});
+
+test('rotary construction has a turned motor, bearing cartridge and machined arm with actual joint readouts', async () => {
+  const scene = await create('rotary-pendulum'), sim = new RotarySimulation();
+  engineeringParts(scene, [['rotary-motor', 'dark-metal'], ['rotary-bearing-cartridge', 'steel'], ['arm-body', 'aluminium'], ['rotary-pole', 'steel'], ['rotary-drive-cable', 'rubber']]);
+  assert.equal(object(scene, 'rotary-motor').geometry.type, 'LatheGeometry');
+  assert.equal(object(scene, 'arm-body').geometry.type, 'ExtrudeGeometry');
+  assert.ok(object(scene, 'rotary-pivot-bearing').userData.bore > 0);
+  object(scene, 'rotary-hinge-encoder');
+  const before = identitySnapshot(scene);
+  pureUpdate(scene, {...sim.state, alpha: .35, theta: -.12}, sim.params);
+  const entries = readoutValues(scene, [['rotary-drive', '0.350 rad'], ['rotary-pivot', '-0.120 rad']]);
+  pureUpdate(scene, {...sim.state, alpha: -.2, theta: .15}, sim.params);
+  assert.equal(scene.readouts(), entries);
+  readoutValues(scene, [['rotary-drive', '-0.200 rad'], ['rotary-pivot', '0.150 rad']]);
+  assertRotaryDimensions(scene);
+  assert.deepEqual(identitySnapshot(scene), before);
 });
 
 test('Furuta arm preserves r=.18, l=.22 and positive pole lean along the positive-alpha tangent', async () => {
@@ -360,6 +519,21 @@ test('rotary fixed camera fits the full permitted arm/pole envelope without shri
   t.diagnostic(`${samples} envelope poses; inter-sample world margin=${betweenSamples}; max |NDC x/y|=${maxXY}`);
 });
 
+test('plate construction has nested bearing frames, a machined deck and actual position/tilt readouts', async () => {
+  const scene = await create('ball-and-plate'), sim = new PlateSimulation();
+  engineeringParts(scene, [['plate-deck', 'aluminium'], ['gimbal-outer-bearing', 'steel'], ['gimbal-inner-bearing', 'steel'], ['plate-ball', 'steel'], ['plate-servo-cable', 'rubber']]);
+  assert.equal(object(scene, 'gimbal-inner-bearing').parent, object(scene, 'plate-tilt-y'));
+  assert.ok(object(scene, 'gimbal-outer-bearing').userData.bore > 0);
+  object(scene, 'gimbal-outer-frame'); object(scene, 'plate-underside-rib');
+  const before = identitySnapshot(scene);
+  pureUpdate(scene, {...sim.state, x: -.12, y: .08, vx: -.4, vy: .4}, sim.params);
+  const entries = readoutValues(scene, [['plate-ball', '-0.120, 0.080 m'], ['plate', '0.200 / -0.200 rad']]);
+  pureUpdate(scene, {...sim.state, x: .05, y: -.02, vx: 0, vy: 0}, {...sim.params, targetX: 0, targetY: 0});
+  assert.equal(scene.readouts(), entries);
+  readoutValues(scene, [['plate-ball', '0.050, -0.020 m'], ['plate', '-0.040 / 0.016 rad']]);
+  assert.deepEqual(identitySnapshot(scene), before);
+});
+
 test('plate reproduces the existing compound downhill rotation and both independent PD saturations', async () => {
   const scene = await create('ball-and-plate');
   validate(scene, ['plate', 'plate-deck', 'plate-ball', 'plate-target', 'plate-pedestal', 'plate-joint', 'plate-servo-x', 'plate-servo-y', 'plate-corner-0', 'plate-corner-1', 'plate-corner-2', 'plate-corner-3']);
@@ -398,4 +572,56 @@ test('plate reproduces the existing compound downhill rotation and both independ
   const snapshot = poses(scene);
   pureUpdate(scene, { ...cases.at(-1)[0], t: 100 }, cases.at(-1)[1]);
   assert.deepEqual(poses(scene), snapshot);
+});
+
+const otherMechanisms = ['cruise-control', 'dc-motor', 'ball-and-beam', 'inverted-pendulum', 'ball-and-plate'];
+function modelFor(id) {
+  return id === 'inverted-pendulum' ? new PendulumSimulation() : id === 'ball-and-plate' ? new PlateSimulation() : new Simulation(id);
+}
+for (const id of otherMechanisms) {
+  test(`${id} perspective camera contains real target/disturbance histories at desktop/mobile aspects`, async t => {
+    const scene = await create(id), sim = modelFor(id), config = structuredClone(scene.camera);
+    const parts = apparatusGeometry(scene), views = rotaryAspects.map(([label, aspect]) => [label, fixedCamera(scene, aspect)]);
+    assert.ok(views.every(([, camera]) => camera.isPerspectiveCamera));
+    let distance = 0, maxXY = 0;
+    for (let i = 0; i <= 1200; i++) {
+      if (i === 400) {
+        if (id === 'ball-and-plate') { sim.params.targetX = -.16; sim.params.targetY = .12; }
+        else sim.params.target = id === 'cruise-control' ? 35 : id === 'dc-motor' ? -3 : -.65;
+      }
+      if (i === 800) sim.disturb();
+      pureUpdate(scene, sim.state, sim.params, {distance});
+      assert.deepEqual(scene.camera, config);
+      for (const [label, camera] of views) maxXY = Math.max(maxXY, assertProjected(parts, camera, `${id} ${label} t=${sim.state.t}`));
+      const oldSpeed = sim.state.y;
+      if (i < 1200) sim.step(.005);
+      if (id === 'cruise-control') distance = motionDistance(distance, oldSpeed, sim.state.y, .005);
+    }
+    t.diagnostic(`1201 actual model snapshots × 3 aspects, max |NDC x/y|=${maxXY}`);
+  });
+}
+
+test('all mechanism perspective cameras include parameter boundaries and failed-edge poses', async t => {
+  for (const id of otherMechanisms) {
+    const scene = await create(id), sim = modelFor(id), parts = apparatusGeometry(scene);
+    const views = rotaryAspects.map(([label, aspect]) => [label, fixedCamera(scene, aspect)]);
+    let samples = 0, maxXY = 0;
+    const check = (state, params = sim.params, extras = {}, margin = 0) => {
+      pureUpdate(scene, {...sim.state, ...state}, params, extras);
+      for (const [label, camera] of views) maxXY = Math.max(maxXY, assertProjected(parts, camera, `${id} ${label} envelope ${samples}`, margin));
+      samples++;
+    };
+    if (id === 'cruise-control') for (const y of [-3, 0, 40]) for (const target of [0, 40]) for (const distance of [-.8, 0, 1.3, 2.59]) check({y}, {...sim.params, target}, {distance});
+    if (id === 'dc-motor') {
+      for (let i = 0; i <= 48; i++) for (const target of [-5, 0, 5]) check({y: i * Math.PI / 24}, {...sim.params, target}, {}, .85 * Math.PI / 48);
+      // The amber pointer is independently positioned, not locked to the shaft.
+      for (let i = 0; i <= 80; i++) check({y: 0}, {...sim.params, target: -5 + i * .125}, {}, .825 * .125 / 2);
+    }
+    if (id === 'ball-and-beam') for (let i = 0; i <= 20; i++) for (const y of [-1.02, 1.02]) for (const target of [-.8, .8]) check({y, u: -.25 + i * .025, failed: true}, {...sim.params, target}, {}, 1.2 * .025 / 2);
+    if (id === 'inverted-pendulum') for (let i = 0; i <= 24; i++) for (const x of [-2.01, 2.01]) for (const target of [-.8, .8]) check({x, theta: -Math.PI / 3 + i * Math.PI / 36, failed: true}, {...sim.params, target}, {}, .55 * Math.PI / 72);
+    if (id === 'ball-and-plate') for (let i = 0; i <= 12; i++) for (let j = 0; j <= 12; j++) for (const x of [-.301, .301]) for (const y of [-.301, .301]) {
+      check({x, y, vx: .3 - i * .05, vy: .3 - j * .05, failed: true}, {...sim.params, targetX: Math.sign(x) * .2, targetY: Math.sign(y) * .2, kpX: 0, kpY: 0, kdX: 1, kdY: 1, tiltLimit: .3}, {}, .5 * .05);
+    }
+    t.diagnostic(`${id}: ${samples} boundary poses × 3 aspects, max |NDC x/y|=${maxXY}`);
+  }
 });

@@ -1,8 +1,10 @@
 import * as T from '../vendor/three.js';
 import { mechanics, kinematics, contactForce } from '../models/impedance-robot.js';
 import {
-  C, group, box, cylinder, sphere, rod, setRod, line, updateLine, floor, targetMarker, material,
+  C, group, box, cylinder, sphere, rod, setRod, line, floor, targetMarker, material,
 } from './primitives.js';
+
+import { finish, housing, turned, flange, fasteners, cable } from './engineering.js';
 
 const TAU = Math.PI * 2;
 const addGroup = (parent, name) => {
@@ -20,19 +22,27 @@ function solid(parent, name, geometry, color, options = {}) {
   return mesh;
 }
 
-function capsulePlate(parent, name, length, radius, depth, color, options = {}) {
-  const shape = new T.Shape();
-  shape.moveTo(0, -radius);
-  shape.lineTo(length, -radius);
-  shape.absarc(length, 0, radius, -Math.PI / 2, Math.PI / 2, false);
-  shape.lineTo(0, radius);
-  shape.absarc(0, 0, radius, Math.PI / 2, Math.PI * 1.5, false);
-  shape.closePath();
-  const geometry = new T.ExtrudeGeometry(shape, {
-    depth, bevelEnabled: true, bevelSize: .008, bevelThickness: .008, bevelSegments: 2, steps: 1, curveSegments: 12,
-  });
-  geometry.translate(0, 0, -depth / 2);
-  return solid(parent, name, geometry, color, options);
+// The model bounds histories at 500 points and parking plans at 301. Allocate once.
+function streamLine(parent, name, capacity, color, dashed = false) {
+  const result = line(parent, name, Array.from({ length: capacity }, () => [0, 0, 0]), color, dashed);
+  result.geometry.setDrawRange(0, 0);
+  return result;
+}
+
+function writeLine(object, points) {
+  const position = object.geometry.getAttribute('position');
+  if (points.length > position.count) throw new RangeError(`Path exceeds ${object.name} capacity`);
+  const distances = object.geometry.getAttribute('lineDistance');
+  let distance = 0;
+  for (let i = 0; i < points.length; i++) {
+    position.setXYZ(i, ...points[i]);
+    if (i) distance += Math.hypot(...points[i].map((value, axis) => value - points[i - 1][axis]));
+    distances?.setX(i, distance);
+  }
+  position.needsUpdate = true;
+  if (distances) distances.needsUpdate = true;
+  object.geometry.setDrawRange(0, points.length);
+  object.geometry.computeBoundingSphere();
 }
 
 function faceDisc(parent, name, radius, depth, position, color) {
@@ -41,59 +51,111 @@ function faceDisc(parent, name, radius, depth, position, color) {
   return mesh;
 }
 
-function joint(parent, name, radius) {
-  faceDisc(parent, `${name}-housing`, radius, .19, [0, 0, -.025], C.ink);
-  faceDisc(parent, `${name}-race`, radius * .84, .025, [0, 0, .08], C.metal);
-  faceDisc(parent, `${name}-servo`, radius * .66, .022, [0, 0, .099], C.teal);
-  faceDisc(parent, `${name}-cap`, radius * .28, .025, [0, 0, .113], C.light);
-  for (let i = 0; i < 4; i++) {
-    const angle = i * TAU / 4 + Math.PI / 4;
-    faceDisc(parent, `${name}-bolt-${i}`, radius * .075, .014,
-      [radius * .76 * Math.cos(angle), radius * .76 * Math.sin(angle), .103], C.ink);
-  }
+function faceFlange(parent, name, radius, depth, position, metal, bore) {
+  const mesh = flange(parent, name, radius, depth, position, metal, bore);
+  mesh.rotation.x = Math.PI / 2;
+  return mesh;
 }
 
-function machinedLink(parent, name, length, radius) {
-  capsulePlate(parent, name, length, radius, .095, C.ink);
-  const inset = capsulePlate(parent, `${name}-face`, length - .18, radius * .69, .019, C.light);
-  inset.position.set(.09, 0, .06);
-  box(parent, `${name}-inlay`, [length - .2, .017, .011], [length / 2, .022, .079], C.teal);
-  for (const [i, x] of [.13, length - .13].entries()) {
-    faceDisc(parent, `${name}-screw-${i}`, .011, .012, [x, -.021, .081], C.metal);
+function faceTurned(parent, name, profile, position, metal) {
+  const mesh = turned(parent, name, profile, position, metal);
+  mesh.rotation.x = Math.PI / 2;
+  return mesh;
+}
+
+function faceFasteners(parent, name, radius, position, count = 6, headRadius = .012) {
+  const ring = fasteners(parent, name, radius, position, count, headRadius);
+  ring.rotation.x = Math.PI / 2;
+  return ring;
+}
+
+function jointDrive(parent, name, radius, finishes) {
+  const { steel, alloy, dark, paint } = finishes;
+  // Rear servo, reduction stage, output bearing and shaft are separate solids.
+  faceTurned(parent, `${name}-servo-can`, [[0, -.37], [radius * .7, -.37],
+    [radius * .8, -.35], [radius * .8, -.18], [radius * .92, -.15],
+    [radius * .92, -.11], [0, -.11]], [0, 0, 0], dark);
+  faceTurned(parent, `${name}-encoder-cover`, [[0, -.394], [radius * .62, -.394],
+    [radius * .74, -.38], [radius * .74, -.365], [0, -.365]], [0, 0, 0], alloy);
+  faceTurned(parent, `${name}-gearcase`, [[0, -.15], [radius * .92, -.15],
+    [radius, -.12], [radius, .06], [radius * .92, .085], [0, .085]], [0, 0, 0], paint);
+  faceFlange(parent, `${name}-output-flange`, radius * .94, .034, [0, 0, .097], steel, radius * .42);
+  faceFlange(parent, `${name}-bearing-seal`, radius * .63, .012, [0, 0, .119], dark, radius * .5);
+  faceDisc(parent, `${name}-output-shaft`, radius * .49, .065, [0, 0, .115], alloy);
+  faceDisc(parent, `${name}-index-cap`, radius * .29, .014, [0, 0, .153], finish('paint', { color: C.teal }));
+  faceFasteners(parent, `${name}-flange-bolts`, radius * .78, [0, 0, .12], 6, radius * .055);
+  housing(parent, `${name}-connector`, [.075, .06, .09], [0, radius * .89, -.28], dark);
+  cable(parent, `${name}-service-loop`, [[0, radius * .9, -.29], [-radius * .65, radius * 1.24, -.34],
+    [-radius * 1.08, radius * .65, -.39], [-radius * .9, -radius * .65, -.37],
+    [.04, -radius * 1.08, -.29]], .014);
+}
+
+function machinedLink(parent, name, length, radius, finishes) {
+  const { paint, alloy, dark } = finishes;
+  // A tapered hollow casting, not a rectangular beam with cosmetic bolts.
+  const contour = [[.02, -radius], [length * .22, -radius], [length * .54, -radius * .79],
+    [length - .08, -radius * .57], [length + .025, -radius * .4],
+    [length + .025, radius * .4], [length - .08, radius * .57],
+    [length * .54, radius * .79], [length * .22, radius], [.02, radius], [-.045, radius * .62], [-.045, -radius * .62]];
+  const pocket = [[length * .23, -radius * .66], [length * .57, -radius * .49],
+    [length - .11, -radius * .28], [length - .11, radius * .28],
+    [length * .57, radius * .49], [length * .23, radius * .66]];
+  profileSolid(parent, name, contour, .22, paint, {}, .009, [pocket]);
+  const serviceCover = profileSolid(parent, `${name}-service-cover`, pocket, .012, dark, {}, .009);
+  serviceCover.position.z = -.113;
+  const web = profileSolid(parent, `${name}-web`, [[length * .25, -.018], [length - .1, -.012],
+    [length - .1, .012], [length * .25, .018]], .25, alloy, {}, .005);
+  web.position.z = 0;
+  cable(parent, `${name}-service-cable`, [[.05, -radius, -.26], [length * .3, -radius * 1.3, -.24],
+    [length * .7, -radius, -.23], [length - .025, -.045, -.27]], .013);
+  for (const x of [length * .34, length * .65]) {
+    housing(parent, `${name}-cable-clip-${x}`, [.035, .034, .07], [x, -radius * 1.1, -.235], alloy);
   }
-  // A routed cable sits behind the link, never changes its kinematic length.
-  const cable = new T.CatmullRomCurve3([
-    new T.Vector3(.06, -.035, -.071), new T.Vector3(length * .35, -.085, -.083),
-    new T.Vector3(length * .72, -.085, -.083), new T.Vector3(length - .04, -.035, -.071),
-  ]);
-  solid(parent, `${name}-cable`, new T.TubeGeometry(cable, 16, .012, 6, false), C.ink);
 }
 
 function armAssembly(root, l1, l2, reach) {
-  const floorY = -reach - .19;
-  floor(root, reach * 2 + .9, 2.6, floorY);
+  const floorY = -reach - .27;
+  const stage = floor(root, reach * 2 + .9, 2.6, floorY);
+  stage.userData.environment = true;
+  const finishes = { steel: finish('steel'), alloy: finish('aluminium'), dark: finish('dark-metal'),
+    paint: finish('paint', { color: 0xb3bbb7 }) };
+  const { steel, alloy, dark, paint } = finishes;
   const base = addGroup(root, 'arm-base');
-  box(base, 'mounting-plinth', [.76, .11, .68], [0, floorY + .055, -.36], C.ink);
-  box(base, 'plinth-insert', [.65, .035, .57], [0, floorY + .122, -.36], C.light);
-  box(base, 'fixed-pedestal', [.16, -floorY - .11, .19], [0, (floorY + .11) / 2, -.36], C.metal);
-  box(base, 'pedestal-channel', [.075, -floorY - .25, .013], [0, (floorY + .11) / 2, -.257], C.ink);
-  for (const x of [-.27, .27]) for (const z of [-.58, -.14]) {
-    cylinder(base, `mount-bolt-${x}-${z}`, .027, .02, [x, floorY + .151, z], C.metal);
+  housing(base, 'mounting-plinth', [.84, .10, .78], [0, floorY + .05, -.42], dark);
+  housing(base, 'plinth-insert', [.76, .05, .70], [0, floorY + .125, -.42], steel);
+  housing(base, 'fixed-pedestal', [.22, -floorY - .21, .27], [0, (floorY + .15 - .06) / 2, -.45], paint);
+  housing(base, 'pedestal-cap', [.41, .16, .43], [0, -.11, -.42], alloy);
+  for (const sign of [-1, 1]) {
+    const gusset = profileSolid(base, `pedestal-gusset-${sign < 0 ? 'left' : 'right'}`,
+      [[sign * .12, floorY + .16], [sign * .36, floorY + .16], [sign * .12, floorY + .65]], .18, alloy, {}, .008);
+    gusset.position.z = -.42;
   }
-  faceDisc(base, 'fixed-shoulder-motor', .16, .28, [0, 0, -.23], C.ink);
-  faceDisc(base, 'motor-rear-cover', .134, .028, [0, 0, -.386], C.metal);
+  housing(base, 'pedestal-service-cover', [.13, -floorY - .49, .02], [0, (floorY + .16) / 2, -.301], dark);
+  for (const x of [-.3, .3]) for (const z of [-.66, -.16]) {
+    fasteners(base, `mount-bolt-${x}-${z}`, 0, [x, floorY + .16, z], 1, .028);
+  }
+  cable(base, 'pedestal-cable', [[0, floorY + .17, -.63], [-.08, floorY + .46, -.65],
+    [-.09, -.48, -.65], [0, -.19, -.35]], .019);
+  jointDrive(base, 'shoulder', l1 > .7 ? .205 : .185, finishes);
   const shoulder = addGroup(root, 'shoulder');
-  machinedLink(shoulder, 'upper-link', l1, .082);
-  joint(shoulder, 'shoulder', .124);
+  machinedLink(shoulder, 'upper-link', l1, l1 > .7 ? .17 : .135, finishes);
+  const elbowDrive = addGroup(shoulder, 'elbow-drive');
+  elbowDrive.position.x = l1;
+  jointDrive(elbowDrive, 'elbow', l2 > .7 ? .16 : .142, finishes);
   const elbow = addGroup(shoulder, 'elbow');
   elbow.position.x = l1;
-  machinedLink(elbow, 'forearm-link', l2, .067);
-  joint(elbow, 'elbow', .096);
+  const forearm = addGroup(elbow, 'forearm-hardware');
+  machinedLink(forearm, 'forearm-link', l2, l2 > .7 ? .132 : .105, finishes);
   const tool = addGroup(elbow, 'tool-center');
   tool.position.x = l2;
-  joint(tool, 'wrist', .064);
+  const wrist = addGroup(tool, 'wrist-hardware');
+  faceTurned(wrist, 'wrist-bearing', [[0, -.105], [.072, -.105], [.08, -.08], [.08, .075],
+    [.065, .1], [0, .1]], [0, 0, 0], dark);
+  faceFlange(wrist, 'wrist-output-flange', .069, .028, [0, 0, .112], steel, .026);
+  faceDisc(wrist, 'wrist-index', .025, .017, [0, 0, .133], finish('paint', { color: C.teal }));
+  faceFasteners(wrist, 'wrist-bolts', .05, [0, 0, .132], 4, .007);
   return {
-    shoulder, elbow, tool,
+    shoulder, elbow, tool, forearm, wrist,
     pose(q1, q2) {
       shoulder.rotation.z = q1;
       elbow.rotation.z = q2;
@@ -104,30 +166,38 @@ function armAssembly(root, l1, l2, reach) {
 function servoArm() {
   const root = group('robot-arm');
   const arm = armAssembly(root, .8, .8, 1.6);
-  box(arm.tool, 'gripper-palm', [.09, .16, .105], [.065, 0, 0], C.metal);
+  housing(arm.tool, 'gripper-palm', [.09, .16, .105], [.065, 0, 0], 'aluminium');
+  for (const z of [-.035, .035]) rod(arm.tool, `jaw-guide-${z}`, [.07, -.09, z], [.07, .09, z], .012, finish('steel'));
   for (const [name, sign] of [['left', 1], ['right', -1]]) {
-    box(arm.tool, `gripper-${name}`, [.15, .028, .07], [.17, sign * .075, 0], C.ink);
-    box(arm.tool, `gripper-${name}-pad`, [.028, .042, .071], [.23, sign * .054, 0], C.teal);
+    housing(arm.tool, `gripper-${name}`, [.15, .028, .07], [.17, sign * .075, 0], 'dark-metal');
+    housing(arm.tool, `gripper-${name}-pad`, [.028, .042, .071], [.23, sign * .054, 0], 'rubber');
   }
-  const targetLinks = line(root, 'target-links', [[0, 0, 0], [.8, 0, 0], [1.6, 0, 0]], C.amber, true);
+  const targetLinks = streamLine(root, 'target-links', 3, C.amber, true);
   const targetElbow = targetMarker(root, 'target-elbow', [.8, 0, 0], .055, C.amber);
   const targetTool = targetMarker(root, 'target-tool', [1.6, 0, 0], .075, C.amber);
   targetElbow.rotation.x = Math.PI / 2;
   targetTool.rotation.x = Math.PI / 2;
+  const readings = [
+    { id: 'joint-1', anchor: arm.shoulder, label: { ko: '관절 1', en: 'Joint 1' }, value: '', side: 'left' },
+    { id: 'joint-2', anchor: arm.elbow, label: { ko: '관절 2', en: 'Joint 2' }, value: '', side: 'right' },
+  ];
   return {
     root,
+    readouts: () => readings,
     // Runtime span is the horizontal budget at aspect <= 1.6; retain full sweep.
-    camera: { position: [3.3, 1.94, 6.6], target: [0, -.33, 0], span: 7.1 },
+    camera: { position: [1.43, 6.08, 10], target: [.38, .3, 0], span: 5.5 },
     legend: {
       ko: '청록: 실제 관절 자세 · 주황 점선: 목표 자세 · 링크 0.8 m + 0.8 m',
       en: 'Teal: actual joints · amber dashed: target pose · links 0.8 m + 0.8 m',
     },
     update(state, params) {
       arm.pose(state.q1, state.q2);
+      readings[0].value = `${state.q1.toFixed(2)} rad`;
+      readings[1].value = `${state.q2.toFixed(2)} rad`;
       const a = params.target1, b = a + params.target2;
       const e = [.8 * Math.cos(a), .8 * Math.sin(a), 0];
       const t = [e[0] + .8 * Math.cos(b), e[1] + .8 * Math.sin(b), 0];
-      updateLine(targetLinks, [[0, 0, 0], e, t]);
+      writeLine(targetLinks, [[0, 0, 0], e, t]);
       targetElbow.position.fromArray(e);
       targetTool.position.fromArray(t);
     },
@@ -137,15 +207,21 @@ function servoArm() {
 function impedanceArm() {
   const root = group('impedance-robot');
   const arm = armAssembly(root, mechanics.l1, mechanics.l2, mechanics.l1 + mechanics.l2);
-  sphere(arm.tool, 'contact-probe', .062, [0, 0, 0], C.teal, { roughness: .24, metalness: .52 });
+  // Rear-mounted tooling leaves the modeled ball centre exposed in the XY plane.
+  arm.forearm.position.z = -.16;
+  arm.wrist.position.z = -.22;
+  sphere(arm.tool, 'contact-probe', .062, [0, 0, 0], finish('steel', { color: 0x497b76 }));
   // The leading face, not the wall centre, is the model's x = 0.5 m plane.
   // Translucency exposes compliant penetration; visual geometry must not clamp it.
-  box(root, 'contact-wall', [.12, 2.12, .42], [.56, -.06, 0], C.blue,
-    { transparent: true, opacity: .21, depthWrite: false, roughness: .65 });
-  box(root, 'wall-back-rail', [.055, 2.18, .065], [.59, -.06, -.25], C.metal);
+  box(root, 'contact-wall', [.12, 2.12, .42], [.56, -.06, 0], finish('glass', { opacity: .18 }));
+  housing(root, 'wall-back-rail', [.065, 2.4, .075], [.66, -.1, -.29], 'aluminium');
+  // Keep both uprights behind the XY motion plane, including during penetration.
+  housing(root, 'wall-upright-front', [.065, 2.4, .075], [.66, -.1, -.14], 'aluminium');
+  housing(root, 'wall-mounting-foot', [.43, .075, .83], [.72, -1.2825, 0], 'dark-metal');
+  for (const z of [-.32, .32]) fasteners(root, `wall-anchor-${z}`, 0, [.79, -1.24, z], 1, .022);
   for (const y of [-1.15, 1.03]) {
-    box(root, `wall-cross-bracket-${y}`, [.2, .055, .58], [.59, y, -.015], C.ink);
-    faceDisc(root, `wall-bracket-bolt-${y}`, .018, .018, [.59, y, .286], C.light);
+    housing(root, `wall-cross-bracket-${y}`, [.17, .07, .66], [.63, y, 0], 'dark-metal');
+    faceFasteners(root, `wall-bracket-bolts-${y}`, .04, [.63, y, .342], 2, .01);
   }
   line(root, 'wall-contact-plane', [[.5, -1.12, .217], [.5, 1, .217]], C.blue);
   for (let i = 0; i <= 12; i++) {
@@ -154,14 +230,20 @@ function impedanceArm() {
   }
   const target = targetMarker(root, 'target-tool', [.65, mechanics.targetY, 0], .066, C.amber);
   target.rotation.x = Math.PI / 2;
-  const reference = line(root, 'target-line', [[.65, -.98, 0], [.65, 1, 0]], C.amber, true);
+  const reference = streamLine(root, 'target-line', 2, C.amber, true);
   const force = addGroup(root, 'contact-force');
   const forceRod = rod(force, 'reaction-shaft', [0, 0, 0], [-.2, 0, 0], .008, C.teal);
   const forceHead = solid(force, 'reaction-arrow', new T.ConeGeometry(.027, .07, 16), C.teal);
   forceHead.rotation.z = Math.PI / 2;
+  const contactAnchor = addGroup(root, 'contact-readout-anchor');
+  const readings = [
+    { id: 'endpoint-x', anchor: arm.tool, label: { ko: '끝점 x', en: 'Endpoint x' }, value: '', side: 'left' },
+    { id: 'contact-force', anchor: contactAnchor, label: { ko: '접촉 힘', en: 'Contact force' }, value: '', side: 'right' },
+  ];
   return {
     root,
-    camera: { position: [2.35, 1.3, 5.7], target: [.05, -.33, 0], span: 4.85 },
+    readouts: () => readings,
+    camera: { position: [2.1, 1.2, 7], target: [.02, -.1, 0], span: 4.8 },
     legend: {
       ko: '청록: 실제 끝점 · 주황: (x 목표, 0.15 m) · 접촉면 x = 0.5 m',
       en: 'Teal: actual endpoint · amber: (target x, 0.15 m) · contact plane x = 0.5 m',
@@ -170,8 +252,11 @@ function impedanceArm() {
       arm.pose(state.q1, state.q2);
       const k = kinematics([state.q1, state.q2], [state.dq1, state.dq2]);
       target.position.set(params.target, mechanics.targetY, 0);
-      updateLine(reference, [[params.target, -.98, 0], [params.target, 1, 0]]);
+      writeLine(reference, [[params.target, -.98, 0], [params.target, 1, 0]]);
       const reaction = contactForce(k.x, k.vx, params.wallStiffness);
+      readings[0].value = `${k.x.toFixed(3)} m`;
+      readings[1].value = `${reaction.toFixed(2)} N`;
+      contactAnchor.position.set(.5, k.y, .22);
       force.visible = reaction > 0;
       force.position.set(k.x, k.y - .12, .12);
       const length = Math.min(.4, .07 + reaction * .006);
@@ -181,10 +266,15 @@ function impedanceArm() {
   };
 }
 
-function profileSolid(parent, name, points, width, color, options = {}, bevel = .035) {
+function profileSolid(parent, name, points, width, color, options = {}, bevel = .035, pockets = []) {
   const shape = new T.Shape();
   points.forEach(([x, y], i) => i ? shape.lineTo(x, y) : shape.moveTo(x, y));
   shape.closePath();
+  for (const pocket of pockets) {
+    const hole = new T.Path();
+    pocket.forEach(([x, y], i) => i ? hole.lineTo(x, y) : hole.moveTo(x, y));
+    hole.closePath(); shape.holes.push(hole);
+  }
   const geometry = new T.ExtrudeGeometry(shape, {
     depth: width, bevelEnabled: bevel > 0, bevelSize: bevel, bevelThickness: bevel,
     bevelSegments: 3, steps: 1,
@@ -193,52 +283,113 @@ function profileSolid(parent, name, points, width, color, options = {}, bevel = 
   return solid(parent, name, geometry, color, options);
 }
 
+// Longitudinal sections make the body narrower at the nose, tail and crown.
+function coachwork(parent, name, sections, finishMaterial) {
+  const vertices = [], indices = [];
+  for (const [x, bottom, top, width] of sections) {
+    for (const [y, z] of [[bottom, -width * .88], [bottom, width * .88],
+      [top - .055, width], [top, width * .72], [top + .018, 0],
+      [top, -width * .72], [top - .055, -width]]) vertices.push(x, y, z);
+  }
+  const count = 7;
+  for (let i = 0; i < sections.length - 1; i++) for (let j = 0; j < count; j++) {
+    const a = i * count + j, b = i * count + (j + 1) % count;
+    indices.push(a, b + count, b, a, a + count, b + count);
+  }
+  for (let j = 1; j < count - 1; j++) {
+    indices.push(0, j, j + 1);
+    const end = (sections.length - 1) * count;
+    indices.push(end, end + j + 1, end + j);
+  }
+  const geometry = new T.BufferGeometry();
+  geometry.setAttribute('position', new T.Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices); geometry.computeVertexNormals();
+  return solid(parent, name, geometry, finishMaterial);
+}
+
+function glazedPanel(parent, name, points, glass) {
+  const geometry = new T.BufferGeometry();
+  geometry.setAttribute('position', new T.Float32BufferAttribute(points.flat(), 3));
+  geometry.setIndex([0, 1, 2, 0, 2, 3]); geometry.computeVertexNormals();
+  return solid(parent, name, geometry, glass);
+}
+
 function carAssembly(root) {
-  // x/y in both bicycle models is the rear axle, not the body centre.
-  // Local forward is +X; model +y maps to world -Z. A positive yaw is +Y rotation.
+  // Both models integrate the rear axle. +x is forward; model +y is world -Z.
   const car = addGroup(root, 'vehicle');
   addGroup(car, 'rear-axle');
   addGroup(car, 'front-axle').position.x = 2.7;
-  box(car, 'underbody', [3.9, .2, 1.5], [1.3, .49, 0], C.ink);
-  profileSolid(car, 'car-body', [
-    [-.765, .55], [3.365, .55], [3.365, .8], [2.91, .99],
-    [-.36, .99], [-.68, .86],
-  ], 1.61, C.teal, { roughness: .3, metalness: .48 });
-  const glass = { roughness: .17, metalness: .55 };
-  profileSolid(car, 'car-cabin', [[.1, 1.02], [2.3, 1.02], [1.73, 1.55], [.57, 1.55]], 1.29, C.ink, glass);
-  profileSolid(car, 'windshield', [[1.76, 1.55], [2.31, 1.03], [2.32, 1.08], [1.81, 1.56]], 1.24, C.blue, glass, .012);
-  profileSolid(car, 'rear-window', [[.1, 1.03], [.54, 1.55], [.59, 1.56], [.16, 1.04]], 1.24, C.blue, glass, .012);
-  box(car, 'car-roof', [1.18, .065, 1.34], [1.15, 1.58, 0], C.white, { roughness: .35, metalness: .36 });
-  box(car, 'front-bumper', [.1, .16, 1.36], [3.34, .59, 0], C.ink);
-  box(car, 'rear-bumper', [.09, .16, 1.37], [-.74, .59, 0], C.ink);
-  box(car, 'front-grille', [.016, .13, .59], [3.405, .77, 0], C.ink);
+  const paint = finish('paint', { color: 0x718c8a, roughness: .29 });
+  const alloy = finish('aluminium'), steel = finish('steel'), dark = finish('dark-metal');
+  const rubber = finish('rubber');
+  const glass = finish('glass', { color: 0x37505a, opacity: .86, side: T.DoubleSide });
+  housing(car, 'underbody', [3.8, .16, 1.02], [1.3, .40, 0], dark);
+  coachwork(car, 'car-body', [[-.78, .65, .91, .59], [-.52, .91, 1.02, .77],
+    [0, .94, 1.06, .82], [.55, .95, 1.08, .84], [1.6, .95, 1.08, .84],
+    [2.2, .95, 1.04, .82], [2.7, .95, 1.01, .8], [3.13, .91, .96, .74], [3.38, .67, .87, .57]], paint);
+  profileSolid(car, 'car-cabin', [[-.08, 1.06], [2.27, 1.06], [1.67, 1.49], [.55, 1.51]], 1.08, rubber, {}, .025);
+  coachwork(car, 'car-roof', [[.47, 1.48, 1.51, .54], [.67, 1.5, 1.55, .59],
+    [1.35, 1.51, 1.55, .59], [1.7, 1.47, 1.51, .55]], paint);
+  glazedPanel(car, 'windshield', [[1.72, 1.49, -.54], [1.72, 1.49, .54],
+    [2.30, 1.075, .70], [2.30, 1.075, -.70]], glass);
+  glazedPanel(car, 'rear-window', [[-.09, 1.075, -.69], [-.09, 1.075, .69],
+    [.49, 1.49, .53], [.49, 1.49, -.53]], glass);
+  housing(car, 'front-bumper', [.12, .15, 1.18], [3.32, .62, 0], rubber);
+  housing(car, 'rear-bumper', [.10, .16, 1.21], [-.72, .64, 0], rubber);
+  housing(car, 'front-grille', [.018, .18, .67], [3.39, .79, 0], dark);
+  for (const y of [.74, .79, .84]) housing(car, `grille-slat-${y}`, [.023, .012, .62], [3.405, y, 0], alloy);
   for (const [side, sign] of [['left', -1], ['right', 1]]) {
-    const window = profileSolid(car, `${side}-windows`, [[.28, 1.08], [2.1, 1.08], [1.67, 1.48], [.62, 1.48]], .012, C.blue, glass, .005);
-    window.position.z = sign * .662;
-    box(car, `${side}-window-pillar`, [.085, .46, .02], [1.14, 1.28, sign * .679], C.ink);
-    box(car, `${side}-rocker`, [3.28, .1, .045], [1.28, .59, sign * .838], C.ink);
-    for (const x of [.63, 1.77]) box(car, `door-handle-${side}-${x}`, [.2, .035, .025], [x, .935, sign * .844], C.light);
-    box(car, `${side}-headlamp`, [.08, .13, .31], [3.37, .87, sign * .51], C.white,
-      { emissive: C.white, emissiveIntensity: .18 });
-    box(car, `${side}-taillamp`, [.065, .13, .29], [-.733, .79, sign * .55], C.red);
+    const shape = new T.Shape();
+    shape.moveTo(-.75, .87); shape.lineTo(-.48, 1.03); shape.lineTo(.55, 1.06);
+    shape.lineTo(2.2, 1.02); shape.lineTo(2.95, .98); shape.lineTo(3.34, .83);
+    shape.lineTo(3.3, .52); shape.lineTo(3.21, .43);
+    shape.absarc(2.7, .43, .51, 0, Math.PI, false);
+    shape.lineTo(.51, .43); shape.absarc(0, .43, .51, 0, Math.PI, false);
+    shape.lineTo(-.73, .57); shape.closePath();
+    const geometry = new T.ExtrudeGeometry(shape, { depth: .045, bevelEnabled: true,
+      bevelSize: .009, bevelThickness: .009, bevelSegments: 2, steps: 1, curveSegments: 24 });
+    geometry.translate(0, 0, -.0225);
+    const quarter = solid(car, `${side}-quarter-panel`, geometry, paint);
+    quarter.position.z = sign * .79;
+    glazedPanel(car, `${side}-windows`, [[.02, 1.10, sign * .69], [.58, 1.48, sign * .555],
+      [1.63, 1.48, sign * .555], [2.16, 1.10, sign * .69]], glass);
+    rod(car, `${side}-a-pillar`, [1.71, 1.49, sign * .56], [2.30, 1.07, sign * .71], .032, paint);
+    rod(car, `${side}-c-pillar`, [-.09, 1.07, sign * .7], [.48, 1.49, sign * .55], .034, paint);
+    rod(car, `${side}-window-pillar`, [1.1, 1.08, sign * .7], [1.1, 1.51, sign * .565], .027, rubber);
+    housing(car, `${side}-rocker`, [1.65, .09, .07], [1.35, .46, sign * .79], dark);
+    line(car, `${side}-door-seam`, [[1.12, 1.07, sign * .835], [1.14, .61, sign * .823],
+      [1.22, .53, sign * .82], [2.08, .53, sign * .82], [2.16, 1.04, sign * .82]], 0x3f4b4c);
+    for (const x of [.74, 1.87]) housing(car, `door-handle-${side}-${x}`, [.18, .027, .024], [x, .99, sign * .844], alloy);
+    rod(car, `${side}-mirror-stalk`, [2.12, 1.1, sign * .68], [2.05, 1.13, sign * .85], .019, rubber);
+    const mirror = sphere(car, `${side}-mirror`, 1, [2.04, 1.14, sign * .86], paint);
+    mirror.scale.set(.115, .065, .075);
+    housing(car, `${side}-headlamp`, [.07, .105, .29], [3.32, .86, sign * .43], finish('glass', { color: 0xe7ece5, opacity: .92 }));
+    housing(car, `${side}-taillamp`, [.045, .12, .27], [-.747, .84, sign * .46], finish('glass', { color: 0x91392b, opacity: 1 }));
   }
   const frontWheels = [];
   for (const [axle, x] of [['rear', 0], ['front', 2.7]]) {
-    rod(car, `${axle}-shaft`, [x, .43, -.86], [x, .43, .86], .045, C.metal);
+    rod(car, `${axle}-shaft`, [x, .43, -.76], [x, .43, .76], .04, steel);
     for (const [side, sign] of [['left', -1], ['right', 1]]) {
+      const archPoints = Array.from({ length: 25 }, (_, i) => {
+        const a = Math.PI * i / 24;
+        return [x + .525 * Math.cos(a), .43 + .525 * Math.sin(a), sign * .823];
+      });
+      cable(car, `${axle}-${side}-wheel-arch`, archPoints, .017, 0x353c3c);
       const wheel = addGroup(car, `${axle}-${side}-wheel`);
-      wheel.position.set(x, .43, sign * .86);
-      const tire = cylinder(wheel, `${axle}-${side}-tire`, .43, .28, [0, 0, 0], C.ink,
-        { roughness: .92, metalness: .04 });
-      tire.rotation.x = Math.PI / 2;
-      faceDisc(wheel, `${axle}-${side}-rim`, .285, .028, [0, 0, sign * .153], C.metal);
-      faceDisc(wheel, `${axle}-${side}-hub`, .11, .035, [0, 0, sign * .176], C.light);
+      wheel.position.set(x, .43, sign * .76);
+      faceTurned(wheel, `${axle}-${side}-tire`, [[.285, -.116], [.36, -.126], [.405, -.105],
+        [.43, -.065], [.43, .065], [.405, .105], [.36, .126], [.285, .116], [.285, -.116]], [0, 0, 0], rubber);
+      faceFlange(wheel, `${axle}-${side}-rim`, .294, .035, [0, 0, sign * .112], alloy, .245);
+      faceDisc(wheel, `${axle}-${side}-brake-disc`, .235, .014, [0, 0, sign * .078], steel);
+      housing(wheel, `${axle}-${side}-caliper`, [.09, .18, .045], [.18, 0, sign * .10], dark);
+      faceDisc(wheel, `${axle}-${side}-hub`, .075, .045, [0, 0, sign * .135], alloy);
       for (let i = 0; i < 5; i++) {
         const angle = i * TAU / 5;
-        const spoke = box(wheel, `${axle}-${side}-spoke-${i}`, [.17, .052, .022],
-          [.17 * Math.cos(angle), .17 * Math.sin(angle), sign * .171], C.light);
+        const spoke = housing(wheel, `${axle}-${side}-spoke-${i}`, [.2, .038, .03],
+          [.16 * Math.cos(angle), .16 * Math.sin(angle), sign * .133], alloy);
         spoke.rotation.z = angle;
       }
+      faceFasteners(wheel, `${axle}-${side}-lug-bolts`, .052, [0, 0, sign * .161], 5, .011);
       if (axle === 'front') frontWheels.push(wheel);
     }
   }
@@ -259,8 +410,8 @@ function carAssembly(root) {
 
 const groundPoint = (p, height = .035) => [p.x, height, -p.y];
 
-function roadLine(parent, name, points, color, dashed = false) {
-  const result = line(parent, name, points, color, dashed);
+function roadLine(parent, name, points, color, dashed = false, capacity = 0) {
+  const result = capacity ? streamLine(parent, name, capacity, color, dashed) : line(parent, name, points, color, dashed);
   if (dashed) {
     result.material.dashSize = .45;
     result.material.gapSize = .28;
@@ -272,6 +423,11 @@ function parkingLot() {
   const root = group('parking');
   const stage = floor(root, 39, 20);
   stage.position.x = 3.5;
+  stage.userData.environment = true;
+  const pavement = solid(root, 'parking-pavement', new T.PlaneGeometry(39, 20),
+    finish('paint', { color: 0xb1b7b3, roughness: .97, metalness: 0 }));
+  pavement.rotation.x = -Math.PI / 2; pavement.position.set(3.5, .004, 0);
+  pavement.castShadow = false;
   // Only the real perimeter is raised. Practice bays are paint, not obstacles.
   for (const z of [-10.13, 10.13]) box(root, `lot-curb-z-${z}`, [39.52, .22, .26], [3.5, .11, z], C.light);
   for (const x of [-16.13, 23.13]) box(root, `lot-curb-x-${x}`, [.26, .22, 20], [x, .11, 0], C.light);
@@ -284,24 +440,31 @@ function parkingLot() {
   roadLine(bay, 'goal-bay-paint', [[-1.2, 0, -1.5], [4.8, 0, -1.5], [4.8, 0, 1.5], [-1.2, 0, 1.5], [-1.2, 0, -1.5]], C.amber, true);
   const goal = targetMarker(root, 'goal-pose', [-10, .045, -3], .34, C.amber);
   roadLine(goal, 'goal-heading', [[0, 0, 0], [2.7, 0, 0], [2.2, 0, -.25], [2.7, 0, 0], [2.2, 0, .25]], C.amber);
-  const reference = roadLine(root, 'reference-path', [], C.amber, true);
+  const reference = roadLine(root, 'reference-path', [], C.amber, true, 301);
   const alignment = roadLine(root, 'forward-alignment', [[12, .035, 0], [15, .035, 0]], C.amber, true);
-  const history = roadLine(root, 'actual-path', [], C.teal);
+  const history = streamLine(root, 'actual-path', 500, C.teal);
   const lookahead = targetMarker(root, 'lookahead-target', [15, .06, 0], .33, C.amber);
+  const readings = [
+    { id: 'distance-to-goal', anchor: goal, label: { ko: '남은 거리', en: 'Distance to goal' }, value: '', side: 'left' },
+    { id: 'steering', anchor: car.car.getObjectByName('front-right-wheel'), label: { ko: '조향각', en: 'Steering' }, value: '', side: 'right' },
+  ];
   return {
     root,
-    camera: { position: [15, 35, 36], target: [3.5, 0, 0], span: 44 },
+    readouts: () => readings,
+    camera: { position: [5, 34, 48], target: [3.5, 0, 0], span: 49 },
     legend: {
       ko: '청록: 차량·실제 경로 · 주황: 계획 경로·목표 주차 자세 · 후륜 축 기준',
       en: 'Teal: car / actual path · amber: plan / parking goal · rear-axle coordinates',
     },
     update(state, params) {
       car.pose(state);
+      readings[0].value = `${Math.hypot(state.x + 10, state.y - params.target).toFixed(2)} m`;
+      readings[1].value = `${state.steering.toFixed(2)} rad`;
       bay.position.set(-10, .025, -params.target);
       goal.position.set(-10, .045, -params.target);
       lookahead.position.fromArray(groundPoint(state.targetPoint, .06));
-      updateLine(reference, state.path.map(p => groundPoint(p)));
-      updateLine(history, state.history.map(p => groundPoint(p, .05)));
+      writeLine(reference, state.path.map(p => groundPoint(p)));
+      writeLine(history, state.history.map(p => groundPoint(p, .05)));
       alignment.visible = state.phase === 'forward';
     },
   };
@@ -309,9 +472,10 @@ function parkingLot() {
 
 function circularTrack() {
   const root = group('path-tracking');
-  floor(root, 39, 39);
-  const track = solid(root, 'track-surface', new T.RingGeometry(11.6, 16.4, 160), C.light,
-    { roughness: .95, metalness: 0 });
+  floor(root, 39, 39).userData.environment = true;
+  const track = solid(root, 'track-surface', new T.RingGeometry(11.6, 16.4, 160),
+    finish('paint', { color: 0xb1b7b3, roughness: .97, metalness: 0 }));
+  track.castShadow = false;
   track.rotation.x = -Math.PI / 2;
   track.position.y = .009;
   const circle = (radius, height) => Array.from({ length: 193 }, (_, i) => {
@@ -334,21 +498,28 @@ function circularTrack() {
   }
   targetMarker(root, 'track-centre', [0, .015, 0], .35, C.metal);
   const car = carAssembly(root);
-  const history = roadLine(root, 'actual-path', [], C.teal);
+  const history = streamLine(root, 'actual-path', 500, C.teal);
   const lookahead = targetMarker(root, 'lookahead-target', [14, .06, -4], .38, C.amber);
-  const chord = roadLine(root, 'lookahead-chord', [], C.amber, true);
+  const chord = roadLine(root, 'lookahead-chord', [], C.amber, true, 2);
+  const readings = [
+    { id: 'cross-track-error', anchor: car.car.getObjectByName('rear-axle'), label: { ko: '횡방향 오차', en: 'Cross-track error' }, value: '', side: 'left' },
+    { id: 'steering', anchor: car.car.getObjectByName('front-right-wheel'), label: { ko: '조향각', en: 'Steering' }, value: '', side: 'right' },
+  ];
   return {
     root,
-    camera: { position: [24, 37, 32], target: [0, 0, 0], span: 43 },
+    readouts: () => readings,
+    camera: { position: [21, 30, 40], target: [0, 0, 1.7], span: 43.5 },
     legend: {
       ko: '청록: 차량·실제 경로 · 주황: 반지름 14 m 기준 원·전방 주시점 · 축거 2.7 m',
       en: 'Teal: car / actual path · amber: 14 m reference / lookahead · wheelbase 2.7 m',
     },
     update(state) {
       car.pose(state);
+      readings[0].value = `${(Math.hypot(state.x, state.y) - 14).toFixed(2)} m`;
+      readings[1].value = `${state.steering.toFixed(2)} rad`;
       lookahead.position.fromArray(groundPoint(state.target, .06));
-      updateLine(history, state.history.map(p => groundPoint(p, .05)));
-      updateLine(chord, [groundPoint(state, .055), groundPoint(state.target, .055)]);
+      writeLine(history, state.history.map(p => groundPoint(p, .05)));
+      writeLine(chord, [groundPoint(state, .055), groundPoint(state.target, .055)]);
     },
   };
 }

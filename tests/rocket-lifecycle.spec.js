@@ -1,10 +1,22 @@
 import {test,expect} from '@playwright/test';
 const base=process.env.SIM_BASE||'http://127.0.0.1:8765/simulators/';
 async function open(page){
- await page.addInitScript(()=>{let queue=[],now=0;window.requestAnimationFrame=fn=>{queue.push(fn);return queue.length;};window.advanceRocket=(n)=>{for(let k=0;k<n;k++){now+=20;const current=queue;queue=[];for(const fn of current)fn(now);}};});
+ await page.addInitScript(()=>{
+  const nativeRequest=window.requestAnimationFrame.bind(window);
+  let queue=[],now=0;window.requestAnimationFrame=fn=>{queue.push(fn);return queue.length;};
+  window.advanceRocket=async n=>{
+   for(let k=0;k<n;k++){
+    now+=20;const current=queue;queue=[];for(const fn of current)fn(now);
+    if((k+1)%8===0&&queue.length)await new Promise(resolve=>nativeRequest(resolve));
+   }
+   await new Promise(resolve=>nativeRequest(resolve));
+  };
+ });
  await page.goto(base+'rocket-landing/?lang=en');await expect(page.locator('#start-pause')).toBeEnabled();
 }
 test('rocket completes a real soft landing, localizes the result, and resets deterministically',async({page})=>{
+ // Two complete genuine-GPU landings; keep every simulated frame and assertion.
+ test.setTimeout(120000);
  await open(page);await expect(page.locator('.model-notes a')).toHaveAttribute('href','https://www.mathworks.com/help/mpc/ug/landing-rocket-with-mpc-example.html');
  await expect(page.locator('.disturbance-controls input[type=range]')).toHaveCount(1);
  await page.locator('#start-pause').click();await page.evaluate(()=>window.advanceRocket(3000));

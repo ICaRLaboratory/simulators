@@ -6,6 +6,7 @@ import { Simulation as Impedance, kinematics, mechanics } from '../assets/models
 import { Simulation as Parking, footprint } from '../assets/models/parking.js';
 import { Simulation as Tracking } from '../assets/models/path-tracking.js';
 import { createRobotScene } from '../assets/three/robot-scenes.js';
+import { createApparatusCamera } from '../assets/three/camera.js';
 
 const close = (actual, expected, tolerance = 1e-8) => {
   assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} != ${expected}`);
@@ -41,6 +42,45 @@ function updatePure(scene, simulation) {
   scene.update(freeze(state), freeze(params), freeze({ observed: simulation.observe() }));
   assert.equal(JSON.stringify({ state, params }), before, 'visual updates must not change model data');
 }
+
+test('arms use tapered load-bearing castings, bored bearings and separate servo finishes', () => {
+  for (const id of ['robot-arm', 'impedance-robot']) {
+    const scene = make(id);
+    for (const link of ['upper-link', 'forearm-link']) {
+      const mesh = node(scene, link);
+      assert.ok(mesh.isMesh && mesh.geometry.type === 'ExtrudeGeometry');
+      assert.equal(mesh.geometry.parameters.shapes.holes.length, 1, 'casting has a real pocket opening and structural side rails');
+      const contour = mesh.geometry.parameters.shapes.getPoints();
+      const heights = new Set(contour.map(p => Math.abs(p.y).toFixed(3)));
+      assert.ok(heights.size >= 4, `${id}/${link}: casting must taper, not be a capsule or box`);
+      assert.equal(mesh.material.userData.finish, 'paint');
+      const web = node(scene, `${link}-web`);
+      assert.equal(web.material.userData.finish, 'aluminium');
+      assert.ok(web.material.metalness > .8 && web.material.roughnessMap?.isTexture);
+      assert.ok(node(scene, `${link}-service-cable`).geometry.type === 'TubeGeometry');
+    }
+    for (const joint of ['shoulder', 'elbow']) {
+      const bearing = node(scene, `${joint}-output-flange`);
+      assert.ok(bearing.geometry.parameters.shapes.holes.length > 0, 'real bored flange');
+      assert.equal(bearing.material.userData.finish, 'steel');
+      const drive = node(scene, `${joint}-servo-can`);
+      assert.equal(drive.geometry.type, 'LatheGeometry');
+      assert.equal(drive.material.userData.finish, 'dark-metal');
+      assert.equal(node(scene, `${joint}-encoder-cover`).material.userData.finish, 'aluminium');
+      assert.equal(node(scene, `${joint}-service-loop`).material.userData.finish, 'rubber');
+    }
+    assert.ok(node(scene, 'pedestal-gusset-left').isMesh);
+    assert.ok(node(scene, 'pedestal-gusset-right').isMesh);
+    assert.ok(node(scene, 'pedestal-cap').isMesh);
+    if (id === 'robot-arm') {
+      for (const [name, minimumHeight] of [['upper-link', .32], ['forearm-link', .25]]) {
+        const geometry = node(scene, name).geometry; geometry.computeBoundingBox();
+        const size = geometry.boundingBox.getSize(new T.Vector3());
+        assert.ok(size.y >= minimumHeight && size.z >= .21, `${name}: readable structural section, not a thin plate`);
+      }
+    }
+  }
+});
 
 test('robot-arm articulates both 0.8 m links about a fixed shoulder and renders independent targets', () => {
   const simulation = new Arm(), scene = make('robot-arm');
@@ -96,9 +136,58 @@ test('impedance arm uses model kinematics, a fixed base and the physical 0.5 m c
 function linePoints(scene, name) {
   scene.root.updateMatrixWorld(true);
   const object = node(scene, name), positions = object.geometry.getAttribute('position');
-  return Array.from({ length: positions.count }, (_, i) =>
+  return Array.from({ length: Math.min(positions.count, object.geometry.drawRange.count) }, (_, i) =>
     new T.Vector3().fromBufferAttribute(positions, i).applyMatrix4(object.matrixWorld).toArray());
 }
+
+test('vehicles have sculpted automotive shells, open wheel arches and differentiated finishes', () => {
+  for (const id of ['parking', 'path-tracking']) {
+    const scene = make(id), body = node(scene, 'car-body');
+    assert.equal(body.material.userData.finish, 'paint');
+    assert.ok(body.material.metalness < .2);
+    const positions = body.geometry.getAttribute('position');
+    const widths = new Set(Array.from({ length: positions.count }, (_, i) => Math.abs(positions.getZ(i)).toFixed(3)));
+    assert.ok(widths.size >= 5, 'body must taper in plan as well as elevation, not extrude a brick');
+    const normals = body.geometry.getAttribute('normal');
+    const highest = Array.from({ length: positions.count }, (_, i) => i).sort((a, b) => positions.getY(b) - positions.getY(a))[0];
+    assert.ok(normals.getY(highest) > .5, 'outer body crown must face the lighting, not have inverted normals');
+    assert.equal(node(scene, 'windshield').material.userData.finish, 'glass');
+    assert.equal(node(scene, 'rear-window').material.userData.finish, 'glass');
+    assert.equal(node(scene, 'car-roof').material.userData.finish, 'paint');
+    scene.root.updateMatrixWorld(true);
+    for (const side of ['left', 'right']) {
+      const panel = node(scene, `${side}-quarter-panel`);
+      assert.equal(panel.geometry.type, 'ExtrudeGeometry');
+      assert.ok(node(scene, `${side}-mirror`).isMesh);
+      assert.ok(node(scene, `${side}-door-seam`).isLine);
+      for (const axle of ['front', 'rear']) {
+        const tire = node(scene, `${axle}-${side}-tire`);
+        assert.equal(tire.material.userData.finish, 'rubber');
+        assert.equal(tire.material.metalness, 0);
+        assert.equal(tire.geometry.type, 'LatheGeometry', 'rounded tire shoulders, not a flat disc');
+        assert.equal(node(scene, `${axle}-${side}-rim`).material.userData.finish, 'aluminium');
+        assert.ok(node(scene, `${axle}-${side}-brake-disc`).isMesh);
+        const x = axle === 'front' ? 2.7 : 0;
+        const ray = new T.Raycaster(new T.Vector3(x, .8, 3), new T.Vector3(0, 0, -1));
+        assert.equal(ray.intersectObjects([body, panel], false).length, 0, 'actual clearance above tire inside wheel well');
+      }
+    }
+  }
+});
+
+test('vehicle grounds are matte bounded paving, not a floating grid or invented obstacles', () => {
+  const parking = make('parking'), pavement = node(parking, 'parking-pavement');
+  const bounds = new T.Box3().setFromObject(pavement);
+  vector([bounds.min.x, bounds.max.x, bounds.min.z, bounds.max.z], [-16, 23, -10, 10], 1e-6);
+  for (const mesh of [pavement, node(make('path-tracking'), 'track-surface')]) {
+    assert.equal(mesh.material.metalness, 0);
+    assert.ok(mesh.material.roughness >= .9);
+    assert.ok(mesh.material.color.r < .6 && mesh.material.color.g < .6 && mesh.material.color.b < .6,
+      'neutral mid-value paving must be distinct from the studio floor');
+  }
+  assert.equal(node(parking, 'lot-curb-x--16.13').position.x, -16.13);
+  assert.equal(node(parking, 'lot-curb-x-23.13').position.x, 23.13);
+});
 
 function verifyCar(scene, simulation) {
   const { x, y, psi, steering } = simulation.state;
@@ -132,6 +221,8 @@ test('parking preserves the rear-axle pose, physical footprint, front steering, 
     vector(world(scene, 'goal-pose'), [-10, .045, 4]);
     vector(world(scene, 'parking-bay'), [-10, .025, 4]);
     const path = linePoints(scene, 'reference-path');
+    close(node(scene, 'reference-path').material.dashSize, .45);
+    close(node(scene, 'reference-path').material.gapSize, .28);
     assert.equal(path.length, simulation.state.path.length);
     simulation.state.path.forEach((p, i) => vector([path[i][0], path[i][2]], [p.x, -p.y], 1e-6));
     vector(world(scene, 'lookahead-target'), [simulation.state.targetPoint.x, .06, -simulation.state.targetPoint.y]);
@@ -170,6 +261,63 @@ test('path tracking renders the exact 14 m reference circle and the actual model
   }
 });
 
+test('two stable anchored readouts report actual joint, contact and vehicle values', () => {
+  const cases = [
+    ['robot-arm', Arm, s => [`${s.state.q1.toFixed(2)} rad`, `${s.state.q2.toFixed(2)} rad`]],
+    ['impedance-robot', Impedance, s => [`${s.observe().x.toFixed(3)} m`, `${s.observe().force.toFixed(2)} N`]],
+    ['parking', Parking, s => [`${s.observe().distance.toFixed(2)} m`, `${s.state.steering.toFixed(2)} rad`]],
+    ['path-tracking', Tracking, s => [`${s.observe().error.toFixed(2)} m`, `${s.state.steering.toFixed(2)} rad`]],
+  ];
+  for (const [id, Model, values] of cases) {
+    const scene = make(id), simulation = new Model();
+    assert.equal(typeof scene.readouts, 'function', `${id}: anchored readouts`);
+    const entries = scene.readouts(), anchors = entries.map(entry => entry.anchor);
+    assert.equal(entries.length, 2);
+    assert.equal(new Set(entries.map(entry => entry.id)).size, 2);
+    for (const entry of entries) {
+      assert.ok(entry.anchor.isObject3D);
+      assert.equal(scene.root.getObjectById(entry.anchor.id), entry.anchor);
+      assert.ok(entry.label.ko && entry.label.en);
+      assert.ok(['left', 'right'].includes(entry.side));
+    }
+    for (const phase of ['initial', 'moving', 'disturbed', 'reset']) {
+      if (phase === 'moving') for (let i = 0; i < 30; i++) simulation.step(.02);
+      if (phase === 'disturbed') { simulation.disturb(); simulation.step(.02); }
+      if (phase === 'reset') simulation.reset();
+      updatePure(scene, simulation);
+      assert.equal(scene.readouts(), entries);
+      assert.deepEqual(entries.map(entry => entry.anchor), anchors);
+      assert.deepEqual(entries.map(entry => entry.value), values(simulation));
+    }
+  }
+});
+
+test('updates reuse all geometry, materials and GPU attributes through motion and reset', () => {
+  for (const [id, Model] of [['robot-arm', Arm], ['impedance-robot', Impedance], ['parking', Parking], ['path-tracking', Tracking]]) {
+    const scene = make(id), simulation = new Model(), resources = [];
+    scene.root.traverse(object => resources.push({ object, geometry: object.geometry,
+      material: object.material, attributes: { ...object.geometry?.attributes } }));
+    for (const phase of ['initial', 'moving', 'reset']) {
+      if (phase === 'moving') { simulation.step(1); simulation.disturb(); simulation.step(1); }
+      if (phase === 'reset') simulation.reset();
+      updatePure(scene, simulation);
+      const objects = []; scene.root.traverse(object => objects.push(object));
+      assert.equal(objects.length, resources.length, 'no scene growth');
+      for (const { object, geometry, material, attributes } of resources) {
+        assert.ok(objects.includes(object));
+        assert.ok(object.geometry === geometry, `${id}/${object.name}: geometry identity`);
+        assert.ok(object.material === material, `${id}/${object.name}: material identity`);
+        for (const [key, attribute] of Object.entries(attributes)) {
+          assert.ok(object.geometry.getAttribute(key) === attribute, `${id}/${object.name}: ${key} buffer identity`);
+        }
+      }
+      if (phase === 'reset' && id !== 'robot-arm' && id !== 'impedance-robot') {
+        assert.equal(linePoints(scene, 'actual-path').length, 0, 'reset must hide stale trail data');
+      }
+    }
+  }
+});
+
 test('factory supports exactly four robot/vehicle IDs with static cameras and bilingual legends', () => {
   const cases = [['robot-arm', Arm], ['impedance-robot', Impedance], ['parking', Parking], ['path-tracking', Tracking]];
   assert.equal(createRobotScene('not-a-robot'), null);
@@ -196,6 +344,109 @@ test('factory supports exactly four robot/vehicle IDs with static cameras and bi
   }
 });
 
+test('end tooling is metal/rubber and the framed contact panel preserves compliant force semantics', () => {
+  const servo = make('robot-arm');
+  assert.equal(node(servo, 'gripper-palm').material.userData.finish, 'aluminium');
+  assert.equal(node(servo, 'gripper-left-pad').material.userData.finish, 'rubber');
+  assert.equal(node(servo, 'gripper-right-pad').material.userData.finish, 'rubber');
+  const simulation = new Impedance(), scene = make('impedance-robot');
+  assert.equal(node(scene, 'contact-wall').material.userData.finish, 'glass');
+  assert.equal(node(scene, 'wall-upright-front').material.userData.finish, 'aluminium');
+  assert.ok(node(scene, 'wall-mounting-foot').isMesh);
+  for (const [q1, q2, dq1, dq2] of [[0, 0, 0, 0], [Math.PI, 0, 0, 0], [.2, -.3, 2, -1]]) {
+    Object.assign(simulation.state, { q1, q2, dq1, dq2 });
+    updatePure(scene, simulation);
+    const k = kinematics([q1, q2], [dq1, dq2]), expected = simulation.observe().force;
+    vector(world(scene, 'contact-probe'), [k.x, k.y, 0]);
+    close(new T.Box3().setFromObject(node(scene, 'contact-wall')).min.x, .5, 1e-7);
+    assert.equal(node(scene, 'contact-force').visible, expected > 0);
+    assert.equal(scene.readouts()[1].value, `${expected.toFixed(2)} N`);
+    if (expected > 0) assert.ok(world(scene, 'reaction-arrow')[0] < k.x, 'reaction opposes penetration');
+  }
+});
+
+function opaqueSceneHits(scene, ray) {
+  return ray.intersectObject(scene.root, true).filter(hit => {
+    if (!hit.object.isMesh) return false;
+    for (let parent = hit.object; parent; parent = parent.parent) {
+      if (!parent.visible || parent.userData.environment) return false;
+    }
+    const material = Array.isArray(hit.object.material)
+      ? hit.object.material[hit.face.materialIndex] : hit.object.material;
+    // A transparent flag alone must not exempt an opaque support or wrist cap.
+    return material.visible && !(material.transparent && material.opacity < .5);
+  });
+}
+
+function probeVisibility(scene, camera) {
+  scene.root.updateMatrixWorld(true);
+  const probe = node(scene, 'contact-probe'), ray = new T.Raycaster();
+  const centre = probe.getWorldPosition(new T.Vector3()).project(camera);
+  ray.setFromCamera(centre, camera);
+  const first = opaqueSceneHits(scene, ray)[0]?.object.name;
+  const bounds = projectedBounds(scene, camera, probe);
+  let samples = 0, visible = 0;
+  const blockers = new Set();
+  // Sample the projected ball silhouette, not the enclosing rectangle or just its centre.
+  for (let i = 0; i < 17; i++) for (let j = 0; j < 17; j++) {
+    ray.setFromCamera(new T.Vector2(
+      bounds.min.x + (bounds.max.x - bounds.min.x) * (i + .5) / 17,
+      bounds.min.y + (bounds.max.y - bounds.min.y) * (j + .5) / 17,
+    ), camera);
+    if (!ray.intersectObject(probe, false).length) continue;
+    samples++;
+    const hit = opaqueSceneHits(scene, ray)[0]?.object;
+    if (hit === probe) visible++;
+    else blockers.add(hit?.name || '(unnamed mesh)');
+  }
+  assert.ok(samples >= 200, 'sample the actual sphere surface densely');
+  return { first, fraction: visible / samples, blockers: [...blockers] };
+}
+
+test('the physical impedance probe remains visible in the whole scene before and during compliant contact', () => {
+  const scene = make('impedance-robot'), cameraSpec = JSON.stringify(scene.camera), occluded = [];
+  for (const [description, params] of [
+    ['default', {}],
+    ['reported penetration', { target: .8, stiffness: 300, damping: 20, wallStiffness: 500 }],
+    ['soft wall', { target: .8, stiffness: 300, wallStiffness: 100 }],
+    ['stiff wall', { target: .8, stiffness: 300, wallStiffness: 1500 }],
+    ['moderate penetration', { target: .65, stiffness: 300, wallStiffness: 100 }],
+  ]) {
+    const simulation = new Impedance(), snapshots = [];
+    Object.assign(simulation.params, params);
+    for (let step = 0; step <= 120; step++) {
+      if (step) simulation.step(.01);
+      assert.equal(simulation.state.failed, false, `${description}: use valid real model states`);
+      snapshots.push({ state: structuredClone(simulation.state), observed: simulation.observe() });
+    }
+    const contact = snapshots.findIndex(snapshot => snapshot.observed.force > 0);
+    assert.ok(contact > 0, 'trajectory must include free motion and first contact');
+    const peak = snapshots.reduce((best, sample, i) => sample.observed.x > snapshots[best].observed.x ? i : best, 0);
+    if (description === 'reported penetration') {
+      close(snapshots[45].observed.x, .6120862208840233);
+      close(snapshots[45].observed.y, .14927360085817376);
+      close(snapshots[45].observed.force, 56.11205685327236);
+    }
+    for (const aspect of [1.6, 358 / 390]) {
+      const camera = createApparatusCamera(scene.camera, aspect);
+      for (const step of new Set([0, contact - 1, contact, 45, peak, 120])) {
+        const { state, observed } = snapshots[step];
+        updatePure(scene, { state, params: simulation.params, observe: () => observed });
+        vector(world(scene, 'contact-probe'), [observed.x, observed.y, 0]);
+        close(new T.Box3().setFromObject(node(scene, 'contact-wall')).min.x, .5, 1e-7);
+        assert.equal(node(scene, 'contact-force').visible, observed.force > 0);
+        assert.equal(scene.readouts()[1].value, `${observed.force.toFixed(2)} N`);
+        const visibility = probeVisibility(scene, camera);
+        if (visibility.first !== 'contact-probe' || visibility.fraction < .95) {
+          occluded.push({ description, aspect, step, x: observed.x, ...visibility });
+        }
+      }
+    }
+  }
+  assert.equal(JSON.stringify(scene.camera), cameraSpec, 'updates must not move the default camera');
+  assert.deepEqual(occluded, [], 'whole-scene opaque geometry must expose the probe centre and >=95% of its silhouette');
+});
+
 test('robot reference reticles face the vertical motion plane rather than the laboratory floor', () => {
   for (const [id, Model] of [['robot-arm', Arm], ['impedance-robot', Impedance]]) {
     const scene = make(id), simulation = new Model();
@@ -206,27 +457,104 @@ test('robot reference reticles face the vertical motion plane rather than the la
   }
 });
 
-test('fixed arm cameras frame the complete articulated workspace in the runtime wide viewport', () => {
+function projectedBounds(scene, camera, subtree = scene.root) {
+  scene.root.updateMatrixWorld(true);
+  const bounds = new T.Box3(), point = new T.Vector3();
+  subtree.traverse(object => {
+    for (let parent = object; parent; parent = parent.parent) {
+      if (parent.userData.environment || !parent.visible) return;
+    }
+    const positions = object.geometry?.getAttribute('position');
+    if (!positions) return;
+    const count = object.isLine ? Math.min(positions.count, object.geometry.drawRange.count) : positions.count;
+    for (let i = 0; i < count; i++) {
+      point.fromBufferAttribute(positions, i).applyMatrix4(object.matrixWorld).project(camera);
+      assert.ok(point.toArray().every(Number.isFinite));
+      bounds.expandByPoint(point);
+    }
+  });
+  return bounds;
+}
+
+function fits(scene, camera, description) {
+  const bounds = projectedBounds(scene, camera);
+  assert.ok(bounds.min.x >= -.98 && bounds.max.x <= .98 && bounds.min.y >= -.98 && bounds.max.y <= .98,
+    `${scene.root.name}/${description}: ${bounds.min.toArray()} .. ${bounds.max.toArray()}`);
+}
+
+test('perspective arm cameras enlarge the apparatus and retain every articulated endpoint', () => {
   for (const [id, Model] of [['robot-arm', Arm], ['impedance-robot', Impedance]]) {
     const scene = make(id), simulation = new Model();
-    const vertical = scene.camera.span / 1.6;
-    const camera = new T.OrthographicCamera(-scene.camera.span / 2, scene.camera.span / 2, vertical / 2, -vertical / 2, .01, 500);
-    camera.position.fromArray(scene.camera.position);
-    camera.lookAt(new T.Vector3(...scene.camera.target));
-    camera.updateMatrixWorld(true);
-    for (const q1 of [-2.8, -Math.PI / 2, 0, Math.PI / 2, 2.8]) for (const q2 of [-2.8, 0, 2.8]) {
-      Object.assign(simulation.state, { q1, q2 });
+    for (const aspect of [1.6, 358 / 390]) {
+      const camera = createApparatusCamera(scene.camera, aspect);
+      assert.ok(camera.isPerspectiveCamera);
       updatePure(scene, simulation);
-      scene.root.updateMatrixWorld(true);
-      scene.root.traverse(object => {
-        const positions = object.geometry?.getAttribute('position');
-        if (!positions) return;
-        for (let i = 0; i < positions.count; i++) {
-          const p = new T.Vector3().fromBufferAttribute(positions, i).applyMatrix4(object.matrixWorld).project(camera);
-          assert.ok(Math.abs(p.x) <= .98 && Math.abs(p.y) <= .98,
-            `${id}/${object.name} clipped at q=(${q1}, ${q2}): ${p.x}, ${p.y}`);
+      const initial = projectedBounds(scene, camera);
+      if (aspect === 1.6) {
+        assert.ok(initial.max.y - initial.min.y >= .98, `${id}: useful default height instead of a tiny rig`);
+        if (id === 'robot-arm') assert.ok(initial.max.x - initial.min.x >= .75,
+          'default arm and base occupy at least 270px of a 720px viewport without shortening links');
+      }
+      // Full periodic joint sweep also bounds the servo's +/-2.8 rad limit.
+      for (let i = 0; i < 16; i++) for (let j = 0; j < 16; j++) {
+        Object.assign(simulation.state, { q1: i * Math.PI / 8, q2: j * Math.PI / 8 });
+        updatePure(scene, simulation); fits(scene, camera, `sweep ${i}/${j}`);
+      }
+      simulation.reset();
+      for (let i = 0; i < 40; i++) {
+        if (i === 8 || i === 25) simulation.disturb();
+        if (i === 16) {
+          if (id === 'robot-arm') Object.assign(simulation.params, { target1: -1.5, target2: 1.5 });
+          else simulation.params.target = .8;
         }
-      });
+        simulation.step(.04); updatePure(scene, simulation); fits(scene, camera, `real transient ${i}`);
+      }
+    }
+  }
+});
+
+test('continuous arm sweeps fit the frustum using an exact cylindrical workspace bound', () => {
+  for (const [id, Model, l1] of [['robot-arm', Arm, .8], ['impedance-robot', Impedance, mechanics.l1]]) {
+    const scene = make(id), simulation = new Model();
+    Object.assign(simulation.state, { q1: 0, q2: 0 }); updatePure(scene, simulation);
+    scene.root.updateMatrixWorld(true);
+    let radius = 0, zMin = Infinity, zMax = -Infinity;
+    node(scene, 'shoulder').traverse(object => {
+      const positions = object.geometry?.getAttribute('position');
+      if (!positions) return;
+      let downstream = false;
+      for (let parent = object; parent; parent = parent.parent) if (parent === node(scene, 'elbow')) downstream = true;
+      for (let i = 0; i < positions.count; i++) {
+        const p = new T.Vector3().fromBufferAttribute(positions, i).applyMatrix4(object.matrixWorld);
+        radius = Math.max(radius, downstream ? l1 + Math.hypot(p.x - l1, p.y) : Math.hypot(p.x, p.y));
+        zMin = Math.min(zMin, p.z); zMax = Math.max(zMax, p.z);
+      }
+    });
+    const centre = new T.Vector3(0, 0, (zMin + zMax) / 2), halfDepth = (zMax - zMin) / 2;
+    for (const aspect of [1.6, 358 / 390]) {
+      const camera = createApparatusCamera(scene.camera, aspect), projection = camera.projectionMatrix.clone();
+      projection.elements[0] /= .98; projection.elements[5] /= .98;
+      const frustum = new T.Frustum().setFromProjectionMatrix(projection.multiply(camera.matrixWorldInverse));
+      for (const plane of frustum.planes) {
+        const n = plane.normal, support = radius * Math.hypot(n.x, n.y) + halfDepth * Math.abs(n.z);
+        assert.ok(plane.distanceToPoint(centre) >= support, `${id}: continuous workspace, not just sampled angles`);
+      }
+    }
+  }
+});
+
+test('vehicle cameras retain the actual lot, reference and transient vehicle poses', () => {
+  for (const [id, Model] of [['parking', Parking], ['path-tracking', Tracking]]) {
+    const scene = make(id), simulation = new Model();
+    for (const aspect of [1.6, 358 / 390]) {
+      const camera = createApparatusCamera(scene.camera, aspect);
+      assert.ok(camera.isPerspectiveCamera);
+      simulation.reset();
+      for (let i = 0; i < 100; i++) {
+        if (i === 15 || i === 40) simulation.disturb();
+        updatePure(scene, simulation); fits(scene, camera, `real drive ${i}`);
+        simulation.step(.2);
+      }
     }
   }
 });

@@ -56,11 +56,11 @@ export function updateLine(node, points) {
 }
 export function floor(root, width = 6, depth = 4, y = 0) {
   const stage = group('stage'); root.add(stage);
-  box(stage, 'stage-surface', [width, 0.08, depth], [0, y - 0.04, 0], 0xf0f3f5, {roughness: 0.9, metalness: 0});
-  const grid = new T.GridHelper(width, 20, 0xcbd5dd, 0xdce3e8);
-  grid.name = 'stage-grid'; grid.position.y = y + 0.001; grid.scale.z = depth / width;
-  grid.material.transparent = true; grid.material.opacity = 0.45;
-  stage.add(grid); return stage;
+  const surface=mesh(stage,'stage-surface',new T.PlaneGeometry(width*4,depth*4),
+    [0,y-.006,0],0xdfe4e0,{roughness:.95,metalness:0});
+  surface.rotation.x=-Math.PI/2;surface.castShadow=false;
+  surface.userData.environment=true;
+  return stage;
 }
 export function targetMarker(parent, name, position, radius = 0.15, color = C.amber) {
   const node = group(name); node.position.fromArray(position); parent.add(node);

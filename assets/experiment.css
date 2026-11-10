@@ -1,7 +1,7 @@
-.sim-heading { margin-bottom: 22px; }
-.sim-heading h1 { font-size: clamp(27px,3.4vw,39px); }
-.back-link { margin-block: 20px 18px; }
-.sim-heading p:last-child { margin-top: 10px; max-width: 70ch; }
+.sim-heading { margin-bottom: 18px; }
+.sim-heading h1 { font-size: clamp(28px,3vw,36px); }
+.back-link { margin-block: 18px 12px; }
+.sim-heading p:last-child { margin-top: 8px; max-width: 70ch; }
 .experiment,.controls,.sim-heading>div { min-width: 0; }
 .panel-heading { flex-wrap: wrap; }
 
