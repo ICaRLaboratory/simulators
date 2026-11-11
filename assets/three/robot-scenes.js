@@ -5,6 +5,7 @@ import {
 } from './primitives.js';
 
 import { finish, housing, turned, flange, fasteners, cable } from './engineering.js';
+import { sculptedLink } from './robot-hardware.js';
 
 const TAU = Math.PI * 2;
 const addGroup = (parent, name) => {
@@ -69,93 +70,68 @@ function faceFasteners(parent, name, radius, position, count = 6, headRadius = .
   return ring;
 }
 
-function jointDrive(parent, name, radius, finishes) {
-  const { steel, alloy, dark, paint } = finishes;
-  // Rear servo, reduction stage, output bearing and shaft are separate solids.
-  faceTurned(parent, `${name}-servo-can`, [[0, -.37], [radius * .7, -.37],
-    [radius * .8, -.35], [radius * .8, -.18], [radius * .92, -.15],
-    [radius * .92, -.11], [0, -.11]], [0, 0, 0], dark);
-  faceTurned(parent, `${name}-encoder-cover`, [[0, -.394], [radius * .62, -.394],
-    [radius * .74, -.38], [radius * .74, -.365], [0, -.365]], [0, 0, 0], alloy);
-  faceTurned(parent, `${name}-gearcase`, [[0, -.15], [radius * .92, -.15],
-    [radius, -.12], [radius, .06], [radius * .92, .085], [0, .085]], [0, 0, 0], paint);
-  faceFlange(parent, `${name}-output-flange`, radius * .94, .034, [0, 0, .097], steel, radius * .42);
-  faceFlange(parent, `${name}-bearing-seal`, radius * .63, .012, [0, 0, .119], dark, radius * .5);
-  faceDisc(parent, `${name}-output-shaft`, radius * .49, .065, [0, 0, .115], alloy);
-  faceDisc(parent, `${name}-index-cap`, radius * .29, .014, [0, 0, .153], finish('paint', { color: C.teal }));
-  faceFasteners(parent, `${name}-flange-bolts`, radius * .78, [0, 0, .12], 6, radius * .055);
-  housing(parent, `${name}-connector`, [.075, .06, .09], [0, radius * .89, -.28], dark);
-  cable(parent, `${name}-service-loop`, [[0, radius * .9, -.29], [-radius * .65, radius * 1.24, -.34],
-    [-radius * 1.08, radius * .65, -.39], [-radius * .9, -radius * .65, -.37],
-    [.04, -radius * 1.08, -.29]], .014);
-}
-
-function machinedLink(parent, name, length, radius, finishes) {
-  const { paint, alloy, dark } = finishes;
-  // A tapered hollow casting, not a rectangular beam with cosmetic bolts.
-  const contour = [[.02, -radius], [length * .22, -radius], [length * .54, -radius * .79],
-    [length - .08, -radius * .57], [length + .025, -radius * .4],
-    [length + .025, radius * .4], [length - .08, radius * .57],
-    [length * .54, radius * .79], [length * .22, radius], [.02, radius], [-.045, radius * .62], [-.045, -radius * .62]];
-  const pocket = [[length * .23, -radius * .66], [length * .57, -radius * .49],
-    [length - .11, -radius * .28], [length - .11, radius * .28],
-    [length * .57, radius * .49], [length * .23, radius * .66]];
-  profileSolid(parent, name, contour, .22, paint, {}, .009, [pocket]);
-  const serviceCover = profileSolid(parent, `${name}-service-cover`, pocket, .012, dark, {}, .009);
-  serviceCover.position.z = -.113;
-  const web = profileSolid(parent, `${name}-web`, [[length * .25, -.018], [length - .1, -.012],
-    [length - .1, .012], [length * .25, .018]], .25, alloy, {}, .005);
-  web.position.z = 0;
-  cable(parent, `${name}-service-cable`, [[.05, -radius, -.26], [length * .3, -radius * 1.3, -.24],
-    [length * .7, -radius, -.23], [length - .025, -.045, -.27]], .013);
-  for (const x of [length * .34, length * .65]) {
-    housing(parent, `${name}-cable-clip-${x}`, [.035, .034, .07], [x, -radius * 1.1, -.235], alloy);
-  }
+// The stator, each output link and the next link occupy separate Z layers.
+// Bearing/shaft bridges cross those layers; kinematic frames stay in model XY.
+function jointDrive(stator, rotor, name, radius, back, front, output, finishes) {
+  const { steel, alloy, dark, paint, teal } = finishes;
+  const bore = radius * .32;
+  faceTurned(stator, `${name}-gearcase`, [[bore, back], [radius * .8, back],
+    [radius * .96, back + .025], [radius, back + .06], [radius, front - .025],
+    [radius * .91, front], [bore, front], [bore, back]], [0, 0, 0], paint);
+  faceTurned(stator, `${name}-servo-can`, [[0, back - .065], [radius * .66, back - .065],
+    [radius * .78, back - .045], [radius * .78, back + .01], [0, back + .01]], [0, 0, 0], dark);
+  faceFlange(stator, `${name}-output-flange`, radius * .88, .024, [0, 0, front + .012], steel, bore);
+  faceFlange(stator, `${name}-bearing-seal`, radius * .58, .01, [0, 0, front + .029], dark, bore);
+  faceDisc(rotor, `${name}-output-shaft`, bore * .96, output - front + .075,
+    [0, 0, (front - .06 + output + .015) / 2], alloy);
+  faceFlange(rotor, `${name}-rotor-collar`, radius * .75, .028, [0, 0, output], alloy, radius * .39);
+  faceDisc(rotor, `${name}-rotor-cover`, radius * .55, .025, [0, 0, output + .009], dark);
+  faceDisc(rotor, `${name}-index-cap`, radius * .22, .009, [0, 0, output + .026], teal);
 }
 
 function armAssembly(root, l1, l2, reach) {
   const floorY = -reach - .27;
-  const stage = floor(root, reach * 2 + .9, 2.6, floorY);
-  stage.userData.environment = true;
+  floor(root, reach * 2 + .9, 3.1, floorY).userData.environment = true;
   const finishes = { steel: finish('steel'), alloy: finish('aluminium'), dark: finish('dark-metal'),
-    paint: finish('paint', { color: 0xb3bbb7 }) };
-  const { steel, alloy, dark, paint } = finishes;
+    paint: finish('paint', { color: 0xe1e4dd, roughness: .4 }),
+    teal: finish('paint', { color: C.teal, roughness: .42 }) };
+  const { steel, dark, paint } = finishes;
   const base = addGroup(root, 'arm-base');
-  housing(base, 'mounting-plinth', [.84, .10, .78], [0, floorY + .05, -.42], dark);
-  housing(base, 'plinth-insert', [.76, .05, .70], [0, floorY + .125, -.42], steel);
-  housing(base, 'fixed-pedestal', [.22, -floorY - .21, .27], [0, (floorY + .15 - .06) / 2, -.45], paint);
-  housing(base, 'pedestal-cap', [.41, .16, .43], [0, -.11, -.42], alloy);
-  for (const sign of [-1, 1]) {
-    const gusset = profileSolid(base, `pedestal-gusset-${sign < 0 ? 'left' : 'right'}`,
-      [[sign * .12, floorY + .16], [sign * .36, floorY + .16], [sign * .12, floorY + .65]], .18, alloy, {}, .008);
-    gusset.position.z = -.42;
+  housing(base, 'mounting-plinth', [.86, .10, .84], [0, floorY + .05, -.94], dark);
+  housing(base, 'plinth-insert', [.76, .045, .74], [0, floorY + .1225, -.94], steel);
+  // A broad lower casting narrows continuously into the fixed shoulder housing.
+  const neck = sculptedLink(base, 'fixed-pedestal', -floorY - .46,
+    { rootRadius: .32, tipRadius: .205, depth: .48, material: paint });
+  neck.rotation.z = Math.PI / 2;
+  neck.position.set(0, floorY + .36, -.94);
+  housing(base, 'pedestal-service-cover', [.19, .28, .014], [0, floorY + .55, -.698], dark);
+  for (const x of [-.32, .32]) for (const z of [-1.22, -.66]) {
+    fasteners(base, `mount-bolt-${x}-${z}`, 0, [x, floorY + .15, z], 1, .014);
   }
-  housing(base, 'pedestal-service-cover', [.13, -floorY - .49, .02], [0, (floorY + .16) / 2, -.301], dark);
-  for (const x of [-.3, .3]) for (const z of [-.66, -.16]) {
-    fasteners(base, `mount-bolt-${x}-${z}`, 0, [x, floorY + .16, z], 1, .028);
-  }
-  cable(base, 'pedestal-cable', [[0, floorY + .17, -.63], [-.08, floorY + .46, -.65],
-    [-.09, -.48, -.65], [0, -.19, -.35]], .019);
-  jointDrive(base, 'shoulder', l1 > .7 ? .205 : .185, finishes);
   const shoulder = addGroup(root, 'shoulder');
-  machinedLink(shoulder, 'upper-link', l1, l1 > .7 ? .17 : .135, finishes);
+  const upper = sculptedLink(shoulder, 'upper-link', l1,
+    { rootRadius: .205, tipRadius: .135, depth: .28, material: paint });
+  upper.position.z = -.53;
+  jointDrive(base, shoulder, 'shoulder', .225, -.99, -.70, -.37, finishes);
   const elbowDrive = addGroup(shoulder, 'elbow-drive');
   elbowDrive.position.x = l1;
-  jointDrive(elbowDrive, 'elbow', l2 > .7 ? .16 : .142, finishes);
   const elbow = addGroup(shoulder, 'elbow');
   elbow.position.x = l1;
   const forearm = addGroup(elbow, 'forearm-hardware');
-  machinedLink(forearm, 'forearm-link', l2, l2 > .7 ? .132 : .105, finishes);
+  forearm.position.z = -.24;
+  sculptedLink(forearm, 'forearm-link', l2,
+    { rootRadius: .15, tipRadius: .09, depth: .22, material: paint });
+  jointDrive(elbowDrive, elbow, 'elbow', .157, -.64, -.39, -.12, finishes);
   const tool = addGroup(elbow, 'tool-center');
   tool.position.x = l2;
   const wrist = addGroup(tool, 'wrist-hardware');
-  faceTurned(wrist, 'wrist-bearing', [[0, -.105], [.072, -.105], [.08, -.08], [.08, .075],
-    [.065, .1], [0, .1]], [0, 0, 0], dark);
-  faceFlange(wrist, 'wrist-output-flange', .069, .028, [0, 0, .112], steel, .026);
-  faceDisc(wrist, 'wrist-index', .025, .017, [0, 0, .133], finish('paint', { color: C.teal }));
-  faceFasteners(wrist, 'wrist-bolts', .05, [0, 0, .132], 4, .007);
+  wrist.position.z = -.24;
+  // A fixed terminal mount, not an additional animated wrist DOF.
+  faceTurned(wrist, 'wrist-bearing', [[0, -.085], [.063, -.085], [.078, -.06],
+    [.078, .06], [.062, .08], [0, .08]], [0, 0, 0], dark);
+  faceFlange(wrist, 'wrist-output-flange', .068, .025, [0, 0, .0875], steel, .026);
   return {
-    shoulder, elbow, tool, forearm, wrist,
+    shoulder, elbow, tool, forearm, wrist, finishes,
     pose(q1, q2) {
       shoulder.rotation.z = q1;
       elbow.rotation.z = q2;
@@ -163,29 +139,42 @@ function armAssembly(root, l1, l2, reach) {
   };
 }
 
+// A target is an XY annotation, not an opaque physical torus in the tool's path.
+function armTarget(parent, name, position, radius) {
+  const marker = addGroup(parent, name);
+  marker.position.fromArray(position);
+  line(marker, `${name}-ring`, Array.from({ length: 65 }, (_, i) => {
+    const a = i * TAU / 64;
+    return [radius * Math.cos(a), radius * Math.sin(a), 0];
+  }), C.amber);
+  line(marker, `${name}-cross-x`, [[-radius * 1.4, 0, 0], [radius * 1.4, 0, 0]], C.amber);
+  line(marker, `${name}-cross-y`, [[0, -radius * 1.4, 0], [0, radius * 1.4, 0]], C.amber);
+  return marker;
+}
+
 function servoArm() {
   const root = group('robot-arm');
   const arm = armAssembly(root, .8, .8, 1.6);
-  housing(arm.tool, 'gripper-palm', [.09, .16, .105], [.065, 0, 0], 'aluminium');
-  for (const z of [-.035, .035]) rod(arm.tool, `jaw-guide-${z}`, [.07, -.09, z], [.07, .09, z], .012, finish('steel'));
+  faceDisc(arm.tool, 'gripper-adapter', .045, .12, [0, 0, -.12], arm.finishes.alloy);
+  housing(arm.tool, 'gripper-palm', [.11, .18, .11], [.035, 0, -.02], arm.finishes.alloy);
+  for (const z of [-.045, .015]) rod(arm.tool, `jaw-guide-${z}`, [.075, -.10, z], [.075, .10, z], .009, arm.finishes.steel);
   for (const [name, sign] of [['left', 1], ['right', -1]]) {
-    housing(arm.tool, `gripper-${name}`, [.15, .028, .07], [.17, sign * .075, 0], 'dark-metal');
-    housing(arm.tool, `gripper-${name}-pad`, [.028, .042, .071], [.23, sign * .054, 0], 'rubber');
+    housing(arm.tool, `gripper-${name}-slide`, [.05, .047, .075], [.078, sign * .075, -.015], arm.finishes.steel);
+    housing(arm.tool, `gripper-${name}`, [.135, .03, .065], [.155, sign * .075, -.015], arm.finishes.dark);
+    housing(arm.tool, `gripper-${name}-pad`, [.026, .038, .066], [.21, sign * .056, -.015], 'rubber');
   }
-  const targetLinks = streamLine(root, 'target-links', 3, C.amber, true);
-  const targetElbow = targetMarker(root, 'target-elbow', [.8, 0, 0], .055, C.amber);
-  const targetTool = targetMarker(root, 'target-tool', [1.6, 0, 0], .075, C.amber);
-  targetElbow.rotation.x = Math.PI / 2;
-  targetTool.rotation.x = Math.PI / 2;
+  const targetLinks = streamLine(root, 'target-links', 5, C.amber, true);
+  const targetElbow = armTarget(root, 'target-elbow', [.8, 0, -.24], .055);
+  const targetTool = armTarget(root, 'target-tool', [1.6, 0, 0], .075);
   const readings = [
-    { id: 'joint-1', anchor: arm.shoulder, label: { ko: '관절 1', en: 'Joint 1' }, value: '', side: 'left' },
-    { id: 'joint-2', anchor: arm.elbow, label: { ko: '관절 2', en: 'Joint 2' }, value: '', side: 'right' },
+    { id: 'joint-1', anchor: root.getObjectByName('shoulder-index-cap'), label: { ko: '관절 1', en: 'Joint 1' }, value: '', side: 'left' },
+    { id: 'joint-2', anchor: root.getObjectByName('elbow-index-cap'), label: { ko: '관절 2', en: 'Joint 2' }, value: '', side: 'right' },
   ];
   return {
     root,
     readouts: () => readings,
-    // Runtime span is the horizontal budget at aspect <= 1.6; retain full sweep.
-    camera: { position: [1.43, 6.08, 10], target: [.38, .3, 0], span: 5.5 },
+    // Independently bound narrow-view width without cropping the full sweep.
+    camera: { position: [1.4, 8, 10], target: [.2, .4, -.2], span: 5.3, minHorizontalSpan: 4.15 },
     legend: {
       ko: '청록: 실제 관절 자세 · 주황 점선: 목표 자세 · 링크 0.8 m + 0.8 m',
       en: 'Teal: actual joints · amber dashed: target pose · links 0.8 m + 0.8 m',
@@ -197,8 +186,9 @@ function servoArm() {
       const a = params.target1, b = a + params.target2;
       const e = [.8 * Math.cos(a), .8 * Math.sin(a), 0];
       const t = [e[0] + .8 * Math.cos(b), e[1] + .8 * Math.sin(b), 0];
-      writeLine(targetLinks, [[0, 0, 0], e, t]);
-      targetElbow.position.fromArray(e);
+      writeLine(targetLinks, [[0, 0, -.53], [e[0], e[1], -.53],
+        [e[0], e[1], -.24], [t[0], t[1], -.24], t]);
+      targetElbow.position.set(e[0], e[1], -.24);
       targetTool.position.fromArray(t);
     },
   };
@@ -207,29 +197,27 @@ function servoArm() {
 function impedanceArm() {
   const root = group('impedance-robot');
   const arm = armAssembly(root, mechanics.l1, mechanics.l2, mechanics.l1 + mechanics.l2);
-  // Rear-mounted tooling leaves the modeled ball centre exposed in the XY plane.
-  arm.forearm.position.z = -.16;
-  arm.wrist.position.z = -.22;
+  // Fixed axial sensor and stem bridge the offset wrist to the physical Z=0 TCP.
+  faceTurned(arm.tool, 'force-sensor', [[0, -.18], [.047, -.18], [.053, -.165],
+    [.053, -.11], [.041, -.095], [0, -.095]], [0, 0, 0], arm.finishes.alloy);
+  faceDisc(arm.tool, 'sensor-isolation-band', .0535, .012, [0, 0, -.135], arm.finishes.dark);
+  faceDisc(arm.tool, 'probe-stem', .025, .075, [0, 0, -.075], arm.finishes.steel);
   sphere(arm.tool, 'contact-probe', .062, [0, 0, 0], finish('steel', { color: 0x497b76 }));
   // The leading face, not the wall centre, is the model's x = 0.5 m plane.
   // Translucency exposes compliant penetration; visual geometry must not clamp it.
-  box(root, 'contact-wall', [.12, 2.12, .42], [.56, -.06, 0], finish('glass', { opacity: .18 }));
-  housing(root, 'wall-back-rail', [.065, 2.4, .075], [.66, -.1, -.29], 'aluminium');
-  // Keep both uprights behind the XY motion plane, including during penetration.
-  housing(root, 'wall-upright-front', [.065, 2.4, .075], [.66, -.1, -.14], 'aluminium');
-  housing(root, 'wall-mounting-foot', [.43, .075, .83], [.72, -1.2825, 0], 'dark-metal');
-  for (const z of [-.32, .32]) fasteners(root, `wall-anchor-${z}`, 0, [.79, -1.24, z], 1, .022);
-  for (const y of [-1.15, 1.03]) {
-    housing(root, `wall-cross-bracket-${y}`, [.17, .07, .66], [.63, y, 0], 'dark-metal');
-    faceFasteners(root, `wall-bracket-bolts-${y}`, .04, [.63, y, .342], 2, .01);
+  box(root, 'contact-wall', [.12, 2.12, .42], [.56, -.06, -.115], finish('glass', { opacity: .14 }));
+  // One narrow rear spine and small rear shoes leave the task/probe silhouette clear.
+  housing(root, 'wall-upright-front', [.05, 2.28, .065], [.73, -.14, -.43], 'aluminium');
+  housing(root, 'wall-mounting-foot', [.34, .06, .46], [.71, -1.29, -.43], 'dark-metal');
+  for (const y of [-1.14, 1.01]) {
+    housing(root, `wall-cross-bracket-${y}`, [.20, .035, .15], [.66, y, -.385], 'aluminium');
   }
-  line(root, 'wall-contact-plane', [[.5, -1.12, .217], [.5, 1, .217]], C.blue);
+  line(root, 'wall-contact-plane', [[.5, -1.12, .102], [.5, 1, .102]], C.blue);
   for (let i = 0; i <= 12; i++) {
     const y = -.95 + i * .15;
-    line(root, `wall-scale-${i}`, [[.5, y, .222], [.5 + (i % 2 ? .025 : .045), y, .222]], C.metal);
+    line(root, `wall-scale-${i}`, [[.5, y, .107], [.5 + (i % 2 ? .025 : .045), y, .107]], C.metal);
   }
-  const target = targetMarker(root, 'target-tool', [.65, mechanics.targetY, 0], .066, C.amber);
-  target.rotation.x = Math.PI / 2;
+  const target = armTarget(root, 'target-tool', [.65, mechanics.targetY, 0], .066);
   const reference = streamLine(root, 'target-line', 2, C.amber, true);
   const force = addGroup(root, 'contact-force');
   const forceRod = rod(force, 'reaction-shaft', [0, 0, 0], [-.2, 0, 0], .008, C.teal);
@@ -243,7 +231,7 @@ function impedanceArm() {
   return {
     root,
     readouts: () => readings,
-    camera: { position: [2.1, 1.2, 7], target: [.02, -.1, 0], span: 4.8 },
+    camera: { position: [1.4, 2.8, 10], target: [.14, -.05, -.25], span: 4.4, minHorizontalSpan: 2.85 },
     legend: {
       ko: '청록: 실제 끝점 · 주황: (x 목표, 0.15 m) · 접촉면 x = 0.5 m',
       en: 'Teal: actual endpoint · amber: (target x, 0.15 m) · contact plane x = 0.5 m',

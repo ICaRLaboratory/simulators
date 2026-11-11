@@ -101,7 +101,7 @@
     "file": "robot-arm-ko.png",
     "source": "robot-arm/?lang=ko",
     "renderer": "three",
-    "sha256": "f665e7ca957140dea07ddf21704180560319a79d48f83384ae9f234df942cb34"
+    "sha256": "63a1b30c5307d9a9b1fdf14cbd48ff77bbd586d01da0ab1e361e925b623a669b"
   },
   {
     "id": "robot-arm",
@@ -109,7 +109,7 @@
     "file": "robot-arm-en.png",
     "source": "robot-arm/?lang=en",
     "renderer": "three",
-    "sha256": "21be30af655090072817f58ae7b3b85458f1408db331151e38b7f655ec9362b4"
+    "sha256": "3b8c39d14d690a7086cd77beec3e2d2d61acf46b808b6c0bf001c1841bb9038d"
   },
   {
     "id": "parking",
@@ -165,7 +165,7 @@
     "file": "impedance-robot-ko.png",
     "source": "impedance-robot/?lang=ko",
     "renderer": "three",
-    "sha256": "1205eb01686fb74afa7e3b50735d2e1aa4c6950e57103f5c8ac71fd2a4106856"
+    "sha256": "0931deb90be100cbca268dad395934990edea7ea1f9577372932b5ebf5d64df6"
   },
   {
     "id": "impedance-robot",
@@ -173,7 +173,7 @@
     "file": "impedance-robot-en.png",
     "source": "impedance-robot/?lang=en",
     "renderer": "three",
-    "sha256": "09c9505d14c41922d1305b736275eea522fe08a2a244380540b061d9ae0ef137"
+    "sha256": "9dd1ee206cacb4921e425cef4218b33d23ef3c217d76465fa0be54bac5999f78"
   },
   {
     "id": "path-tracking",
@@ -261,7 +261,7 @@
     "file": "research-tracking-ko.png",
     "source": "https://icarlaboratory.github.io/research.html?sim=track&lang=ko#interactive",
     "renderer": "three",
-    "sha256": "42c72259f17cb9a5c3f0329be2512930aecfea5f6fa2f07592bcbcaafb102ad9"
+    "sha256": "4cad04941021f638132adbbca8bb309eb7188a92c4a25237217cd896fd8b5482"
   },
   {
     "id": "research-tracking",
@@ -269,7 +269,7 @@
     "file": "research-tracking-en.png",
     "source": "https://icarlaboratory.github.io/research.html?sim=track&lang=en#interactive",
     "renderer": "three",
-    "sha256": "a98dcdc1b4e43077395f8fb270e823309f049bfb2fd8ce12aaf6c31ee0d1da1e"
+    "sha256": "95f5bfcc41e2cf6bb33856021e2f294f242f1ccd659c93b404fcc065b6435352"
   },
   {
     "id": "research-contact",
@@ -277,7 +277,7 @@
     "file": "research-contact-ko.png",
     "source": "https://icarlaboratory.github.io/research.html?sim=contact&lang=ko#interactive",
     "renderer": "three",
-    "sha256": "5773ec249544da35cbd4048600e9e2a056f03fd0cca2e5eee7538c63ad8f8db1"
+    "sha256": "3f8870b8ddcfd8f800995e2dd10a6c2a2cb1a16cd51db142442af9f2e0a1b022"
   },
   {
     "id": "research-contact",
@@ -285,6 +285,6 @@
     "file": "research-contact-en.png",
     "source": "https://icarlaboratory.github.io/research.html?sim=contact&lang=en#interactive",
     "renderer": "three",
-    "sha256": "7d004e26c76953d1823043c22ff05a76147ac7cfdffbc767b7eb61c7d3964976"
+    "sha256": "e79476d791804ad539f64555274b42a725676d0593f4fccc2916edd94344b7da"
   }
 ]

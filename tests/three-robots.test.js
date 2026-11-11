@@ -43,41 +43,41 @@ function updatePure(scene, simulation) {
   assert.equal(JSON.stringify({ state, params }), before, 'visual updates must not change model data');
 }
 
-test('arms use tapered load-bearing castings, bored bearings and separate servo finishes', () => {
-  for (const id of ['robot-arm', 'impedance-robot']) {
+test('arms have smooth closed volumetric casings and an integrated cast neck', () => {
+  for (const [id, l1, l2] of [['robot-arm', .8, .8], ['impedance-robot', .55, .5]]) {
     const scene = make(id);
-    for (const link of ['upper-link', 'forearm-link']) {
-      const mesh = node(scene, link);
-      assert.ok(mesh.isMesh && mesh.geometry.type === 'ExtrudeGeometry');
-      assert.equal(mesh.geometry.parameters.shapes.holes.length, 1, 'casting has a real pocket opening and structural side rails');
-      const contour = mesh.geometry.parameters.shapes.getPoints();
-      const heights = new Set(contour.map(p => Math.abs(p.y).toFixed(3)));
-      assert.ok(heights.size >= 4, `${id}/${link}: casting must taper, not be a capsule or box`);
+    scene.root.updateMatrixWorld(true);
+    for (const [name, length] of [['upper-link', l1], ['forearm-link', l2]]) {
+      const mesh = node(scene, name), g = mesh.geometry;
+      assert.ok(mesh.isMesh && g.index, `${id}/${name}: continuous indexed shell`);
       assert.equal(mesh.material.userData.finish, 'paint');
-      const web = node(scene, `${link}-web`);
-      assert.equal(web.material.userData.finish, 'aluminium');
-      assert.ok(web.material.metalness > .8 && web.material.roughnessMap?.isTexture);
-      assert.ok(node(scene, `${link}-service-cable`).geometry.type === 'TubeGeometry');
+      g.computeBoundingBox();
+      const size = g.boundingBox.getSize(new T.Vector3());
+      assert.ok(size.y >= (name === 'upper-link' ? .32 : .25) && size.z >= .21,
+        `${id}/${name}: readable volumetric section, not a thin plate`);
+      const normals = g.attributes.normal, p = g.attributes.position;
+      const near = [], far = [];
+      for (let i = 0; i < p.count; i++) {
+        if (Math.abs(p.getX(i) - length * .22) < length * .09) near.push(Math.abs(p.getY(i)));
+        if (Math.abs(p.getX(i) - length * .75) < length * .09) far.push(Math.abs(p.getY(i)));
+        if (p.getY(i) > .08 && Math.abs(p.getZ(i)) < .02) assert.ok(normals.getY(i) > 0, 'outward shell normals');
+      }
+      assert.ok(Math.max(...near) > Math.max(...far) * 1.15, 'actual shell tapers toward the downstream joint');
+      for (const x of [length*.2, length*.4, length*.65]) {
+        const origin = mesh.localToWorld(new T.Vector3(x, 0, 2));
+        const hits = new T.Raycaster(origin,new T.Vector3(0,0,-1)).intersectObject(mesh);
+        assert.ok(hits.length, 'closed front skin rather than the obsolete elongated through-pocket');
+      }
     }
+    const neck = node(scene, 'fixed-pedestal');
+    assert.ok(neck.geometry.index, 'smooth shaped neck, not a rectangular welded post');
+    const b = new T.Box3().setFromObject(neck);
+    assert.ok(b.max.x-b.min.x >= .55 && b.max.z-b.min.z >= .4, 'base transitions through a substantial cast neck');
     for (const joint of ['shoulder', 'elbow']) {
       const bearing = node(scene, `${joint}-output-flange`);
-      assert.ok(bearing.geometry.parameters.shapes.holes.length > 0, 'real bored flange');
+      assert.ok(bearing.geometry.parameters.shapes.holes.length > 0, 'machined bored bearing');
       assert.equal(bearing.material.userData.finish, 'steel');
-      const drive = node(scene, `${joint}-servo-can`);
-      assert.equal(drive.geometry.type, 'LatheGeometry');
-      assert.equal(drive.material.userData.finish, 'dark-metal');
-      assert.equal(node(scene, `${joint}-encoder-cover`).material.userData.finish, 'aluminium');
-      assert.equal(node(scene, `${joint}-service-loop`).material.userData.finish, 'rubber');
-    }
-    assert.ok(node(scene, 'pedestal-gusset-left').isMesh);
-    assert.ok(node(scene, 'pedestal-gusset-right').isMesh);
-    assert.ok(node(scene, 'pedestal-cap').isMesh);
-    if (id === 'robot-arm') {
-      for (const [name, minimumHeight] of [['upper-link', .32], ['forearm-link', .25]]) {
-        const geometry = node(scene, name).geometry; geometry.computeBoundingBox();
-        const size = geometry.boundingBox.getSize(new T.Vector3());
-        assert.ok(size.y >= minimumHeight && size.z >= .21, `${name}: readable structural section, not a thin plate`);
-      }
+      assert.ok(node(scene, `${joint}-output-shaft`).isMesh, 'axial load bridge');
     }
   }
 });
@@ -95,7 +95,7 @@ test('robot-arm articulates both 0.8 m links about a fixed shoulder and renders 
       .8 * (Math.cos(q1) + Math.cos(q1 + q2)),
       .8 * (Math.sin(q1) + Math.sin(q1 + q2)), 0,
     ]);
-    vector(world(scene, 'target-elbow'), [.8 * Math.cos(-.4), .8 * Math.sin(-.4), 0]);
+    vector(world(scene, 'target-elbow'), [.8 * Math.cos(-.4), .8 * Math.sin(-.4), -.24]);
     vector(world(scene, 'target-tool'), [
       .8 * (Math.cos(-.4) + Math.cos(.8)), .8 * (Math.sin(-.4) + Math.sin(.8)), 0,
     ]);
@@ -427,7 +427,7 @@ test('the physical impedance probe remains visible in the whole scene before and
       close(snapshots[45].observed.y, .14927360085817376);
       close(snapshots[45].observed.force, 56.11205685327236);
     }
-    for (const aspect of [1.6, 358 / 390]) {
+    for (const aspect of [1.6, 358 / 390, .73]) {
       const camera = createApparatusCamera(scene.camera, aspect);
       for (const step of new Set([0, contact - 1, contact, 45, peak, 120])) {
         const { state, observed } = snapshots[step];
@@ -437,14 +437,14 @@ test('the physical impedance probe remains visible in the whole scene before and
         assert.equal(node(scene, 'contact-force').visible, observed.force > 0);
         assert.equal(scene.readouts()[1].value, `${observed.force.toFixed(2)} N`);
         const visibility = probeVisibility(scene, camera);
-        if (visibility.first !== 'contact-probe' || visibility.fraction < .95) {
+        if (visibility.first !== 'contact-probe' || visibility.fraction < 1) {
           occluded.push({ description, aspect, step, x: observed.x, ...visibility });
         }
       }
     }
   }
   assert.equal(JSON.stringify(scene.camera), cameraSpec, 'updates must not move the default camera');
-  assert.deepEqual(occluded, [], 'whole-scene opaque geometry must expose the probe centre and >=95% of its silhouette');
+  assert.deepEqual(occluded, [], 'whole-scene opaque geometry must expose the probe centre and 100% of its sampled silhouette');
 });
 
 test('robot reference reticles face the vertical motion plane rather than the laboratory floor', () => {
@@ -484,9 +484,9 @@ function fits(scene, camera, description) {
 
 test('perspective arm cameras enlarge the apparatus and retain every articulated endpoint', () => {
   for (const [id, Model] of [['robot-arm', Arm], ['impedance-robot', Impedance]]) {
-    const scene = make(id), simulation = new Model();
-    for (const aspect of [1.6, 358 / 390]) {
-      const camera = createApparatusCamera(scene.camera, aspect);
+    const scene = make(id);
+    for (const aspect of [.4, .73, 358 / 390, 1.3, 1.6, 2.4]) {
+      const simulation = new Model(), camera = createApparatusCamera(scene.camera, aspect);
       assert.ok(camera.isPerspectiveCamera);
       updatePure(scene, simulation);
       const initial = projectedBounds(scene, camera);
@@ -531,7 +531,7 @@ test('continuous arm sweeps fit the frustum using an exact cylindrical workspace
       }
     });
     const centre = new T.Vector3(0, 0, (zMin + zMax) / 2), halfDepth = (zMax - zMin) / 2;
-    for (const aspect of [1.6, 358 / 390]) {
+    for (const aspect of [.4, .73, 358 / 390, 1.3, 1.6, 2.4]) {
       const camera = createApparatusCamera(scene.camera, aspect), projection = camera.projectionMatrix.clone();
       projection.elements[0] /= .98; projection.elements[5] /= .98;
       const frustum = new T.Frustum().setFromProjectionMatrix(projection.multiply(camera.matrixWorldInverse));
