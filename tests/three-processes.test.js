@@ -200,7 +200,7 @@ test('CSTR: constant-volume vessel maps concentration and Kelvin temperatures wi
     Object.freeze({ ...model.params, target: 80 }));
   assert.deepEqual(fluid.scale, volume, 'Constant 100 L model has no fill-level state');
   assert.deepEqual(named(scene, 'fluid-surface').position, surface);
-  assert.ok(fluid.material.opacity > initialOpacity);
+  assert.equal(fluid.material.opacity, initialOpacity, 'Concentration has its own column, independent of thermal color');
   near(named(scene, 'concentration-column').scale.y, 1.5 / 2 * 1.6);
   near(named(scene, 'reactor-temperature-column').userData.temperatureC, 80);
   const column = named(scene, 'reactor-temperature-column');

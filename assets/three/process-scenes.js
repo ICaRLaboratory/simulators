@@ -2,6 +2,7 @@ import * as T from '../vendor/three.js';
 import { C, group, material, box, cylinder, sphere, rod, setRod, line, floor,
   targetMarker } from './primitives.js';
 import { finish, housing, turned, flange, fasteners, cable } from './engineering.js';
+import { tintFluid, thermalArrow, setThermalArrow, cstrHeatBalance } from './thermal-visuals.js';
 
 function pipe(parent, name, points, radius, surface) {
   const geometry = new T.TubeGeometry(new T.CatmullRomCurve3(points.map(p => new T.Vector3(...p))), 48, radius, 12, false);
@@ -85,7 +86,8 @@ function heatExchanger() {
     finish('glass', { opacity: .08, side: T.DoubleSide }));
   window.rotation.z = -Math.PI / 2;
   const fluid = cylinder(apparatus, 'mixed-fluid', .54, 3.15, [0, 0, 0],
-    finish('glass', { color: C.teal, opacity: .08 }));
+    finish('glass', { color: C.teal, opacity: .68, metalness: 0, roughness: .48 }));
+  fluid.castShadow = false;
   fluid.rotation.z = -Math.PI / 2;
   const bundle = group('tube-bundle'); apparatus.add(bundle);
   const holes = [];
@@ -138,19 +140,27 @@ function heatExchanger() {
   const power = box(root, 'heater-power', [.13, 1, .055], [-2.5, .3, .89], C.amber);
   const gauge = thermometer(root, 'temperature', 2.45, .85);
   cable(root, 'outlet-probe-lead', [[2.24,1.35,.1],[2.35,1.08,.43],[2.45,.65,.75]], .018);
+  const heatCues = [-.9,0,.9].map((x,i) =>
+    thermalArrow(root, `heat-transfer-${i}`, [x,2.34,.48], [x,1.82,.48], C.amber));
+  // Cutaway overlays, in front of the liquid: end heads and the gauge must not hide flow direction.
+  const inletFlow = thermalArrow(root, 'inlet-flow', [-1.43,1.05,.72], [-.65,1.05,.72], C.ink);
+  const outletFlow = thermalArrow(root, 'outlet-flow', [.65,1.05,.72], [1.43,1.05,.72], C.ink);
   const readouts = [annotation('outlet',outlet,'출구 온도','Outlet temperature','right'),
     annotation('heat',header,'열입력','Heat input','left')];
   return {
     root, readouts: () => readouts,
     camera: { position: [5.2, 3.35, 9.5], target: [0, .86, 0], span: 6.65 },
     legend: {
-      ko: '절개 열교환기 · 구리 관군 / 강재 동체 · 유체 색: 혼합 온도 · 황색: 목표/열입력 · 가열측 동특성은 생략합니다.',
-      en: 'Cutaway exchanger · copper tube bundle / steel shell · fluid tint: mixed temperature · amber: target / heat input. No hot-side dynamics.',
+      ko: '절개 열교환기 · 유체 상태의 의사색: 0 청색 / 25 청록 / 50 황색 / 75 주황 / 100 °C 적색. 금속 온도·열복사 아님. 황색 ↓: Q(0–150 kW), 검정 →: 입구→출구 질량유량(폭). 목표: 황색 눈금 · 가열측 동특성 생략.',
+      en: 'Cutaway exchanger · false-color fluid: 0 blue / 25 cyan / 50 yellow / 75 orange / 100 °C red. Not metal temperature or radiation. Amber ↓: Q (0–150 kW); black →: inlet→outlet mass flow (width). Amber tick: target. No hot-side dynamics.',
     },
     update(state, params) {
-      temperature(fluid, state.temperature);
-      temperature(inlet, params.inlet + (params.load ?? state.load ?? 0));
-      temperature(outlet, state.temperature);
+      tintFluid(fluid, state.temperature);
+      tintFluid(inlet, params.inlet + (params.load ?? state.load ?? 0));
+      tintFluid(outlet, state.temperature);
+      heatCues.forEach(cue => setThermalArrow(cue, state.heat, 150));
+      setThermalArrow(inletFlow, params.flow, 1);
+      setThermalArrow(outletFlow, params.flow, 1);
       gauge(state.temperature, params.target);
       power.scale.y = clamp(state.heat / 150, 0, 1);
       power.position.y = .3 + power.scale.y / 2;
@@ -174,17 +184,25 @@ function stirredTank() {
   }
   mesh(root, 'jacket-back-shell', new T.CylinderGeometry(.88, .88, 1.85, 48, 1, true, Math.PI / 2, Math.PI),
     finish('steel', { side: T.DoubleSide }), [0, 1.65, 0]);
+  // Open coolant bands leave the reactor liquid unobscured: separate fluid states.
+  const coolantSurface = finish('glass', { color: C.blue, opacity: .84, metalness: 0, roughness: .48, side: T.DoubleSide });
   const jacket = mesh(root, 'cooling-jacket',
-    new T.CylinderGeometry(.86, .86, 1.85, 48, 1, true, -Math.PI / 2, Math.PI), finish('glass', { color: C.blue, opacity: .12, side: T.DoubleSide }), [0, 1.65, 0]);
+    new T.CylinderGeometry(.86, .86, .22, 48, 1, true, -Math.PI / 2, Math.PI), coolantSurface, [0, .88, 0]);
+  mesh(jacket, 'jacket-upper-band', new T.CylinderGeometry(.86,.86,.22,48,1,true,-Math.PI/2,Math.PI), coolantSurface, [0,1.52,0]);
+  for (const [name, angle] of [['inlet',-Math.PI/2],['outlet',Math.PI/2-.42]])
+    mesh(jacket, `jacket-${name}-edge`, new T.CylinderGeometry(.86,.86,1.30,16,1,true,angle,.42), coolantSurface, [0,.76,0]);
+  jacket.traverse(part => { part.castShadow = false; });
   mesh(root, 'reactor-vessel', new T.LatheGeometry([[.65,-.9],[.68,-.9],[.68,.9],[.65,.9]].map(p => new T.Vector2(...p)), 48, Math.PI / 2, Math.PI),
     finish('steel', { side: T.DoubleSide }), [0, 1.65, 0]);
   mesh(root, 'reactor-cutaway-window', new T.CylinderGeometry(.67,.67,1.8,48,1,true,-Math.PI/2,Math.PI),
     finish('glass', { opacity:.08, side:T.DoubleSide }), [0,1.65,0]);
   const fluid = cylinder(root, 'reactor-fluid', .625, 1.18, [0, 1.34, 0], C.teal,
-    { transparent: true, opacity: .25, depthWrite: false });
+    { transparent: true, opacity: .68, depthWrite: false, metalness: 0, roughness: .48 });
+  fluid.castShadow = false;
   fluid.userData.volumeLitres = 100;
-  cylinder(root, 'fluid-surface', .626, .017, [0, 1.93, 0], C.teal,
-    { transparent: true, opacity: .45, depthWrite: false });
+  const surface = cylinder(root, 'fluid-surface', .626, .017, [0, 1.93, 0], C.teal,
+    { transparent: true, opacity: .78, depthWrite: false, metalness: 0, roughness: .48 });
+  surface.castShadow = false;
   turned(root, 'reactor-bottom-head', [[0,.43],[.28,.45],[.52,.54],[.67,.68],[.68,.77]], [0,0,0], steel);
   turned(root, 'reactor-top-head', [[.68,2.54],[.65,2.62],[.48,2.70],[.22,2.75],[.08,2.75]], [0,0,0], steel);
   fasteners(root, 'lid-studs', .78, [0,2.67,0], 12, .033);
@@ -246,25 +264,37 @@ function stirredTank() {
   const feedMarker = box(root, 'feed-concentration-marker', [.27, .025, .04], [-1.5, .5, 1.12], C.amber);
   for (let i = 0; i <= 8; i++)
     box(root, `concentration-tick-${i}`, [.07, .012, .015], [-1.38, .5 + i * .2, 1.03], C.metal);
+  const reactionCues = [-1,1].map(side => thermalArrow(root,
+    `reaction-heat-${side < 0 ? 'left' : 'right'}`, [0,1.38,.72], [side*.4,1.38,.72], 0x813c91));
+  const jacketHeat = thermalArrow(root, 'jacket-heat', [.45,1.78,.72], [1.19,1.78,.72], 0x12658f);
+  const balance = { feedKW: 0, reactionKW: 0, jacketKW: 0, rate: 0 };
+  root.userData.thermal = balance;
   const readouts = [annotation('reactor',probe,'반응 온도','Reactor temperature','left'),
     annotation('coolant',coolantIn,'냉각수 온도','Coolant temperature','right')];
   return {
     root, readouts: () => readouts,
     camera: { position: [4.6, 3.6, 9.5], target: [0, 1.35, 0], span: 7.95 },
     legend: {
-      ko: '절개 반응기 · 일정 체적 100 L · 청록 농도/온도계 · 재킷 색: 냉각수 온도 · 황색: 목표/공급 농도 · 교반기는 고정 도식입니다.',
-      en: 'Cutaway CSTR · fixed 100 L fill · teal: concentration / thermometer · jacket tint: coolant temperature · amber: target / feed. Static mixer schematic.',
+      ko: '유체 상태의 의사색: 0 청색 / 25 청록 / 50 황색 / 75 주황 / 100 °C 적색. 액체 T / 재킷·양쪽 관 Tc (금속 온도·열복사 아님). 보라: 반응 발열, 청색 ↔: 재킷 열교환 · 폭: 정성적 열률. 농도: 청록 기둥 · 황색 눈금: 목표/공급 농도 · 100 L 일정 · 교반기 고정.',
+      en: 'False-color fluid: 0 blue / 25 cyan / 50 yellow / 75 orange / 100 °C red. Liquid T; jacket / both pipes Tc, not metal temperature or radiation. Purple: reaction heat; blue ↔: jacket heat exchange (width: qualitative). Concentration: teal column. Amber ticks: target/feed. Fixed 100 L; static mixer.',
     },
     update(state, params) {
       const celsius = state.temperature - 273.15, coolant = state.coolant - 273.15;
       readouts[0].value = `${celsius.toFixed(1)} °C`;
       readouts[1].value = `${coolant.toFixed(1)} °C`;
-      fluid.material.opacity = .18 + .36 * clamp(state.concentration / 2, 0, 1);
       fluid.userData.concentration = state.concentration;
-      temperature(product, celsius, 40, 130);
-      temperature(jacket, coolant, 0, 60);
-      temperature(coolantIn, coolant, 0, 60);
-      temperature(coolantOut, coolant, 0, 60);
+      tintFluid(fluid, celsius);
+      tintFluid(surface, celsius);
+      tintFluid(product, celsius);
+      tintFluid(jacket, coolant);
+      tintFluid(coolantIn, coolant);
+      tintFluid(coolantOut, coolant);
+      cstrHeatBalance(state, balance);
+      reactionCues.forEach(cue => setThermalArrow(cue, balance.reactionKW, 150));
+      setThermalArrow(jacketHeat, balance.jacketKW, 150);
+      // Tc can be warmer than T. The same arrow reverses; no hardcoded cooling.
+      jacketHeat.position.x = balance.jacketKW > 0 ? 1.19 : .45;
+      jacketHeat.rotation.z = balance.jacketKW > 0 ? Math.PI / 2 : -Math.PI / 2;
       gauge(celsius, params.target);
       concentration.scale.y = Math.max(.0001, clamp(state.concentration / 2, 0, 1) * 1.6);
       concentration.position.y = .5 + concentration.scale.y / 2;

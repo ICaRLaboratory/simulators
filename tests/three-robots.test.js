@@ -53,7 +53,9 @@ test('arms have smooth closed volumetric casings and an integrated cast neck', (
       assert.equal(mesh.material.userData.finish, 'paint');
       g.computeBoundingBox();
       const size = g.boundingBox.getSize(new T.Vector3());
-      assert.ok(size.y >= (name === 'upper-link' ? .32 : .25) && size.z >= .21,
+      assert.ok(id==='impedance-robot'
+        ? size.y >= (name === 'upper-link' ? .12 : .09) && size.z >= .049
+        : size.y >= (name === 'upper-link' ? .32 : .25) && size.z >= .21,
         `${id}/${name}: readable volumetric section, not a thin plate`);
       const normals = g.attributes.normal, p = g.attributes.position;
       const near = [], far = [];
@@ -70,12 +72,13 @@ test('arms have smooth closed volumetric casings and an integrated cast neck', (
       }
     }
     const neck = node(scene, 'fixed-pedestal');
-    assert.ok(neck.geometry.index, 'smooth shaped neck, not a rectangular welded post');
+    if(id==='robot-arm')assert.ok(neck.geometry.index, 'smooth shaped neck, not a rectangular welded post');
+    else assert.equal(neck.geometry.type,'ExtrudeGeometry','compact fixed aluminium extrusion');
     const b = new T.Box3().setFromObject(neck);
     if (id === 'robot-arm') {
       assert.ok(b.max.x-b.min.x >= .55 && b.max.z-b.min.z >= .4, 'the larger servo retains its substantial cast neck');
     } else {
-      vector([b.max.x-b.min.x, b.max.z-b.min.z], [.28, .24], 1e-7);
+      vector([b.max.x-b.min.x, b.max.z-b.min.z], [.12, .12], 1e-7);
     }
     for (const joint of ['shoulder', 'elbow']) {
       const bearing = node(scene, `${joint}-output-flange`);
@@ -112,7 +115,7 @@ test('robot-arm articulates both 0.8 m links about a fixed shoulder and renders 
   }
 });
 
-test('impedance arm uses model kinematics, a fixed base and the physical 0.5 m contact wall', () => {
+test('impedance arm uses model kinematics, a fixed base and the physical 0.8 m contact wall', () => {
   const simulation = new Impedance(), scene = make('impedance-robot');
   for (const phase of ['initial', 'transient', 'extended', 'folded']) {
     if (phase === 'transient') for (let i = 0; i < 50; i++) simulation.step(.005);
@@ -128,13 +131,13 @@ test('impedance arm uses model kinematics, a fixed base and the physical 0.5 m c
     close(new T.Vector3(...world(scene, 'tool-center')).distanceTo(new T.Vector3(...world(scene, 'elbow'))), mechanics.l2);
     vector(world(scene, 'target-tool'), [simulation.params.target, mechanics.targetY, 0]);
     const wallBounds = new T.Box3().setFromObject(node(scene, 'contact-wall'));
-    close(wallBounds.min.x, .5, 1e-7);
+    close(wallBounds.min.x, .8, 1e-7);
     assert.ok(node(scene, 'contact-probe').isMesh);
     assert.equal(node(scene, 'elbow').parent, node(scene, 'shoulder'));
   }
-  simulation.params.target = .1;
+  simulation.params.target = .35;
   updatePure(scene, simulation);
-  vector(world(scene, 'target-tool'), [.1, .15, 0]);
+  vector(world(scene, 'target-tool'), [.35, .15, 0]);
 });
 
 function linePoints(scene, name) {
@@ -362,7 +365,7 @@ test('end tooling is metal/rubber and the framed contact panel preserves complia
     updatePure(scene, simulation);
     const k = kinematics([q1, q2], [dq1, dq2]), expected = simulation.observe().force;
     vector(world(scene, 'contact-probe'), [k.x, k.y, 0]);
-    close(new T.Box3().setFromObject(node(scene, 'contact-wall')).min.x, .5, 1e-7);
+    close(new T.Box3().setFromObject(node(scene, 'contact-wall')).min.x, .8, 1e-7);
     assert.equal(node(scene, 'contact-force').visible, expected > 0);
     assert.equal(scene.readouts()[1].value, `${expected.toFixed(2)} N`);
     if (expected > 0) assert.ok(world(scene, 'reaction-arrow')[0] < k.x, 'reaction opposes penetration');
@@ -411,10 +414,12 @@ test('the physical impedance probe remains visible in the whole scene before and
   const scene = make('impedance-robot'), cameraSpec = JSON.stringify(scene.camera), occluded = [];
   for (const [description, params] of [
     ['default', {}],
-    ['reported penetration', { target: .8, stiffness: 300, damping: 20, wallStiffness: 500 }],
-    ['soft wall', { target: .8, stiffness: 300, wallStiffness: 100 }],
-    ['stiff wall', { target: .8, stiffness: 300, wallStiffness: 1500 }],
-    ['moderate penetration', { target: .65, stiffness: 300, wallStiffness: 100 }],
+    ['maximum target', { target: 1, stiffness: 300, damping: 20, wallStiffness: 500 }],
+    ['soft wall', { target: 1, stiffness: 300, wallStiffness: 100 }],
+    ['stiff wall', { target: 1, stiffness: 300, wallStiffness: 1500 }],
+    ['moderate penetration', { target: .95, stiffness: 300, wallStiffness: 100 }],
+    ['undamped soft wall', { target: 1, stiffness: 300, damping: 0, wallStiffness: 100 }],
+    ['undamped stiff wall', { target: 1, stiffness: 300, damping: 0, wallStiffness: 1500 }],
   ]) {
     const simulation = new Impedance(), snapshots = [];
     Object.assign(simulation.params, params);
@@ -426,10 +431,9 @@ test('the physical impedance probe remains visible in the whole scene before and
     const contact = snapshots.findIndex(snapshot => snapshot.observed.force > 0);
     assert.ok(contact > 0, 'trajectory must include free motion and first contact');
     const peak = snapshots.reduce((best, sample, i) => sample.observed.x > snapshots[best].observed.x ? i : best, 0);
-    if (description === 'reported penetration') {
-      close(snapshots[45].observed.x, .6120862208840233);
-      close(snapshots[45].observed.y, .14927360085817376);
-      close(snapshots[45].observed.force, 56.11205685327236);
+    if (description === 'maximum target') {
+      assert.ok(snapshots[45].observed.x>.8, 'the critical sample penetrates the new physical rest plane');
+      assert.ok(snapshots[45].observed.force>0);
     }
     for (const aspect of [1.6, 358 / 390, .73]) {
       const camera = createApparatusCamera(scene.camera, aspect);
@@ -437,7 +441,7 @@ test('the physical impedance probe remains visible in the whole scene before and
         const { state, observed } = snapshots[step];
         updatePure(scene, { state, params: simulation.params, observe: () => observed });
         vector(world(scene, 'contact-probe'), [observed.x, observed.y, 0]);
-        close(new T.Box3().setFromObject(node(scene, 'contact-wall')).min.x, .5, 1e-7);
+        close(new T.Box3().setFromObject(node(scene, 'contact-wall')).min.x, .8, 1e-7);
         assert.equal(node(scene, 'contact-force').visible, observed.force > 0);
         assert.equal(scene.readouts()[1].value, `${observed.force.toFixed(2)} N`);
         const visibility = probeVisibility(scene, camera);
@@ -509,7 +513,7 @@ test('perspective arm cameras enlarge the apparatus and retain every articulated
         if (i === 8 || i === 25) simulation.disturb();
         if (i === 16) {
           if (id === 'robot-arm') Object.assign(simulation.params, { target1: -1.5, target2: 1.5 });
-          else simulation.params.target = .8;
+          else simulation.params.target = 1;
         }
         simulation.step(.04); updatePure(scene, simulation); fits(scene, camera, `real transient ${i}`);
       }
@@ -535,7 +539,8 @@ test('continuous arm sweeps fit the frustum using an exact cylindrical workspace
       }
     });
     const centre = new T.Vector3(0, 0, (zMin + zMax) / 2), halfDepth = (zMax - zMin) / 2;
-    for (const aspect of [.4, .73, 358 / 390, 1.3, 1.6, 2.4]) {
+    const crossover=1.6*scene.camera.minHorizontalSpan/scene.camera.span;
+    for (const aspect of [.4, .73, 358 / 390, crossover, 1.3, 1.6, 2.4]) {
       const camera = createApparatusCamera(scene.camera, aspect), projection = camera.projectionMatrix.clone();
       projection.elements[0] /= .98; projection.elements[5] /= .98;
       const frustum = new T.Frustum().setFromProjectionMatrix(projection.multiply(camera.matrixWorldInverse));

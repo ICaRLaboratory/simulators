@@ -133,7 +133,7 @@
     "file": "heat-exchanger-ko.png",
     "source": "heat-exchanger/?lang=ko",
     "renderer": "three",
-    "sha256": "34009be3c53afeecd3b2bb31e43b5a9df0cc89713a88fd0ef73c3ef212fb041d"
+    "sha256": "44c54781a44f010e7943b649c29c15d6ed3eaad879ce7fd0b9dcd1984580fe6f"
   },
   {
     "id": "heat-exchanger",
@@ -141,7 +141,7 @@
     "file": "heat-exchanger-en.png",
     "source": "heat-exchanger/?lang=en",
     "renderer": "three",
-    "sha256": "4325bdf267072272e46a6e68c3ca17250a2410ed8916c0fb2fbee48867091984"
+    "sha256": "0575fb5eb9e76a96dc2716257dde89914772285f5f560d0a78bb312f1649d7b8"
   },
   {
     "id": "drone",
@@ -165,7 +165,7 @@
     "file": "impedance-robot-ko.png",
     "source": "impedance-robot/?lang=ko",
     "renderer": "three",
-    "sha256": "5a5abb460e30c1ac95d39cdbbeece0268be15dbcaf9234ae754e8caa30d19ee2"
+    "sha256": "4a52d568f08e269259c8fd9dfcc55fff0b41e67aa24540cf38d6e33711148ee1"
   },
   {
     "id": "impedance-robot",
@@ -173,7 +173,7 @@
     "file": "impedance-robot-en.png",
     "source": "impedance-robot/?lang=en",
     "renderer": "three",
-    "sha256": "1e2b6d0ba53520e2ec5dea765179df4fbc4395078310edc4a68c2e052f1fcbf8"
+    "sha256": "25cb438fa8b29e4a6f082e46a6b27c78cdfbfe10d5f3163e62c38f17a9a43421"
   },
   {
     "id": "path-tracking",
@@ -213,7 +213,7 @@
     "file": "cstr-ko.png",
     "source": "cstr/?lang=ko",
     "renderer": "three",
-    "sha256": "ffbecdd7d793a972804366df8132ab46e36b2f8818b5fe9de9002defb323f3d4"
+    "sha256": "ba8c3e8e0d4e545556e0e9d65e073b665308b4e15f52def330a5af558b624703"
   },
   {
     "id": "cstr",
@@ -221,7 +221,7 @@
     "file": "cstr-en.png",
     "source": "cstr/?lang=en",
     "renderer": "three",
-    "sha256": "9dc3813421b24fd9170da006e19ae2f24219d39b85007c3425de5c407a4135af"
+    "sha256": "3f4d67b897bcf3805f8ddd36004d2d02de96b578115a2f84933bbf9ec2b78899"
   },
   {
     "id": "rocket-landing",

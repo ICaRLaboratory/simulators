@@ -15,8 +15,9 @@ async function open(page){
  await page.goto(base+'rocket-landing/?lang=en');await expect(page.locator('#start-pause')).toBeEnabled();
 }
 test('rocket completes a real soft landing, localizes the result, and resets deterministically',async({page})=>{
- // Two complete genuine-GPU landings; keep every simulated frame and assertion.
- test.setTimeout(120000);
+ // Two complete GPU landings take about 113 s on baseline SwiftShader.
+ // Budget the whole workload; retain every frame and normal action/assertion deadlines.
+ test.setTimeout(180000);
  await open(page);await expect(page.locator('.model-notes a')).toHaveAttribute('href','https://www.mathworks.com/help/mpc/ug/landing-rocket-with-mpc-example.html');
  await expect(page.locator('.disturbance-controls input[type=range]')).toHaveCount(1);
  await page.locator('#start-pause').click();await page.evaluate(()=>window.advanceRocket(3000));

@@ -203,35 +203,71 @@ function servoArm() {
 
 function impedanceArm() {
   const root = group('impedance-robot');
-  // A compact column, not the larger arm's broad casting. Keep the floor below
-  // the complete 1.05 m workspace and leave every moving/link/drive layer intact.
-  const arm = armAssembly(root, mechanics.l1, mechanics.l2, mechanics.l1 + mechanics.l2, {
-    plinth: [.44, .10, .40], insert: [.38, .045, .34],
-    column: { rootRadius: .14, tipRadius: .13, depth: .24, rootHeight: .25, lengthOffset: .35 },
-    cover: { size: [.10, .17, .020], height: .48, z: -.825 },
-    bolts: { xs: [-.16, .16], zs: [-1.06, -.82], height: .148, radius: .011 },
-  });
-  // Fixed axial sensor and stem bridge the offset wrist to the physical Z=0 TCP.
-  faceTurned(arm.tool, 'force-sensor', [[0, -.18], [.047, -.18], [.053, -.165],
-    [.053, -.11], [.041, -.095], [0, -.095]], [0, 0, 0], arm.finishes.alloy);
-  faceDisc(arm.tool, 'sensor-isolation-band', .0535, .012, [0, 0, -.135], arm.finishes.dark);
-  faceDisc(arm.tool, 'probe-stem', .025, .075, [0, 0, -.075], arm.finishes.steel);
-  sphere(arm.tool, 'contact-probe', .062, [0, 0, 0], finish('steel', { color: 0x497b76 }));
-  // The leading face, not the wall centre, is the model's x = 0.5 m plane.
-  // Translucency exposes compliant penetration; visual geometry must not clamp it.
-  box(root, 'contact-wall', [.12, 2.12, .42], [.56, -.06, -.115], finish('glass', { opacity: .14 }));
-  // One narrow rear spine and small rear shoes leave the task/probe silhouette clear.
-  housing(root, 'wall-upright-front', [.05, 2.28, .065], [.73, -.14, -.43], 'aluminium');
-  housing(root, 'wall-mounting-foot', [.34, .06, .46], [.71, -1.29, -.43], 'dark-metal');
-  for (const y of [-1.14, 1.01]) {
-    housing(root, `wall-cross-bracket-${y}`, [.20, .035, .15], [.66, y, -.385], 'aluminium');
+  // Dedicated compact 2R assembly. All revolute frames remain in model XY;
+  // only the manufactured casings step axially, with real bored shaft bridges.
+  const { l1, l2, wallX, targetY } = mechanics, floorY = -l1 - l2 - .27;
+  const steel = finish('steel'), alloy = finish('aluminium'), dark = finish('dark-metal');
+  const paint = finish('paint', { color: 0xdce3df, roughness: .42 });
+  const teal = finish('paint', { color: C.teal, roughness: .42 });
+  floor(root, 3, 1.8, floorY).userData.environment = true;
+  const base = addGroup(root, 'arm-base');
+  housing(base, 'mounting-plinth', [.32, .08, .28], [0, floorY + .04, -.4], dark);
+  housing(base, 'plinth-insert', [.28, .035, .24], [0, floorY + .0975, -.4], steel);
+  // A slim square extrusion carries the joint, not an oversized cast pedestal.
+  housing(base, 'fixed-pedestal', [.12, 1.17, .12], [0, -.655, -.4], alloy);
+  housing(base, 'pedestal-service-cover', [.066, .15, .012], [0, -1.04, -.338], dark);
+  for (const x of [-.11, .11]) for (const z of [-.49, -.31]) {
+    fasteners(base, `mount-bolt-${x}-${z}`, 0, [x, floorY + .117, z], 1, .009);
   }
-  line(root, 'wall-contact-plane', [[.5, -1.12, .102], [.5, 1, .102]], C.blue);
-  for (let i = 0; i <= 12; i++) {
-    const y = -.95 + i * .15;
-    line(root, `wall-scale-${i}`, [[.5, y, .107], [.5 + (i % 2 ? .025 : .045), y, .107]], C.metal);
+  const shoulder = addGroup(root, 'shoulder');
+  const upper = sculptedLink(shoulder, 'upper-link', l1,
+    { rootRadius: .07, tipRadius: .047, depth: .07, material: paint });
+  upper.position.z = -.24;
+  // Compact rounded drive cases; an open axial bore is independent of the shaft.
+  function drive(stator, rotor, name, radius, back, front, output) {
+    const bore = radius * .3;
+    faceTurned(stator, `${name}-gearcase`, [[bore, back], [radius * .84, back],
+      [radius, back + .015], [radius, front - .012], [radius * .88, front],
+      [bore, front], [bore, back]], [0, 0, 0], paint);
+    faceDisc(stator, `${name}-servo-can`, radius * .72, .035, [0, 0, back - .012], dark);
+    faceFlange(stator, `${name}-output-flange`, radius * .85, .012,
+      [0, 0, front + .006], steel, bore);
+    faceDisc(rotor, `${name}-output-shaft`, bore * .96, output - front + .045,
+      [0, 0, (front - .03 + output + .015) / 2], alloy);
+    faceDisc(rotor, `${name}-rotor-cover`, radius * .62, .012, [0, 0, output], dark);
+    faceDisc(rotor, `${name}-index-cap`, radius * .28, .006, [0, 0, output + .009], teal);
   }
-  const target = armTarget(root, 'target-tool', [.65, mechanics.targetY, 0], .066);
+  drive(base, shoulder, 'shoulder', .10, -.4, -.30, -.198);
+  const elbowDrive = addGroup(shoulder, 'elbow-drive'); elbowDrive.position.x = l1;
+  const elbow = addGroup(shoulder, 'elbow'); elbow.position.x = l1;
+  const forearm = addGroup(elbow, 'forearm-hardware'); forearm.position.z = -.08;
+  sculptedLink(forearm, 'forearm-link', l2,
+    { rootRadius: .052, tipRadius: .032, depth: .05, material: paint });
+  drive(elbowDrive, elbow, 'elbow', .075, -.27, -.14, -.049);
+  const tool = addGroup(elbow, 'tool-center'); tool.position.x = l2;
+  const wrist = addGroup(tool, 'wrist-hardware'); wrist.position.z = -.08;
+  // Fixed tool flange: no animated or world-oriented wrist joint.
+  faceDisc(wrist, 'wrist-bearing', .032, .05, [0, 0, 0], dark);
+  faceFlange(wrist, 'wrist-output-flange', .03, .01, [0, 0, .026], steel, .011);
+  faceTurned(tool, 'force-sensor', [[0, -.065], [.024, -.065], [.027, -.058],
+    [.027, -.037], [.020, -.03], [0, -.03]], [0, 0, 0], alloy);
+  faceDisc(tool, 'sensor-isolation-band', .0275, .005, [0, 0, -.047], dark);
+  faceDisc(tool, 'probe-stem', .011, .044, [0, 0, -.02], steel);
+  sphere(tool, 'contact-probe', .024, [0, 0, 0], finish('steel', { color: 0x497b76 }));
+  // The translucent block starts at the actual unilateral spring rest plane.
+  // It illustrates compliance, not extra wall dynamics or link collision physics.
+  box(root, 'contact-wall', [.14, .70, .22], [wallX + .07, targetY, -.06], finish('glass', { opacity: .14 }));
+  housing(root, 'wall-upright-front', [.055, 1.82, .07], [wallX + .33, -.38, -.4], alloy);
+  housing(root, 'wall-mounting-foot', [.30, .06, .28], [wallX + .26, -1.29, -.4], dark);
+  for (const y of [-.18, .48]) {
+    housing(root, `wall-cross-bracket-${y}`, [.36, .032, .29], [wallX + .19, y, -.31], alloy);
+  }
+  line(root, 'wall-contact-plane', [[wallX, -1.08, .055], [wallX, 1, .055]], C.blue, true);
+  for (let i = 0; i <= 6; i++) {
+    const y = -.15 + i * .1;
+    line(root, `wall-scale-${i}`, [[wallX, y, .058], [wallX + (i % 2 ? .018 : .03), y, .058]], C.metal);
+  }
+  const target = armTarget(root, 'target-tool', [wallX + .15, targetY, 0], .043);
   const reference = streamLine(root, 'target-line', 2, C.amber, true);
   const force = addGroup(root, 'contact-force');
   const forceRod = rod(force, 'reaction-shaft', [0, 0, 0], [-.2, 0, 0], .008, C.teal);
@@ -239,26 +275,27 @@ function impedanceArm() {
   forceHead.rotation.z = Math.PI / 2;
   const contactAnchor = addGroup(root, 'contact-readout-anchor');
   const readings = [
-    { id: 'endpoint-x', anchor: arm.tool, label: { ko: '끝점 x', en: 'Endpoint x' }, value: '', side: 'left' },
+    { id: 'endpoint-x', anchor: tool, label: { ko: '끝점 x', en: 'Endpoint x' }, value: '', side: 'left' },
     { id: 'contact-force', anchor: contactAnchor, label: { ko: '접촉 힘', en: 'Contact force' }, value: '', side: 'right' },
   ];
   return {
     root,
     readouts: () => readings,
-    camera: { position: [1.4, 2.8, 10], target: [.14, -.05, -.25], span: 4.4, minHorizontalSpan: 2.85 },
+    camera: { position: [1.4, 2.8, 10], target: [.08, -.10, -.18], span: 4.1, minHorizontalSpan: 2.75 },
     legend: {
-      ko: '청록: 실제 끝점 · 주황: (x 목표, 0.15 m) · 접촉면 x = 0.5 m',
-      en: 'Teal: actual endpoint · amber: (target x, 0.15 m) · contact plane x = 0.5 m',
+      ko: `청록: 실제 끝점 · 주황: (x 목표, 0.15 m) · 접촉면 x = ${wallX} m`,
+      en: `Teal: actual endpoint · amber: (target x, 0.15 m) · contact plane x = ${wallX} m`,
     },
     update(state, params) {
-      arm.pose(state.q1, state.q2);
+      shoulder.rotation.z = state.q1;
+      elbow.rotation.z = state.q2;
       const k = kinematics([state.q1, state.q2], [state.dq1, state.dq2]);
       target.position.set(params.target, mechanics.targetY, 0);
       writeLine(reference, [[params.target, -.98, 0], [params.target, 1, 0]]);
       const reaction = contactForce(k.x, k.vx, params.wallStiffness);
       readings[0].value = `${k.x.toFixed(3)} m`;
       readings[1].value = `${reaction.toFixed(2)} N`;
-      contactAnchor.position.set(.5, k.y, .22);
+      contactAnchor.position.set(wallX, k.y, .10);
       force.visible = reaction > 0;
       force.position.set(k.x, k.y - .12, .12);
       const length = Math.min(.4, .07 + reaction * .006);

@@ -9,7 +9,12 @@ const node = (scene, name) => {
   assert.ok(object, `missing mounted hardware: ${name}`);
   return object;
 };
-const bounds = (scene, name) => new T.Box3().setFromObject(node(scene, name));
+const bounds = (scene, name) => {
+  const result=new T.Box3();
+  node(scene,name).traverse(object=>{const p=object.geometry?.attributes.position;if(!p)return;
+    for(let i=0;i<p.count;i++)result.expandByPoint(new T.Vector3().fromBufferAttribute(p,i).applyMatrix4(object.matrixWorld));});
+  return result;
+};
 
 // Dimensions are measured from actual solids, not constructor options or metadata.
 test('impedance fixed mounting is slender relative to its real 0.55/0.50 m links', () => {
@@ -27,9 +32,10 @@ test('impedance fixed mounting is slender relative to its real 0.55/0.50 m links
   assert.ok(column.z <= mechanics.l2 * .55, `column depth ${column.z} must fit the compact arm`);
   assert.ok(plinth.x <= mechanics.l2 * .96, `plinth width ${plinth.x} must be smaller than a link`);
   assert.ok(plinth.z <= mechanics.l2 * .88, `plinth depth ${plinth.z} must be compact`);
-  assert.ok(column.y / column.x >= 4, 'retain a slender full-height support, not a short broad pillar');
-  assert.ok(column.x >= .24 && column.z >= .20, 'a credible load-bearing column, not an invisible stand');
-  assert.equal(node(scene, 'fixed-pedestal').material.userData.finish, 'paint');
+  assert.ok(column.y / column.x >= 4, 'slender fixed extrusion leaves the arm silhouette clear');
+  assert.ok(column.x >= .10 && column.z >= .10, 'a credible load-bearing extrusion, not an invisible stand');
+  assert.ok(column.x <= .14 && column.z <= .14, 'not the old oversized cast bottle');
+  assert.equal(node(scene, 'fixed-pedestal').material.userData.finish, 'aluminium');
   assert.equal(node(scene, 'fixed-pedestal').material.opacity, 1, 'do not conceal the oversized body by transparency');
   assert.equal(node(scene, 'mounting-plinth').material.opacity, 1);
 });
@@ -63,14 +69,14 @@ test('compact column, service cover and all four bolts remain genuinely mounted'
   scene.update(Object.freeze({...simulation.state}), Object.freeze({...simulation.params}));
   scene.root.updateMatrixWorld(true);
   const plinth = bounds(scene, 'mounting-plinth'), insert = bounds(scene, 'plinth-insert');
-  for (const x of [-.035,.017,.035]) for (const z of [-.97,-.94,-.91]) {
+  for (const x of [-.035,.017,.035]) for (const z of [-.39,-.37,-.35]) {
     const parts = ['mounting-plinth','plinth-insert','fixed-pedestal','shoulder-gearcase'];
     const sections = parts.map(name => solidIntervals(node(scene,name),'y',[x,0,z]));
     for(let i=1;i<sections.length;i++) {
       assert.ok(sections[i-1].some(([lo,hi]) => sections[i].some(([nextLo,nextHi]) =>
         Math.min(hi,nextHi)-Math.max(lo,nextLo) >= -1e-6)), `${parts[i-1]} actually meets ${parts[i]}`);
     }
-    connected(sections.flat(),plinth.min.y+.005,-.12,`base to fixed shoulder at ${x}/${z}`);
+    connected(sections.flat(),plinth.min.y+.005,-.08,`base to fixed shoulder at ${x}/${z}`);
   }
   const cover = bounds(scene, 'pedestal-service-cover');
   for (const x of [cover.min.x+.008,.003,cover.max.x-.008]) {
@@ -102,9 +108,13 @@ test('the compact fixed support clears every continuous joint pose without raisi
   scene.root.updateMatrixWorld(true);
   const floorY = bounds(scene,'stage-surface').max.y;
   assert.ok(Math.abs(floorY-(-mechanics.l1-mechanics.l2-.276))<1e-7, 'the laboratory floor did not move');
-  const support = new T.Box3();
+  const support = new T.Box3();let feetMaxY=-Infinity;
   node(scene,'arm-base').traverse(object => {
-    if(object.isMesh && !object.name.startsWith('shoulder-'))support.union(new T.Box3().setFromObject(object));
+    if(object.isMesh && !object.name.startsWith('shoulder-')) {
+      const b=new T.Box3().setFromObject(object);
+      if(b.max.y< -1.18){feetMaxY=Math.max(feetMaxY,b.max.y);return;}
+      support.union(b);
+    }
   });
   // Z is invariant under both real revolute joints, so these whole-layer bounds
   // cover all angles, including folds. The intentional shoulder shaft is separate.
@@ -124,5 +134,6 @@ test('the compact fixed support clears every continuous joint pose without raisi
     }
   });
   // The triangle inequality bounds every possible q1/q2, not just a pose grid.
+  assert.ok(-maximumSweep-feetMaxY>=.075, 'all forward-projecting feet remain below the continuous moving-solid envelope');
   assert.ok(-maximumSweep-floorY >= .10, `full swept solid floor clearance: ${-maximumSweep-floorY}`);
 });

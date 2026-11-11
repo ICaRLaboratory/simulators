@@ -47,9 +47,9 @@ test('closed loop instantaneous acceleration matches independent contact and gra
  for(const q of [[1,-1.5],[1.8,-2.6]]){
   const s=new Simulation(),v=[.2,-.3];Object.assign(s.state,{q1:q[0],q2:q[1],dq1:v[0],dq2:v[1]});
   const k=kinematics(q,v),clip=x=>Math.max(-60,Math.min(60,x));
-  const F=[clip(100*(.65-k.x)-20*k.vx),clip(100*(.15-k.y)-20*k.vy)];
+  const F=[clip(100*(.95-k.x)-20*k.vx),clip(100*(.15-k.y)-20*k.vy)];
   const G=grad(potential,q),tau=transposeForce(k.J,F).map((t,i)=>t+G[i]);
-  const contact=k.x>.5?Math.max(0,500*(k.x-.5)+12*k.vx):0;
+  const contact=k.x>.8?Math.max(0,500*(k.x-.8)+12*k.vx):0;
   const expected=reference(q,v,tau,[-contact,0]),dt=1e-8;s.step(dt);
   near((s.state.dq1-v[0])/dt,expected[0],.001);near((s.state.dq2-v[1])/dt,expected[1],.001);
  }
@@ -68,8 +68,8 @@ test('all 16 slider corners stay reachable and finite through disturbance and se
 test('drawing projects the exact physical links with the same scale on both axes',()=>{
  const s=new Simulation();for(const w of [320,800])for(const lang of ['ko','en'])for(const steps of [0,50,200]){
   for(let i=0;i<steps;i++)s.step(.005);const state=Object.freeze({...s.state}),params=Object.freeze({...s.params}),paths=[];let path=[];
-  const ctx=new Proxy({}, {get:(o,k)=>k in o?o[k]:(...args)=>{if(k==='beginPath')path=[];if(k==='moveTo'||k==='lineTo')path.push(args);if(k==='stroke'&&o.lineWidth===9)paths.push(path);},set:(o,k,v)=>(o[k]=v,true)});
-  draw(ctx,state,params,w,300,lang);assert.equal(paths.length,1);const [base,elbow,tip]=paths[0],scale=Math.min((w-32)/2.3,196/2.3);
+  const ctx=new Proxy({}, {get:(o,k)=>k in o?o[k]:(...args)=>{if(k==='beginPath')path=[];if(k==='moveTo'||k==='lineTo')path.push(args);if(k==='stroke'&&path.length===3)paths.push(path);},set:(o,k,v)=>(o[k]=v,true)});
+  draw(ctx,state,params,w,300,lang);assert.equal(paths.length,1);const [base,elbow,tip]=paths[0],scale=Math.min((w-32)/2.5,196/2.6);
   near(Math.hypot(elbow[0]-base[0],elbow[1]-base[1]),.55*scale);near(Math.hypot(tip[0]-elbow[0],tip[1]-elbow[1]),.5*scale);
   near((tip[0]-base[0])/scale,s.state.x);near((base[1]-tip[1])/scale,s.state.y);
  }

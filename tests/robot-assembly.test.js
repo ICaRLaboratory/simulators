@@ -33,8 +33,8 @@ test('reset: the actual moving upper casing is outside the fixed shoulder gearca
     const scene = createRobotScene(id), simulation = new Model();
     scene.update(Object.freeze({...simulation.state}), Object.freeze({...simulation.params}));
     scene.root.updateMatrixWorld(true);
-    // Audit witness: shoulder-local (0.08,0.08,0), rotated with actual reset q1.
-    const point = new T.Vector3(.08, .08, 0).applyMatrix4(node(scene, 'shoulder').matrixWorld);
+    // The smaller EXP11 uses a witness inside its new casing; servo witness unchanged.
+    const point = new T.Vector3(...(id==='impedance-robot'?[.04,.04,0]:[.08,.08,0])).applyMatrix4(node(scene, 'shoulder').matrixWorld);
     const fixed = solidIntervals(node(scene, 'shoulder-gearcase'), point.x, point.y);
     const moving = solidIntervals(node(scene, 'upper-link'), point.x, point.y);
     assert.ok(fixed.length && moving.length, `${id}: witness must pass through both real XY solids`);
@@ -143,7 +143,7 @@ test('wall support stays behind the contact task plane with no foreground foot o
   assert.ok(parts.length>=3, 'a supported panel, not a floating translucent plane');
   for(const part of parts) {
     const b=new T.Box3().setFromObject(part);
-    assert.ok(b.min.x>=.5-1e-7, `${part.name}: support is behind the physical x=.5 contact face`);
+    assert.ok(b.min.x>=.8-1e-7, `${part.name}: support is behind the physical x=.8 contact face`);
     assert.ok(b.max.z<=-.10, `${part.name}: no opaque support in front of the probe plane`);
     assert.equal(Boolean(part.userData.environment),false,'structural support remains in camera-fit tests');
   }
@@ -158,7 +158,7 @@ test('the physical TCP is mounted to its wrist through actual continuous solids,
       const tool = node(scene,'tool-center'), p = tool.getWorldPosition(new T.Vector3());
       const intervals = [];
       node(scene,'elbow').traverse(mesh => {if(mesh.isMesh) intervals.push(...solidIntervals(mesh,p.x,p.y));});
-      connectedInterval(intervals,-.24,0,`${id}: wrist-to-TCP at ${q1}/${q2}`);
+      connectedInterval(intervals,id==='impedance-robot'?-.08:-.24,0,`${id}: wrist-to-TCP at ${q1}/${q2}`);
       if(id==='impedance-robot') {
         const probe = node(scene,'contact-probe');
         assert.ok(probe.getWorldPosition(new T.Vector3()).distanceTo(p)<1e-8);
