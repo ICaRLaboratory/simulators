@@ -431,6 +431,7 @@ function quadcopter() {
   housing(airframe, 'flight-controller-cover', [.24, .012, .27], [0, .052, 0], carbon);
   housing(airframe, 'battery-pack', [.13, .045, .18], [0, .087, 0], finish('paint',{color:0xb0b7b2}));
   box(airframe, 'battery-strap', [.032, .051, .185], [0, .087, 0], finish('rubber'));
+  const rotors = [];
   for (const [side, x] of [['left', -.25], ['right', .25]]) {
     for (const [depth, z] of [['front', .19], ['rear', -.19]]) {
       const key = `${side}-${depth}`;
@@ -447,11 +448,15 @@ function quadcopter() {
       }
       cable(airframe,`motor-lead-${key}`,[[x,.008,z],[x*.80,.026,z*.8],[x*.45,.031,z*.45],[x*.28,.012,z*.3]],.004);
       cylinder(airframe, `motor-cap-${key}`, .031, .016, [x, .076, z], dark);
-      cylinder(airframe, `rotor-disc-${key}`, .126, .006, [x, .09, z], finish('glass', { opacity:.10 }));
+      const disc = cylinder(airframe, `rotor-disc-${key}`, .126, .006, [x, .09, z],
+        finish('glass', { color: 0x859491, opacity: .10, roughness: .65 }));
       const rim = ring(airframe, `rotor-swept-rim-${key}`, .126, .003, [x, .09, z], finish('glass',{opacity:.24}));
+      disc.castShadow = rim.castShadow = false;
       rim.rotation.x = Math.PI / 2;
-      const blade=plate(airframe, `static-blade-${key}`, [[-.12,-.008],[-.105,-.018],[-.028,-.012],[.018,-.007],[.12,.008],[.105,.018],[.028,.012],[-.018,.007]], .004, carbon);
+      const blade=plate(airframe, `rotor-blade-${key}`, [[-.12,-.008],[-.105,-.018],[-.028,-.012],[.018,-.007],[.12,.008],[.105,.018],[.028,.012],[-.018,.007]], .004, carbon);
       blade.position.set(x,.095,z);blade.rotation.y=depth==='front'?.25:-.25;
+      rotors.push({ side, blade, disc, rim, rest: blade.rotation.y,
+        direction: (side === 'left') === (depth === 'front') ? 1 : -1 });
       cylinder(airframe, `rotor-hub-${key}`, .014, .02, [x, .102, z], aluminium);
     }
     for (const z of [-.10, .10])
@@ -485,19 +490,35 @@ function quadcopter() {
   detail.traverse(part => { part.castShadow = false; part.receiveShadow = false; });
   const detailLeft = enlarged.getObjectByName('detail-left-pair-thrust');
   const detailRight = enlarged.getObjectByName('detail-right-pair-thrust');
+  for (const rotor of rotors) {
+    rotor.detailBlade = enlarged.getObjectByName(`detail-${rotor.blade.name}`);
+    rotor.detailDisc = enlarged.getObjectByName(`detail-${rotor.disc.name}`);
+    rotor.detailRim = enlarged.getObjectByName(`detail-${rotor.rim.name}`);
+  }
   const readouts=[annotation('altitude',pose,'비행 · 고도','Flight · altitude','left'),
     annotation('roll',enlarged.getObjectByName('detail-avionics-body'),'자세 확대 3배 · 롤','Detail 3x · roll','right')];
   return {
     root, readouts: () => readouts,
     camera: { position: [9.5, 11.8, 18], target: [5.5, 5.8, 0], span: 23.5 },
     legend: {
-      ko: '왼쪽: x-z 비행 · 수평 추적 · 기체 4배. 오른쪽: 동일 기체의 자세 확대 3배(왼쪽 기체 기준). 청록: 실제 좌/우 로터 쌍 합 추력 · 황색: 목표 · 로터는 고정 도식입니다.',
-      en: 'Left: x-z flight, horizontal follow; airframe 4x. Right: attitude detail 3x the overview airframe (same craft). Teal: actual rotor-pair thrust; amber: targets. Static rotors.',
+      ko: '왼쪽: x-z 비행 · 수평 추적 · 기체 4배. 오른쪽: 동일 기체의 자세 확대 3배(왼쪽 기체 기준). 청록: 실제 좌/우 로터 쌍 합 추력 · 황색: 목표. 로터는 시간 기반 예시 회전(RPM 계산 아님), 흐림은 추력의 정성적 표시. 추력 0이면 날개 고정.',
+      en: 'Left: x-z flight, horizontal follow; airframe 4x. Right: attitude detail 3x the overview airframe (same craft). Teal: actual rotor-pair thrust; amber: targets. Illustrative time-based rotor spin, not calculated RPM; blur indicates thrust qualitatively. Zero thrust: parked blades.',
     },
     update(state, params) {
       readouts[0].value=`${state.z.toFixed(2)} m`;readouts[1].value=`${state.roll.toFixed(2)} rad`;
       pose.position.set(state.x, state.z, 0);
       pose.rotation.z = enlarged.rotation.z = state.roll;
+      // Slow display phase only, not motor RPM or body roll rate. No visual integration.
+      const phase = (state.t * .75 % 1) * Math.PI * 2;
+      for (const rotor of rotors) {
+        const active = state[rotor.side] > 0, level = clamp(state[rotor.side] / 10, 0, 1);
+        // Zero thrust parks at the fixed rest pose; this is not a motor spin-down model.
+        rotor.blade.rotation.y = rotor.detailBlade.rotation.y = rotor.rest + (active ? rotor.direction * phase : 0);
+        rotor.disc.visible = rotor.detailDisc.visible = rotor.rim.visible = rotor.detailRim.visible = active;
+        // The clone shares these materials. Pair thrust affects blur, never phase or inferred RPM.
+        rotor.disc.material.opacity = active ? .06 + .10 * level : 0;
+        rotor.rim.material.opacity = active ? .10 + .12 * level : 0;
+      }
       frame.position.x = -state.x;
       altitude.position.y = params.altitude;
       roll.position.y = state.z;

@@ -149,7 +149,7 @@
     "file": "drone-ko.png",
     "source": "drone/?lang=ko",
     "renderer": "three",
-    "sha256": "3a6fc0f8c929b800be62914853194dca6852682de2f9e580bcd269682e3cca7b"
+    "sha256": "b489de1371126c141e03fe2e65af0055906d558a41afdcf82b7ee98012d52c28"
   },
   {
     "id": "drone",
@@ -157,7 +157,7 @@
     "file": "drone-en.png",
     "source": "drone/?lang=en",
     "renderer": "three",
-    "sha256": "43bdd7dcd5b5088807b90ab5d72dd8aaa5cbbba54c64513d1440e6c93bad0393"
+    "sha256": "2a6c325939963daa1eb9d90266c651bcb4e6e10e18ef701bcb2863a5ee16a3c8"
   },
   {
     "id": "impedance-robot",
@@ -165,7 +165,7 @@
     "file": "impedance-robot-ko.png",
     "source": "impedance-robot/?lang=ko",
     "renderer": "three",
-    "sha256": "0931deb90be100cbca268dad395934990edea7ea1f9577372932b5ebf5d64df6"
+    "sha256": "5a5abb460e30c1ac95d39cdbbeece0268be15dbcaf9234ae754e8caa30d19ee2"
   },
   {
     "id": "impedance-robot",
@@ -173,7 +173,7 @@
     "file": "impedance-robot-en.png",
     "source": "impedance-robot/?lang=en",
     "renderer": "three",
-    "sha256": "9dd1ee206cacb4921e425cef4218b33d23ef3c217d76465fa0be54bac5999f78"
+    "sha256": "1e2b6d0ba53520e2ec5dea765179df4fbc4395078310edc4a68c2e052f1fcbf8"
   },
   {
     "id": "path-tracking",
@@ -277,7 +277,7 @@
     "file": "research-contact-ko.png",
     "source": "https://icarlaboratory.github.io/research.html?sim=contact&lang=ko#interactive",
     "renderer": "three",
-    "sha256": "3f8870b8ddcfd8f800995e2dd10a6c2a2cb1a16cd51db142442af9f2e0a1b022"
+    "sha256": "71bf21d7f29c0dfdbbd1536770f7a59326ae5ace7d3c292cc00c6f1991deaa05"
   },
   {
     "id": "research-contact",
@@ -285,6 +285,6 @@
     "file": "research-contact-en.png",
     "source": "https://icarlaboratory.github.io/research.html?sim=contact&lang=en#interactive",
     "renderer": "three",
-    "sha256": "e79476d791804ad539f64555274b42a725676d0593f4fccc2916edd94344b7da"
+    "sha256": "a068058dc4ceb438fe08a7a444cce77dc259ac97257df0a5cbd5c08e664f9df3"
   }
 ]

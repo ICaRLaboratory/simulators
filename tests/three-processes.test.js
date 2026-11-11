@@ -271,7 +271,7 @@ test('quarter car: independent displacements drive connected spring/damper and e
   assert.equal(named(scene, 'wheel-force').visible, false);
 });
 
-test('drone: carbon plate stack and vented motor bells are static constructed hardware', async () => {
+test('drone: carbon plate stack and vented motor bells retain constructed hardware during illustrative spin', async () => {
   const { createProcessScene } = await sceneModule();
   const scene = createProcessScene('drone'), model = new Drone();
   const carbon = named(scene, 'avionics-body').material;
@@ -283,11 +283,15 @@ test('drone: carbon plate stack and vented motor bells are static constructed ha
   assert.equal(named(scene, 'motor-pod-left-front').geometry.type, 'LatheGeometry');
   assert.ok(named(scene, 'motor-fasteners-right-rear').children.length >= 4);
   assert.ok(named(scene, 'motor-lead-left-front').geometry.type === 'TubeGeometry');
-  assert.equal(named(scene, 'static-blade-left-front').geometry.type, 'ExtrudeGeometry');
-  const blade = named(scene, 'static-blade-left-front'), before = blade.rotation.toArray();
-  scene.update(Object.freeze({ ...model.state, z:3.25, roll:.3, t:120 }), Object.freeze(model.params));
+  assert.equal(named(scene, 'rotor-blade-left-front').geometry.type, 'ExtrudeGeometry');
+  const blade = named(scene, 'rotor-blade-left-front'), before = blade.rotation.toArray();
+  const state = Object.freeze({ ...model.state, z:3.25, roll:.3, t:120.125 });
+  scene.update(state, Object.freeze(model.params));
   readoutsAre(scene, [['drone-pose', '3.25 m'], ['detail-avionics-body', '0.30 rad']]);
-  assert.deepEqual(blade.rotation.toArray(), before, 'No invented RPM state');
+  assert.notDeepEqual(blade.rotation.toArray(), before, 'Approved illustrative time-based spin');
+  const frozen = blade.rotation.toArray();
+  scene.update(state, model.params);
+  assert.deepEqual(blade.rotation.toArray(), frozen, 'A frozen simulation snapshot freezes blades exactly');
 });
 
 test('drone: labelled fixed-location detail is the same attitude and rotor-pair forces, not another vehicle', async () => {
@@ -310,13 +314,13 @@ test('drone: labelled fixed-location detail is the same attitude and rotor-pair 
     const origin = pose.getWorldPosition(new T.Vector3()), detailOrigin = replica.getWorldPosition(new T.Vector3());
     for (const name of ['avionics-body', 'battery-pack', 'motor-pod-left-front', 'landing-skid-right',
       'rotor-disc-left-front', 'rotor-disc-left-rear', 'rotor-disc-right-front', 'rotor-disc-right-rear',
-      'static-blade-left-front', 'static-blade-right-rear', 'left-pair-thrust', 'right-pair-thrust']) {
+      'rotor-blade-left-front', 'rotor-blade-right-rear', 'left-pair-thrust', 'right-pair-thrust']) {
       const actual = named(scene, name), copy = named(scene, `detail-${name}`);
       const a = actual.getWorldPosition(new T.Vector3()).sub(origin).multiplyScalar(3);
       const b = copy.getWorldPosition(new T.Vector3()).sub(detailOrigin);
       near(a.distanceTo(b), 0, `${name}: uniform magnification of the real pose`);
       if (actual.visible) near(Math.abs(actual.getWorldQuaternion(new T.Quaternion()).dot(copy.getWorldQuaternion(new T.Quaternion()))), 1);
-      for (const axis of ['x', 'y', 'z']) near(copy.rotation[axis], actual.rotation[axis], `${name}: no inferred rotor phase`);
+      for (const axis of ['x', 'y', 'z']) near(copy.rotation[axis], actual.rotation[axis], `${name}: same local pose in both views`);
       if (actual.isMesh) assert.equal(copy.geometry, actual.geometry, `${name}: identical hardware`);
     }
     for (const [side, value] of [['left', left], ['right', right]]) {
@@ -370,7 +374,7 @@ test('drone: detail is legible beside the fully framed flight context on desktop
   assert.deepEqual(scene.camera, spec);
 });
 
-test('drone: planar roll and altitude with four static rotor discs and true pair-thrust indicators', async () => {
+test('drone: planar roll and altitude with four swept rotor discs and true pair-thrust indicators', async () => {
   const { createProcessScene } = await sceneModule();
   const scene = createProcessScene('drone');
   exercise(scene, Drone, ['drone-pose', 'drone-airframe', 'flight-frame', 'altitude-target', 'roll-target',
@@ -391,7 +395,7 @@ test('drone: planar roll and altitude with four static rotor discs and true pair
   near(thrustDirection.x, -Math.sin(.3)); near(thrustDirection.y, Math.cos(.3));
   const rotor = named(scene, 'rotor-disc-left-front'), rotation = rotor.rotation.toArray();
   scene.update(Object.freeze({ ...state, t: 100, left: 0, right: 0 }), model.params);
-  assert.deepEqual(rotor.rotation.toArray(), rotation, 'No inferred motor phase or RPM');
+  assert.deepEqual(rotor.rotation.toArray(), rotation, 'Swept disc remains in its rotor plane');
   assert.equal(left.visible, false); assert.equal(right.visible, false);
 });
 

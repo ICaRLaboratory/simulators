@@ -72,7 +72,11 @@ test('arms have smooth closed volumetric casings and an integrated cast neck', (
     const neck = node(scene, 'fixed-pedestal');
     assert.ok(neck.geometry.index, 'smooth shaped neck, not a rectangular welded post');
     const b = new T.Box3().setFromObject(neck);
-    assert.ok(b.max.x-b.min.x >= .55 && b.max.z-b.min.z >= .4, 'base transitions through a substantial cast neck');
+    if (id === 'robot-arm') {
+      assert.ok(b.max.x-b.min.x >= .55 && b.max.z-b.min.z >= .4, 'the larger servo retains its substantial cast neck');
+    } else {
+      vector([b.max.x-b.min.x, b.max.z-b.min.z], [.28, .24], 1e-7);
+    }
     for (const joint of ['shoulder', 'elbow']) {
       const bearing = node(scene, `${joint}-output-flange`);
       assert.ok(bearing.geometry.parameters.shapes.holes.length > 0, 'machined bored bearing');

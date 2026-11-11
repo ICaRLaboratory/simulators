@@ -89,7 +89,14 @@ function jointDrive(stator, rotor, name, radius, back, front, output, finishes) 
   faceDisc(rotor, `${name}-index-cap`, radius * .22, .009, [0, 0, output + .026], teal);
 }
 
-function armAssembly(root, l1, l2, reach) {
+function armAssembly(root, l1, l2, reach, mounting = {}) {
+  // Per-apparatus support dimensions; the 0.8 m servo arm keeps its exact defaults.
+  const {
+    plinth = [.86, .10, .84], insert = [.76, .045, .74],
+    column = { rootRadius: .32, tipRadius: .205, depth: .48, rootHeight: .36, lengthOffset: .46 },
+    cover = { size: [.19, .28, .014], height: .55, z: -.698 },
+    bolts = { xs: [-.32, .32], zs: [-1.22, -.66], height: .15, radius: .014 },
+  } = mounting;
   const floorY = -reach - .27;
   floor(root, reach * 2 + .9, 3.1, floorY).userData.environment = true;
   const finishes = { steel: finish('steel'), alloy: finish('aluminium'), dark: finish('dark-metal'),
@@ -97,16 +104,16 @@ function armAssembly(root, l1, l2, reach) {
     teal: finish('paint', { color: C.teal, roughness: .42 }) };
   const { steel, dark, paint } = finishes;
   const base = addGroup(root, 'arm-base');
-  housing(base, 'mounting-plinth', [.86, .10, .84], [0, floorY + .05, -.94], dark);
-  housing(base, 'plinth-insert', [.76, .045, .74], [0, floorY + .1225, -.94], steel);
-  // A broad lower casting narrows continuously into the fixed shoulder housing.
-  const neck = sculptedLink(base, 'fixed-pedestal', -floorY - .46,
-    { rootRadius: .32, tipRadius: .205, depth: .48, material: paint });
+  housing(base, 'mounting-plinth', plinth, [0, floorY + .05, -.94], dark);
+  housing(base, 'plinth-insert', insert, [0, floorY + .1225, -.94], steel);
+  // The rounded column seats in the insert and meets the fixed shoulder gearcase.
+  const neck = sculptedLink(base, 'fixed-pedestal', -floorY - column.lengthOffset,
+    { rootRadius: column.rootRadius, tipRadius: column.tipRadius, depth: column.depth, material: paint });
   neck.rotation.z = Math.PI / 2;
-  neck.position.set(0, floorY + .36, -.94);
-  housing(base, 'pedestal-service-cover', [.19, .28, .014], [0, floorY + .55, -.698], dark);
-  for (const x of [-.32, .32]) for (const z of [-1.22, -.66]) {
-    fasteners(base, `mount-bolt-${x}-${z}`, 0, [x, floorY + .15, z], 1, .014);
+  neck.position.set(0, floorY + column.rootHeight, -.94);
+  housing(base, 'pedestal-service-cover', cover.size, [0, floorY + cover.height, cover.z], dark);
+  for (const x of bolts.xs) for (const z of bolts.zs) {
+    fasteners(base, `mount-bolt-${x}-${z}`, 0, [x, floorY + bolts.height, z], 1, bolts.radius);
   }
   const shoulder = addGroup(root, 'shoulder');
   const upper = sculptedLink(shoulder, 'upper-link', l1,
@@ -196,7 +203,14 @@ function servoArm() {
 
 function impedanceArm() {
   const root = group('impedance-robot');
-  const arm = armAssembly(root, mechanics.l1, mechanics.l2, mechanics.l1 + mechanics.l2);
+  // A compact column, not the larger arm's broad casting. Keep the floor below
+  // the complete 1.05 m workspace and leave every moving/link/drive layer intact.
+  const arm = armAssembly(root, mechanics.l1, mechanics.l2, mechanics.l1 + mechanics.l2, {
+    plinth: [.44, .10, .40], insert: [.38, .045, .34],
+    column: { rootRadius: .14, tipRadius: .13, depth: .24, rootHeight: .25, lengthOffset: .35 },
+    cover: { size: [.10, .17, .020], height: .48, z: -.825 },
+    bolts: { xs: [-.16, .16], zs: [-1.06, -.82], height: .148, radius: .011 },
+  });
   // Fixed axial sensor and stem bridge the offset wrist to the physical Z=0 TCP.
   faceTurned(arm.tool, 'force-sensor', [[0, -.18], [.047, -.18], [.053, -.165],
     [.053, -.11], [.041, -.095], [0, -.095]], [0, 0, 0], arm.finishes.alloy);
