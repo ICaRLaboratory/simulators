@@ -7,7 +7,7 @@
 ## 범위
 
 - 참고 강의자료의 프로젝트를 찾아보는 검색·분류 대시보드
-- 개별 실험 21개: 장치 실험 16개와 그래프 전용 실험 5개(PID, MPC, DeePC, SMC, TDC). 제어 기초 실험은 같은 2차 플랜트와 초기 상태(출력·속도 0)를 사용하며, 목표 출력은 첫 샘플부터 끝까지 1입니다.
+- 개별 실험 21개: 장치 실험 16개와 그래프 전용 실험 5개(PID, MPC, DDC, SMC, TDC). 제어 기초 실험은 같은 2차 플랜트, 정지 초기상태, 목표 출력 1, 구동기 한계 ±4, 관찰 시간 20초, 측정 잡음 없음 조건을 공유합니다. 외란은 기본 0이며 4초부터 구동기 출력에 더해집니다(`u_plant = u + d`). 외란과 플랜트 설정은 실험 간 이동 시 유지합니다. 제어기 계산 주기는 각 페이지에 따로 표시합니다.
 - 기존 Research의 로봇 궤적 추종·접촉 제어로 바로 연결
 - 한국어/EN 전환; 언어를 바꿔도 실험 상태 유지
 - 전체 23개 카드 실행 가능: 로컬 실험 21개 + Research 연결 2개
@@ -41,7 +41,7 @@
 - 로켓 수직 착륙: 평면 강체·두 엔진 추력 배분, 위치·하강·자세 피드백, 연착륙 판정. [조사 자료와 모델 범위](docs/rocket-landing-sources.md)
 - [2차 LTI 시스템의 PID 제어](pid-lti/): 단위 계단응답과 P·I·D 항별 제어입력을 비교합니다. 현재 응답을 고정한 뒤 제어기 또는 플랜트 설정을 바꾸면 같은 초기조건에서 응답을 다시 계산합니다. D항은 측정 출력에 적용하며, 정상상태 오차는 안정한 폐루프에 대해서만 표시합니다. [MathWorks 공식 문서: 명령줄에서 PID 제어기 설계](https://www.mathworks.com/help/control/ug/pid-controller-design-at-the-command-line.html)
 - [2차 LTI 시스템의 MPC 제어](mpc-lti/): 예측 구간, 입력 변화 가중치, 입력 한계를 바꾸며 MPC의 단위 계단응답을 살펴봅니다. 계획 시점을 선택하면 그때의 예측 출력·입력과 실제 폐루프 궤적을 확인할 수 있습니다. [관련 자료: MathWorks의 What Is Model Predictive Control?](https://www.mathworks.com/help/mpc/gs/what-is-mpc.html)
-- [데이터 기반 예측 제어(DeePC)](deepc-lti/): 결정론적 2차 시스템에서 잡음 없이 측정한 입출력 데이터로 미래 출력을 예측합니다. 기록할 때 입력을 일정하게 유지하면 어떤 정보가 부족해지는지 확인합니다. [Coulson, Lygeros & Dörfler, *Data-Enabled Predictive Control: In the Shallows of the DeePC* (2019)](https://doi.org/10.23919/ECC.2019.8795639)
+- [데이터 기반 제어(DDC)](ddc-lti/): 입력과 두 상태의 측정 기록으로 안정화 이득을 설계합니다. 단위 출력 평형점에 대한 편차에 상태 피드백을 적용하며, 랭크가 부족한 기록으로는 제어기를 만들지 않습니다. [De Persis & Tesi, *Formulas for Data-Driven Control: Stabilization, Optimality, and Robustness* (2020)](https://doi.org/10.1109/TAC.2019.2959924)
 - [슬라이딩 모드 제어(SMC)](smc-lti/): 오차와 오차 변화율의 위상 평면에서 궤적과 슬라이딩 면을 관찰하고 경계층 폭에 따른 스위칭 입력의 변화를 확인합니다. [Utkin, *Variable Structure Systems with Sliding Modes* (1977)](https://doi.org/10.1109/TAC.1977.1101446)
 - [시간 지연 제어(TDC)](tdc-lti/): 과거의 가속도와 같은 시점의 제어입력으로 미지의 동역학을 추정합니다. 지연을 바꿔 외란이 가해진 뒤의 추정값과 실제값을 비교합니다. [Youcef-Toumi & Ito, *A Time Delay Controller for Systems With Unknown Dynamics* (1990)](https://doi.org/10.1115/1.2894130)
 
@@ -78,7 +78,7 @@ ES modules를 사용하므로 파일 더블클릭 대신 HTTP 서버로 여세�
 - `assets/vendor/three.js`는 정확한 버전을 고정한 로컬 파일입니다. 방문자가 npm이나 CDN에 연결할 필요가 없습니다. 라이선스와 재생성 절차는 `assets/vendor/README.md`를 참고합니다.
 - `tests/three-*.test.js`는 실제 상태와 장면 좌표·비변경성을, `tests/three-view.spec.js` 및 `tests/three-integration.spec.js`는 실제 WebGL·카메라·폴백·반응형을 검사합니다.
 
-공통 형식의 12개 실험의 모델·번역·제어 구조 정의는 `assets/models/`에 있습니다. 정의 변경 후 `node scripts/build-experiment-pages.mjs`로 정적 페이지를 다시 생성합니다. 나머지 장치 실험 4개와 그래프 전용 실험 5개는 이 생성기를 사용하지 않습니다. DeePC·SMC·TDC 페이지는 `node scripts/build-method-labs.mjs`로 생성하고, `--check`로 현재 페이지가 생성 결과와 일치하는지 검사합니다.
+공통 형식의 12개 실험의 모델·번역·제어 구조 정의는 `assets/models/`에 있습니다. 정의 변경 후 `node scripts/build-experiment-pages.mjs`로 정적 페이지를 다시 생성합니다. 나머지 장치 실험 4개와 그래프 전용 실험 5개는 이 생성기를 사용하지 않습니다. DDC·SMC·TDC 페이지는 `node scripts/build-method-labs.mjs`로 생성하고, `--check`로 현재 페이지가 생성 결과와 일치하는지 검사합니다.
 
 ## 재생 방식
 
@@ -91,12 +91,12 @@ ES modules를 사용하므로 파일 더블클릭 대신 HTTP 서버로 여세�
 카드에는 실제 실험 화면을 사용합니다. 로컬 서버를 실행한 뒤 `node scripts/capture-previews.mjs`로 23개 실험의 한국어·영어 미리보기 46개를 갱신합니다. 일부만 갱신하려면 ID를 공백으로 구분해 지정합니다. 예를 들어 다음 명령은 세 실험의 이미지 여섯 장만 캡처하고 나머지 이미지와 기록은 유지합니다.
 
 ```sh
-node scripts/capture-previews.mjs deepc-lti smc-lti tdc-lti
+node scripts/capture-previews.mjs ddc-lti smc-lti tdc-lti
 ```
 
 새 실험을 여러 개 등록할 때는 누락된 ID를 한 명령에 모두 포함하세요. 기존 기록과 합쳐 모든 실험에 두 언어의 기록이 하나씩 있고 같은 언어의 이미지 해시가 중복되지 않는지 확인한 뒤에만 파일을 씁니다.
 
-장치 실험 16개는 고정 시간 간격으로 실행한 장면을, Research 연결 2개는 해당 페이지의 장치 영역을 캡처합니다. PID 응답 분석 실험은 P 응답을 고정한 뒤 I항을 켜서 P와 PI 곡선이 함께 보이는 실제 응답 패널을 캡처합니다. MPC 실험은 초기 설정의 MPC 출력과 첫 계획의 예측 출력이 표시된 패널을 캡처합니다. DeePC·SMC·TDC는 다른 제어기의 곡선을 겹치지 않고, 기본 출력 곡선이 그려진 첫 응답 패널(`#method-response-panel`)을 캡처합니다. `assets/previews/manifest.json`에는 출처, 렌더러(`three` 또는 `svg`), 이미지 해시가 기록됩니다.
+장치 실험 16개는 고정 시간 간격으로 실행한 장면을, Research 연결 2개는 해당 페이지의 장치 영역을 캡처합니다. PID 응답 분석 실험은 P 응답을 고정한 뒤 I항을 켜서 P와 PI 곡선이 함께 보이는 실제 응답 패널을 캡처합니다. MPC 실험은 초기 설정의 MPC 출력과 첫 계획의 예측 출력이 표시된 패널을 캡처합니다. DDC·SMC·TDC는 다른 제어기의 곡선을 겹치지 않고, 기본 출력 곡선이 그려진 첫 응답 패널(`#method-response-panel`)을 캡처합니다. `assets/previews/manifest.json`에는 출처, 렌더러(`three` 또는 `svg`), 이미지 해시가 기록됩니다.
 
 ## 검증
 

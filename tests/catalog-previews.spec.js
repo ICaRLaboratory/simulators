@@ -20,7 +20,7 @@ for (const id of ['pid-lti','mpc-lti']) test(`${id}: single-ID preview updates r
 
 test('one selected-ID batch bootstraps six previews and preserves every unrelated record', async () => {
  test.setTimeout(90_000); // Two Chromium runs capture ten localized panels.
- const ids = ['deepc-lti','smc-lti','tdc-lti'];
+ const ids = ['ddc-lti','smc-lti','tdc-lti'];
  const previous = catalog.filter(item => !ids.includes(item.id)).flatMap(({id}) =>
   ['ko','en'].map(lang => ({id,lang,sha256:`${id}-${lang}`})));
  const dir = await mkdtemp(join(tmpdir(),'preview-batch-'));
@@ -68,7 +68,7 @@ for (const lang of ['ko','en']) test(`MPC preview shows the response and predict
  }
 });
 
-for (const id of ['deepc-lti','smc-lti','tdc-lti']) for (const lang of ['ko','en']) {
+for (const id of ['ddc-lti','smc-lti','tdc-lti']) for (const lang of ['ko','en']) {
  test(`${id}: preview uses the localized first response panel (${lang})`, async ({page}) => {
   await page.goto(`${base}${id}/?lang=${lang}`);
   const panel = await prepareGraphPreview(page,id);

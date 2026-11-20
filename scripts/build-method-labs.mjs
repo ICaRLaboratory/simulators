@@ -13,10 +13,11 @@ function control({key,label,range,choices}){
 }
 for(const [id,lab] of Object.entries(labs)){
  const item=catalog.find(x=>x.id===id);if(!item)throw Error(`Catalog entry required: ${id}`);
- const deep=id==='deepc-lti',smc=id==='smc-lti';
- const related=['pid-lti','mpc-lti',...Object.keys(labs)].filter(k=>k!==id).map(k=>`<a data-plant-link="../${k}/" href="../${k}/">${({'pid-lti':'PID','mpc-lti':'MPC','deepc-lti':'DeePC','smc-lti':'SMC','tdc-lti':'TDC'})[k]} →</a>`).join(' · ');
+ const ddc=id==='ddc-lti',smc=id==='smc-lti';
+ const related=['pid-lti','mpc-lti',...Object.keys(labs)].filter(k=>k!==id).map(k=>`<a data-plant-link="../${k}/" href="../${k}/">${({'pid-lti':'PID','mpc-lti':'MPC','ddc-lti':'DDC','smc-lti':'SMC','tdc-lti':'TDC'})[k]} →</a>`).join(' · ');
  const title=[item.name,item.english], stat=(id,title)=>`<div><span ${bi(title)}</span><strong id="${id}">—</strong></div>`;
- const tech=deep?['입력 행켈 행렬 랭크 / 필요 랭크','Input Hankel rank / required rank']:smc?['종료 시 슬라이딩 변수 s','Final sliding variable s']:['추정 지연 시간','Estimation lag'];
+ const tech=ddc?['데이터 행렬 [U₀; X₀] 랭크 / 필요 랭크','Data rank / required rank [U₀; X₀]']:smc?['종료 시 슬라이딩 변수 s','Final sliding variable s']:['추정 지연 시간','Estimation lag'];
+ const gainStats=ddc?stat('method-gain',['상태 피드백 이득 K','State-feedback gain K'])+stat('method-rho',['폐루프 스펙트럼 반지름 ρ','Closed-loop spectral radius ρ']):'';
  const html=`<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title ${bi(title.map(x=>x+' · Control Simulators'))}</title><meta name="description" content="${escape(lab.intro[0])}">
 <link rel="stylesheet" href="../assets/site.css"><link rel="stylesheet" href="../assets/pid-lti.css"><link rel="stylesheet" href="../assets/method-labs.css"><script type="module" src="../assets/method-labs.js"></script></head>
@@ -29,10 +30,10 @@ for(const [id,lab] of Object.entries(labs)){
 ${plot('diag','method-diagnostic',lab.diag,diagnostics[id],`<p class="method-caption" ${bi(lab.diagnosticNote)}</p>`)}
 <aside class="panel pid-guide"><div class="panel-heading"><h2 data-en="Try this">실험해 보기</h2></div><p class="method-caption" ${bi(lab.task)}</p><p id="method-status" role="status"></p></aside>
 ${plot('input','method-input',['적용 제어입력','Applied control input'],['input'],smc?'<label class="zoom"><input type="checkbox" id="input-zoom"><span data-en="Zoom to 4–4.4 s">4–4.4초 확대</span></label>':'')}
-<div class="pid-metrics">${stat('method-final',['종료 시 출력 y','Final output y'])}${stat('method-peak',['최대 적용 |u|','Peak applied |u|'])}${stat('method-stat',tech)}</div></div>
-<details class="panel pid-model"><summary data-en="Model, control law and assumptions">모델·제어식·가정</summary><div><p class="eq">G(s) = b / (s² + a₁s + a₀),　b = Kωₙ²,　a₁ = 2ζωₙ,　a₀ = ωₙ²</p>${lab.equations.map(s=>`<p class="eq">${escape(s)}</p>`).join('')}<p ${bi(lab.assumptions)}</p></div></details>
+<div class="pid-metrics">${stat('method-final',['종료 시 출력 y','Final output y'])}${stat('method-peak',['최대 적용 |u|','Peak applied |u|'])}${stat('method-stat',tech)}${gainStats}</div></div>
+<details class="panel pid-model"><summary data-en="Model, control law and assumptions">모델·제어식·가정</summary><div><p class="eq">G(s) = b / (s² + a₁s + a₀),　b = ${ddc?'K_DC':'K'}ωₙ²,　a₁ = 2ζωₙ,　a₀ = ωₙ²</p>${lab.equations.map(s=>`<p class="eq">${escape(s)}</p>`).join('')}<p ${bi(lab.assumptions)}</p>${lab.tracking?`<p ${bi(lab.tracking)}</p>`:''}</div></details>
 <p class="pid-source"><span data-en="Other labs with this plant">같은 시스템으로 다른 제어 실험</span>: ${related}</p>
-<p class="pid-source"><span data-en="Concept reference">원리 참고 문헌</span>: <a href="${escape(item.source)}" target="_blank" rel="noopener noreferrer">${escape(item.sourceName)} ↗</a></p></main>
+<p class="pid-source"><span ${bi(ddc?['안정화 정리 출처','Stabilization paper']:['원리 참고 문헌','Concept reference'])}</span>: <a href="${escape(item.source)}" target="_blank" rel="noopener noreferrer">${escape(item.sourceName)} ↗</a></p></main>
 <footer class="site-footer"><span><strong>Control Simulators</strong><span class="footer-tag">Interactive Control Lab</span></span><a href="../" data-en="Back to experiments ↑">실험 목록으로 돌아가기 ↑</a></footer></body></html>\n`;
  const dir=new URL(`../${id}/`,import.meta.url),url=new URL('index.html',dir);
  if(process.argv.includes('--check')){if(await readFile(url,'utf8')!==html)throw Error(`Regenerate ${id}`);}else{await mkdir(dir,{recursive:true});await writeFile(url,html);}

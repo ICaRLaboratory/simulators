@@ -22,9 +22,26 @@ test('P, I and D alter the unit-step response independently; pinning preserves t
   await page.locator('#pid-reset').click();expect(await getCurve(page,'y')).toBe(p);expect(errors).toEqual([]);
 });
 
+test('PID distinguishes the requested sum, actuator output and nominal predictions',async({page})=>{
+  await page.goto(`${base}pid-lti/?lang=en&disturbance=2`);
+  await page.locator('#gain-p').focus();await page.keyboard.press('End');
+  await page.locator('#enable-d').check();
+  const term=key=>page.locator(`#pid-terms-plot [data-series=${key}]`);
+  await expect(term('uRaw')).toBeVisible();
+  expect(await term('uRaw').getAttribute('d')).not.toBe(await term('u').getAttribute('d'));
+  await expect(term('d')).toBeVisible();
+  for(const [lang,nominal,requested,applied] of [['en','Nominal','Requested','Applied'],['ko','공칭','요구','적용']]){
+    await page.locator(`[data-lang=${lang}]`).click();
+    for(const key of ['#steady-error','#stability'])await expect(page.locator(key).locator('..')).toContainText(nominal);
+    const legend=page.locator('.pid-terms .legend');
+    await expect(legend).toContainText(requested);await expect(legend).toContainText(applied);
+  }
+});
+
 test('stability boundary is not reported as converged; mobile page and plots stay readable',async({page})=>{
   await page.setViewportSize({width:320,height:812});await page.goto(`${base}pid-lti/?lang=en`);
   await page.locator('#enable-i').check();await page.locator('#gain-i').focus();await page.keyboard.press('End');
+  await expect(page.locator('#peak-value')).toHaveText(/%$/);
   await expect(page.locator('#stability')).toHaveText('Unstable');await expect(page.locator('#steady-error')).toHaveText('—');
   await page.locator('#gain-i').evaluate(el=>{el.value='5';el.dispatchEvent(new Event('input',{bubbles:true}));});
   await expect(page.locator('#stability')).toHaveText('Marginal');await expect(page.locator('#steady-error')).toHaveText('—');

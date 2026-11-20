@@ -261,7 +261,7 @@
     "file": "pid-lti-ko.png",
     "source": "pid-lti/?lang=ko",
     "renderer": "svg",
-    "sha256": "1245f62911d85c0c13c49d9664b115d648ded018502e7d80b5a6fbfec2c26303"
+    "sha256": "984f1d9aaad2c6363403e1a4040196c6310ca2d40e90c41b9962f892eb51e579"
   },
   {
     "id": "pid-lti",
@@ -269,7 +269,7 @@
     "file": "pid-lti-en.png",
     "source": "pid-lti/?lang=en",
     "renderer": "svg",
-    "sha256": "6d3b801bff4f64048e3914ccf3b8e873b686925d518e99d48858e9611a922cf3"
+    "sha256": "41b75dee2d169df053f8296253f8bc35e68b0728c7fa18e0283e4c03fec0a0e0"
   },
   {
     "id": "mpc-lti",
@@ -277,7 +277,7 @@
     "file": "mpc-lti-ko.png",
     "source": "mpc-lti/?lang=ko",
     "renderer": "svg",
-    "sha256": "6bd6883fb6701405620ae2d2e203c37fd8c6511cf8a81d0e9a88701d4e27d00e"
+    "sha256": "a33ca770e8f960ceea729a322ed9c252484b81238e8c505a073cff742ebc092f"
   },
   {
     "id": "mpc-lti",
@@ -285,23 +285,23 @@
     "file": "mpc-lti-en.png",
     "source": "mpc-lti/?lang=en",
     "renderer": "svg",
-    "sha256": "4bf9d7135a5e11c97ea03568adc84351c8a7c9d6c97fd9e6d6397113dfe70e33"
+    "sha256": "a94edb07250d597fc7c23e80760556618f77c56ca948003e454a61fe1fe687a8"
   },
   {
-    "id": "deepc-lti",
+    "id": "ddc-lti",
     "lang": "ko",
-    "file": "deepc-lti-ko.png",
-    "source": "deepc-lti/?lang=ko",
+    "file": "ddc-lti-ko.png",
+    "source": "ddc-lti/?lang=ko",
     "renderer": "svg",
-    "sha256": "7bdb02d331af4cca3e4bb9ae77c86d7fd2f5b4962255d7901bd1be43ac31e74d"
+    "sha256": "dbdc12196353f068f2e4274e34460030c778eefeab6df7210971da0c2ebf5d9c"
   },
   {
-    "id": "deepc-lti",
+    "id": "ddc-lti",
     "lang": "en",
-    "file": "deepc-lti-en.png",
-    "source": "deepc-lti/?lang=en",
+    "file": "ddc-lti-en.png",
+    "source": "ddc-lti/?lang=en",
     "renderer": "svg",
-    "sha256": "35279ecaa7f5b2101a0daafea27861b2d9c6ef1bfcc614753e636b543651e536"
+    "sha256": "f5d0525afcce793bd80bccd1df438d48f07456e1d6b1304ad8f1ae6e4528a2f6"
   },
   {
     "id": "smc-lti",
@@ -309,7 +309,7 @@
     "file": "smc-lti-ko.png",
     "source": "smc-lti/?lang=ko",
     "renderer": "svg",
-    "sha256": "917d34de3ed727c6b1da7af43919d5dedc385225cbbdb9fc48728168f42b2d4f"
+    "sha256": "a315bee27fcf2f12b265249fc1fa2e514ab6ddf02743330b6c34376195f52d9a"
   },
   {
     "id": "smc-lti",
@@ -317,7 +317,7 @@
     "file": "smc-lti-en.png",
     "source": "smc-lti/?lang=en",
     "renderer": "svg",
-    "sha256": "28f2089881115fea490bad27d70018cc43bdf4faa1e26c9776a78003233efd43"
+    "sha256": "a094662f7cbcb1fce1f102f9dfeee2ee559a8dc7426ba8d9a1710e1fa80d0b55"
   },
   {
     "id": "tdc-lti",
@@ -325,7 +325,7 @@
     "file": "tdc-lti-ko.png",
     "source": "tdc-lti/?lang=ko",
     "renderer": "svg",
-    "sha256": "f130e7e67cc0747aacb149f4a98fd38c95db40c8791b7e58ec6ef5f2eddb89cb"
+    "sha256": "db3ef1c8ad549f98397256bd3c2355088df63a979ad7d6917d2261cce1e103df"
   },
   {
     "id": "tdc-lti",
@@ -333,7 +333,7 @@
     "file": "tdc-lti-en.png",
     "source": "tdc-lti/?lang=en",
     "renderer": "svg",
-    "sha256": "b4685e960aac9da6071f0abc311a15030242ee99bbf76b883cdfdf8a6eee0788"
+    "sha256": "b17cb52240b550618391988f42c4d6af548531cbd314ad0749da4f1879817c9d"
   },
   {
     "id": "research-tracking",

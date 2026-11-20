@@ -26,7 +26,7 @@
       <div class="mpc-settings">
         <div><label for="mpc-horizon" data-en="Prediction horizon N">예측 구간 N</label><output for="mpc-horizon" id="mpc-horizon-value">12</output><input type="range" id="mpc-horizon" min="2" max="30" step="1" value="12"></div>
         <div><label for="mpc-weight" data-en="Move penalty λ">입력 변화 가중치 λ</label><output for="mpc-weight" id="mpc-weight-value">0.25</output><input type="range" id="mpc-weight" min="0.01" max="2" step="0.01" value="0.25"></div>
-        <div><label for="mpc-limit" data-en="Input limit |u| ≤">입력 한계 |u| ≤</label><output for="mpc-limit" id="mpc-limit-value">2.00</output><input type="range" id="mpc-limit" min="0.5" max="4" step="0.1" value="2"></div>
+        <div><label for="mpc-limit" data-en="MPC planning bound |u| ≤">MPC 계획 입력 한계 |u| ≤</label><output for="mpc-limit" id="mpc-limit-value">4.00</output><input type="range" id="mpc-limit" min="0.5" max="4" step="0.1" value="4"></div>
 
         <button id="mpc-reset" class="primary" data-en="Reset">초기화</button>
       </div>
@@ -38,7 +38,7 @@
     </section>
     <section class="panel pid-terms" aria-labelledby="input-title">
       <div class="panel-heading"><h2 id="input-title" data-en="Applied and planned inputs">적용 입력과 예측 입력</h2><span class="mono">u</span></div>
-      <div class="legend pid-legend mpc-legend"><span class="mpc-key" data-en="Applied input">적용 입력</span><span class="plan-key" data-en="Planned input">예측 입력</span><span class="ref-key" data-en="Input limits">입력 한계</span></div>
+      <div class="legend pid-legend mpc-legend"><span class="mpc-key" data-en="Applied input">적용 입력</span><span class="plan-key" data-en="Planned input">예측 입력</span><span class="ref-key" data-en="Planning bounds">계획 입력 한계</span></div>
       <svg id="mpc-input-plot" role="img" aria-labelledby="input-title"></svg>
     </section>
     <aside class="panel pid-guide"><div class="panel-heading"><h2 data-en="What to observe">관찰 포인트</h2></div><ol>
@@ -51,13 +51,13 @@
   </div>
   <details class="panel pid-model"><summary data-en="Plant, objective and assumptions">모델·목적함수·가정</summary><div>
     <p class="eq">G(s) = Kωₙ² / (s² + 2ζωₙs + ωₙ²)</p><p class="eq">J = Σⱼ₌₁ᴺ (ŷⱼ − 1)² + λ [(u₀ − u₋₁)² + (u₁ − u₀)²]</p>
-    <p data-en="The plant starts at rest. MPC tracks a unit step for 20 s using an exact zero-order-hold model at a 0.2 s sample period. Position and velocity are known; noise, disturbances and model mismatch are omitted.">시스템은 정지 상태에서 시작하고 MPC는 단위 계단 입력을 20초간 추종합니다. 샘플 주기는 0.2초이며, 구간마다 입력을 일정하게 유지한 정확 이산 모델을 사용합니다. 위치와 속도를 안다고 가정하고 잡음·외란·모델 오차는 제외했습니다.</p>
+    <p data-en="The plant starts at rest. MPC tracks a unit step for 20 s using an exact zero-order-hold model at a 0.2 s sample period. MPC measures position and velocity without noise. It predicts with no disturbance; only the real plant receives u + d. The planning bound may be tighter than the fixed ±4 actuator limit.">시스템은 정지 상태에서 시작하고 MPC는 단위 계단 입력을 20초간 추종합니다. 샘플 주기는 0.2초이며, 구간마다 입력을 일정하게 유지한 정확 이산 모델을 사용합니다. 위치와 속도는 잡음 없이 측정합니다. MPC는 외란이 없는 모델로 예측하며, 실제 플랜트에만 u + d가 작용합니다. 계획 입력 한계는 고정된 구동기 한계 ±4보다 좁게 설정할 수 있습니다.</p>
     <p data-en="At each instant MPC chooses two inputs within the bounds: one for the next interval and a second held for the rest of the prediction horizon. It minimizes the objective above, applies the first input only, and repeats. The last applied input is u₋₁ (initially zero). There is no terminal penalty or terminal constraint.">MPC는 매 시점에서 입력 한계를 만족하는 두 값, 즉 다음 한 구간의 입력과 그 뒤 예측 구간 끝까지 유지할 입력을 선택합니다. 위 목적함수를 최소화한 뒤 첫 입력만 적용합니다. u₋₁은 직전에 적용한 입력이며 초깃값은 0입니다. 종단 비용과 종단 제약은 없습니다.</p>
 
   </div></details>
   <p class="pid-source"><a href="../pid-lti/" id="pid-lab-link" data-en="Explore the P, I and D terms →">P·I·D 항별 효과 실험 →</a></p>
-  <p class="pid-source"><span data-en="Other labs with this plant">같은 시스템으로 다른 제어 실험</span>: <a data-plant-link="../deepc-lti/" href="../deepc-lti/">DeePC →</a> · <a data-plant-link="../smc-lti/" href="../smc-lti/">SMC →</a> · <a data-plant-link="../tdc-lti/" href="../tdc-lti/">TDC →</a></p>
-  <p class="pid-source"><a href="https://www.mathworks.com/help/mpc/gs/what-is-mpc.html" rel="noopener noreferrer" target="_blank" data-en="Related MATLAB tutorial: What Is Model Predictive Control? ↗">관련 MATLAB 자료: What Is Model Predictive Control? ↗</a></p>
+  <p class="pid-source"><span data-en="Other labs with this plant">같은 시스템으로 다른 제어 실험</span>: <a data-plant-link="../ddc-lti/" href="../ddc-lti/">DDC →</a> · <a data-plant-link="../smc-lti/" href="../smc-lti/">SMC →</a> · <a data-plant-link="../tdc-lti/" href="../tdc-lti/">TDC →</a></p>
+  <p class="pid-source"><a href="https://www.mathworks.com/help/mpc/gs/what-is-mpc.html" rel="noopener noreferrer" target="_blank" data-en="Official documentation: MathWorks · What Is Model Predictive Control? ↗">공식 문서: MathWorks · What Is Model Predictive Control? ↗</a></p>
 </main>
 <footer class="site-footer"><span><strong>Control Simulators</strong><span class="footer-tag">Interactive Control Lab</span></span><a href="../" data-en="Back to experiments ↑">실험 목록으로 돌아가기 ↑</a></footer>
 </body></html>

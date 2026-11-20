@@ -11,6 +11,28 @@ function schematic(item) {
   return `<img class="card-preview" src="assets/previews/${item.id}-${getLanguage()}.png" alt="" loading="lazy" decoding="async" width="640" height="340">`;
 }
 
+function sourceLink(item) {
+  if (!item.source || item.source === item.href) return '';
+  const {hostname, pathname} = new URL(item.source);
+  const en = getLanguage() === 'en';
+  let purpose = en ? 'Reference' : '참고 문헌';
+  if (hostname === 'www.mathworks.com' && pathname.startsWith('/help/')) {
+    purpose = en ? 'Official documentation' : '공식 문서';
+  } else if (hostname === 'github.com' || (hostname === 'www.mathworks.com' && pathname.startsWith('/matlabcentral/fileexchange/'))) {
+    purpose = t('관련 프로젝트');
+  }
+  const label = `${purpose}: ${t(item.sourceName)}`;
+  const link = document.createElement('a');
+  link.className = 'source-link';
+  link.href = item.source;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.textContent = `${label} ↗`;
+  link.title = `${label} · ${t(item.name)} · ${t('새 탭')}`;
+  link.setAttribute('aria-label', link.title);
+  return link.outerHTML;
+}
+
 function setupCatalog() {
   let category = '';
   const categories = [...new Set(catalog.map(item => item.category))];
@@ -19,7 +41,7 @@ function setupCatalog() {
   $('#category-filters').innerHTML = ['',...categories].map(name => `<button type="button" data-category="${name}" aria-pressed="${name === ''}">${name || '전체'}<span>${name ? catalog.filter(item => item.category === name).length : catalog.length}</span></button>`).join('');
   function render() {
     const filtered = filterCatalog({query:$('#search').value,category,ready:$('#ready-only').checked});
-    $('#catalog-grid').innerHTML = filtered.map(item => `<article class="sim-card" data-id="${item.id}"><div class="card-visual"><span class="card-number">EXP. ${String(catalog.indexOf(item) + 1).padStart(2,'0')}</span><span class="card-status ${item.status}">${item.status === 'ready' ? '실행 가능' : '준비 중'}</span>${schematic(item)}</div><div class="card-body"><p class="card-category">${item.category}</p><h3>${item.name}</h3><p class="english-name">${item.english}</p><p class="card-description">${item.description}</p><div class="features" aria-label="${item.status === 'ready' ? '조절 가능한 항목' : '구현 예정 항목'}">${item.features.map(feature => `<span>${feature}</span>`).join('')}</div><div class="card-footer"><a class="source-link" href="${item.external ? localizedHref(item.source) : item.source}" target="_blank" rel="noopener noreferrer" aria-label="${item.name} ${item.external ? '관련 연구 시뮬레이션' : '관련 MATLAB 프로젝트'} · 새 탭">관련 프로젝트 · ${item.sourceName} ↗</a>${item.href ? `<a class="launch" data-launch href="${localizedHref(item.href)}" ${item.external ? `aria-label="${item.name} · 연구 실험 열기 · 외부 사이트"` : ''}>${item.external ? '연구 실험 열기' : '실험 시작'} <span aria-hidden="true">${item.external ? '↗' : '→'}</span></a>` : '<span class="planned-label">브라우저 실험 준비 중</span>'}</div></div></article>`).join('');
+    $('#catalog-grid').innerHTML = filtered.map(item => `<article class="sim-card" data-id="${item.id}"><div class="card-visual"><span class="card-number">EXP. ${String(catalog.indexOf(item) + 1).padStart(2,'0')}</span><span class="card-status ${item.status}">${item.status === 'ready' ? '실행 가능' : '준비 중'}</span>${schematic(item)}</div><div class="card-body"><p class="card-category">${item.category}</p><h3>${item.name}</h3><p class="english-name">${item.english}</p><p class="card-description">${item.description}</p><div class="features" aria-label="${item.status === 'ready' ? '조절 가능한 항목' : '구현 예정 항목'}">${item.features.map(feature => `<span>${feature}</span>`).join('')}</div><div class="card-footer">${sourceLink(item)}${item.href ? `<a class="launch" data-launch href="${localizedHref(item.href)}" ${item.external ? `aria-label="${item.name} · 연구 실험 열기 · 외부 사이트"` : ''}>${item.external ? '연구 실험 열기' : '실험 시작'} <span aria-hidden="true">${item.external ? '↗' : '→'}</span></a>` : '<span class="planned-label">브라우저 실험 준비 중</span>'}</div></div></article>`).join('');
     $('#result-count').innerHTML = getLanguage()==='en' ? `<strong>${filtered.length}</strong> experiments <span>/ ${catalog.length} total</span>` : `<strong>${filtered.length}</strong>개 실험 <span>/ 전체 ${catalog.length}개</span>`;
     $('#empty-state').hidden = filtered.length !== 0;
     document.querySelectorAll('[data-category]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.category === category)));

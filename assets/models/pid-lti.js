@@ -1,6 +1,8 @@
 import {coefficients} from './second-order.js';
+import {DURATION, conditions, inputDisturbance, clampInput} from './fundamentals-conditions.js';
+
 const DT = 0.01;
-const STEPS = 2000;
+const STEPS = DURATION / DT;
 
 function offset(state, slope, h) {
   return state.map((value, j) => value + h * slope[j]);
@@ -30,18 +32,26 @@ export function stepResponse({ kp, ki, kd, plant }) {
       throw new RangeError(`${name} must be a finite number in [0, ${max}]`);
     }
   }
-  const model=coefficients(plant),{a1,a0,b}=model;
-  const rate = ([y, v, i]) => [v, b*(kp*(1-y)+i) - (a1+b*kd)*v - a0*y, ki*(1-y)];
+  const model = coefficients(plant), {a1, a0, b} = model;
+  const {disturbance: amplitude} = conditions(plant);
+  function command(y, v, i) {
+    const p = kp * (1 - y), d = 0 - kd * v, uRaw = p + i + d;
+    return {p, i, d, uRaw, u: clampInput(uRaw)};
+  }
   let state = [0, 0, 0];
   const samples = [];
   let maxY = 0;
   for (let n = 0; n <= STEPS; n++) {
     const [y, v, i] = state;
-    const p = kp * (1 - y), d = 0 - kd * v;
-    samples.push({ t: n * DT, y, p, i, d, u: p + i + d });
+    const t = n * DT, disturbance = inputDisturbance(t, amplitude);
+    const control = command(y, v, i);
+    samples.push({t, y, v, ...control, disturbance, uPlant: control.u + disturbance});
     maxY = Math.max(maxY, y);
-    if (n < STEPS) state = rk4(state, rate);
+    // Hold the external step over this whole interval, including RK4's last stage.
+    if (n < STEPS) state = rk4(state, ([y, v, i]) => [v,
+      b * (command(y, v, i).u + disturbance) - a1 * v - a0 * y, ki * (1 - y)]);
   }
+  // Linear, unsaturated, disturbance-free predictions; not measured trace metrics.
   const stability = classify(kp, ki, kd, model);
   const steadyError = stability !== 'stable' ? null : ki === 0 ? 1 / (1 + model.gain*kp) : 0;
   return { samples, stability, steadyError, peakAboveTarget: 100 * Math.max(0, maxY - 1) };

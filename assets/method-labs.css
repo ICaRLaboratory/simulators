@@ -14,6 +14,7 @@
 .method-layout .legend .key-target::before,.method-layout .legend .key-surface::before {border-top:2px dashed #9c552a;}
 .method-layout .legend .key-estimate::before {border-top:2px dashed #be5d23;}
 .method-layout .legend .key-record-u::before {border-top:2px dashed #73568d;}
+.method-layout .legend .key-record-v::before {border-top:2px dashed #a34a24;}
 .method-layout .legend .key-input::before {border-color:#244e75;}
 .method-layout .legend .key-unknown::before {border-color:#38495c;}
 .pid-model .eq {overflow-wrap:anywhere;}

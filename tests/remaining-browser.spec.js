@@ -58,8 +58,9 @@ for(const id of ids){
  test(`${id}: static Korean equations and project without JavaScript`,async({browser})=>{
   const context=await browser.newContext({javaScriptEnabled:false});const page=await context.newPage();await page.goto(`${base}${id}/`);
   await expect(page.locator('h1')).toContainText(/[가-힣]/);await expect(page.locator('#start-pause')).toBeDisabled();await page.locator('summary').click();await expect(page.locator('.loop-equation').first()).toBeVisible();
-  await expect(page.getByRole('link',{name:/관련 MATLAB 프로젝트/})).toHaveAttribute('href',catalog.find(item=>item.id===id).source);
-  await expect(page.getByRole('link',{name:/관련 MATLAB 프로젝트/})).toBeVisible();await context.close();
+  const source=catalog.find(item=>item.id===id).source;
+  const ref=page.getByRole('link',{name:source.startsWith('https://www.mathworks.com/help/')?/MathWorks 공식 문서/:/관련 MATLAB 프로젝트/});
+  await expect(ref).toHaveAttribute('href',source);await expect(ref).toBeVisible();await context.close();
  });
 }
 async function controlledFrames(page){

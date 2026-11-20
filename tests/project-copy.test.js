@@ -16,6 +16,7 @@ test('pages present experiments with the associated project, tutorial or concept
     else if (item.view === 'graph') {
       assert.ok(sourceLink[2].replaceAll('&amp;', '&').includes(item.sourceName), `${item.id}: missing citation label`);
       assert.doesNotMatch(html, /관련 MATLAB 프로젝트/);
-    } else assert.match(html, /관련 MATLAB 프로젝트/);
+    } else if (item.source.includes('mathworks.com/help/')) assert.match(sourceLink[2], /MathWorks 공식 문서/);
+    else assert.match(html, /관련 MATLAB 프로젝트/);
   }
 });

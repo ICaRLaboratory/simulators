@@ -55,7 +55,7 @@ for(const id of remaining) {
   for(const control of ['start-pause','reset','disturb'])assert.match(html,new RegExp(`id="${control}"`));
   assert.match(html,/<details\b/);assert.match(html,/<svg\b/);
   assert.ok(html.includes(catalog.find(item=>item.id===id).source));
-  assert.match(html,/관련 MATLAB 프로젝트/);
+  assert.match(html,catalog.find(item=>item.id===id).source.includes('mathworks.com/help/') ? /MathWorks 공식 문서/ : /관련 MATLAB 프로젝트/);
   assert.doesNotMatch(html,/준비 중|이식본|독립적으로 재구성/);
  });
 }

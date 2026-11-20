@@ -49,7 +49,7 @@ MathWorks **Virtual Controls Laboratory v3.0.0** (`fcb48179caf2762c906ddf5248471
 |---|---|
 | `pid-lti` | [MathWorks, PID Controller Design at the Command Line](https://www.mathworks.com/help/control/ug/pid-controller-design-at-the-command-line.html) — PI·PID 설계 및 폐루프 계단응답 예제. |
 | `mpc-lti` | [MathWorks, What Is Model Predictive Control?](https://www.mathworks.com/help/mpc/gs/what-is-mpc.html) — 예측·제약 개념. Toolbox 구현을 사용하는 것은 아니다. |
-| `deepc-lti` | [Coulson, Lygeros & Dörfler (2019)](https://doi.org/10.23919/ECC.2019.8795639) — 측정 데이터에 의한 예측 제어. |
+| `ddc-lti` | [De Persis & Tesi (2020), *Formulas for Data-Driven Control: Stabilization, Optimality, and Robustness*](https://doi.org/10.1109/TAC.2019.2959924) — 무잡음 입력·상태 데이터에 의한 이산시간 상태 피드백 안정화. 웹 실험에서는 출력 1에 해당하는 평형점을 데이터로 구해 그 편차에 안정화 피드백을 적용한다. 논문의 최적 제어·잡음 강인성 결과까지 구현한 것은 아니다. |
 | `smc-lti` | [Utkin (1977)](https://doi.org/10.1109/TAC.1977.1101446) — 슬라이딩 모드 제어. |
 | `tdc-lti` | [Youcef-Toumi & Ito (1990)](https://doi.org/10.1115/1.2894130) — 시간 지연을 이용한 동역학 추정. |
 

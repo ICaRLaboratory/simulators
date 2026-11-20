@@ -10,7 +10,7 @@ function near(actual, expected, tolerance = 1e-11) {
 // simulator's ZOH map. Return the integral of F as well as the endpoint state.
 function oracleInterval([y, v], {wn, zeta, gain}, b0, u, d, dt) {
   const h = dt / 8;
-  const unknown = (p, q) => wn**2 * (gain*u - p) - 2*zeta*wn*q + d - b0*u;
+  const unknown = (p, q) => wn**2 * (gain*(u + d) - p) - 2*zeta*wn*q - b0*u;
   let integral = 0;
   for (let n = 0; n < 8; n++) {
     const f1 = unknown(y, v), a1 = f1 + b0*u;
@@ -28,7 +28,7 @@ test('the unit setpoint is active on the first hold from rest; no fictitious pre
   const plant = {wn: 1.5, zeta: 0.7, gain: 0.8}, nominal = 0.9, delay = 8;
   const {samples, dt, duration, b0} = simulate({plant, nominal, delay, disturbance: 0});
   assert.equal(dt, 0.02);
-  assert.equal(duration, 10);
+  assert.equal(duration, 20);
   near(b0, nominal * plant.gain * plant.wn**2);
   let state = [0, 0];
   for (let k = 0; k < delay; k++) {
@@ -45,8 +45,8 @@ test('the unit setpoint is active on the first hold from rest; no fictitious pre
 
 test('independent closed loop: state and interval-average F, including the last hold', () => {
   for (const [zeta, nominal, delay] of [[0.2, 0.75, 1], [1, 1, 3], [1.7, 1.5, 8]]) {
-    const plant = {wn: 1.5, zeta, gain: 1.2}, b0 = nominal * plant.wn**2 * plant.gain;
-    const {samples, dt, duration, finalState} = simulate({plant, nominal, delay, disturbance: 0});
+    const plant = {wn: 1.5, zeta, gain: 1.2, disturbance: -0.7}, b0 = nominal * plant.wn**2 * plant.gain;
+    const {samples, dt, duration, finalState} = simulate({plant, nominal, delay});
     assert.equal(samples.length, duration / dt);
     const truth = [];
     let state = [0, 0];
@@ -55,7 +55,9 @@ test('independent closed loop: state and interval-average F, including the last 
       const estimate = k < delay ? 0 : truth[k - delay];
       const raw = (6.25*(1 - state[0]) - 5*state[1] - estimate) / b0;
       const command = Math.max(-4, Math.min(4, raw));
-      const {state: next, f} = oracleInterval(state, plant, b0, command, 0, dt);
+      const d = t < 4 ? 0 : plant.disturbance;
+      const {state: next, f} = oracleInterval(state, plant, b0, command, d, dt);
+      assert.equal(s.d, d); near(s.uPlant, command + d, 1e-9);
       assert.equal(s.t, t);
       assert.equal(s.r, 1); near(s.uRaw, raw, 1e-9); near(s.y, state[0], 1e-9); near(s.v, state[1], 1e-9);
       near(s.fHat, estimate, 1e-9); near(s.u, command, 1e-9);
@@ -90,11 +92,11 @@ test('a saturated hold drives the plant and the delayed measurement uses applied
   assert.ok(seenClippedEstimate, 'fixture must hit an appreciable actuator limit');
 });
 
-test('4 s acceleration disturbance: first plant response now, first estimator response exactly L holds later', () => {
+test('4 s input disturbance: the plant responds first and the estimate changes exactly L holds later', () => {
   const plant = {wn: 1.5, zeta: 1, gain: 1.4}; // makes b != 1: units matter
   for (const [delay, disturbance] of [[1, -0.8], [8, 0.6]]) {
-    const {samples: base} = simulate({plant, delay, disturbance: 0});
-    const {samples, dt, disturbanceStart} = simulate({plant, delay, disturbance});
+    const {samples: base} = simulate({plant, delay});
+    const {samples, dt, disturbanceStart} = simulate({plant: {...plant, disturbance}, delay});
     const on = 4 / dt;
     assert.equal(disturbanceStart, 4);
     assert.deepEqual(samples.slice(0, on), base.slice(0, on));
@@ -102,13 +104,13 @@ test('4 s acceleration disturbance: first plant response now, first estimator re
     assert.ok(base.every(p => p.d === 0));
     for (const field of ['t', 'y', 'v', 'u', 'fHat']) assert.equal(samples[on][field], base[on][field]);
     // Exact critical-damping response to the first disturbed, constant-input interval.
-    const x = plant.wn * dt, decay = Math.exp(-x);
-    near(samples[on+1].y - base[on+1].y, disturbance / plant.wn**2 * (1 - (1+x)*decay));
-    near(samples[on+1].v - base[on+1].v, disturbance * dt * decay);
-    near(samples[on].f - base[on].f, disturbance * decay);
+    const x = plant.wn * dt, decay = Math.exp(-x), b = plant.gain * plant.wn**2;
+    near(samples[on+1].y - base[on+1].y, plant.gain * disturbance * (1 - (1+x)*decay));
+    near(samples[on+1].v - base[on+1].v, b * disturbance * dt * decay);
+    near(samples[on].f - base[on].f, b * disturbance * decay);
     for (let k = on; k < on + delay; k++) assert.equal(samples[k].fHat, base[k].fHat);
-    near(samples[on+delay].fHat - base[on+delay].fHat, disturbance * decay);
-    near(samples.at(-1).u - base.at(-1).u, -disturbance / (plant.gain * plant.wn**2), 1e-4);
+    near(samples[on+delay].fHat - base[on+delay].fHat, b * disturbance * decay);
+    near(samples.at(-1).u - base.at(-1).u, -disturbance, 1e-4);
   }
 });
 
@@ -122,16 +124,28 @@ test('rejects fractional/unsafe history lengths, invalid gain calibration and in
   for (const plant of [{wn: 0}, {zeta: 2.1}, {gain: '1'}]) assert.throws(() => simulate({plant}), RangeError);
 });
 
+test('at the steady-input limit a slow plant still has tracking error at 20 s', () => {
+  const plant = {wn: 0.5, zeta: 2, gain: 0.5, disturbance: -2};
+  const {samples, finalState, inputLimit} = simulate({plant, delay: 10});
+  assert.equal(1 / plant.gain - plant.disturbance, inputLimit);
+  const last = samples.at(-1);
+  assert.ok(last.uRaw > inputLimit); // The requested transient command is infeasible.
+  assert.equal(last.u, inputLimit); assert.equal(last.uPlant, 2);
+  assert.equal(finalState.t, 20);
+  assert.ok(finalState.y < 0.99 && finalState.v > 0);
+});
+
 test('reports bounds, defaults, timing convention and the conceptual TDC source with the run', () => {
   const {spec, samples} = simulate();
-  for (const [option, triple] of Object.entries({delay: [1, 10, 1], nominal: [0.75, 1.5, 1], disturbance: [-2, 2, 0.8]})) {
+  for (const [option, triple] of Object.entries({delay: [1, 10, 1], nominal: [0.75, 1.5, 1], disturbance: [-2, 2, 0]})) {
     const {min, max, initial} = spec[option];
     assert.deepEqual([min, max, initial], triple);
   }
   assert.match(spec.nominal.meaning, /b0\/b/);
   assert.match(spec.history, /interval average/i);
   assert.match(spec.source, /https:\/\/doi\.org\/10\.1115\/1\.2894130/);
-  assert.deepEqual(samples, simulate({plant: {wn: 1, zeta: 0.5, gain: 1}, delay: 1, nominal: 1, disturbance: 0.8}).samples);
+  assert.deepEqual(samples, simulate({plant: {wn: 1, zeta: 0.5, gain: 1, disturbance: 0}, delay: 1, nominal: 1}).samples);
+  assert.ok(samples.every(s => s.d === 0 && s.uPlant === s.u));
   assert.deepEqual([samples[0].t, samples[0].y, samples[0].v, samples[0].r, samples[0].uRaw, samples[0].u], [0, 0, 0, 1, 6.25, 4]);
   assert.ok(samples.every(s => s.r === 1));
   assert.ok(samples.slice(-25).every(s => !s.saturated && Math.abs(1 - s.y) < 0.01));
@@ -141,13 +155,13 @@ test('plant and controller corners remain finite; feasible steady states track w
   for (const wn of [0.5, 2]) for (const zeta of [0.1, 2]) for (const gain of [0.5, 2]) {
     const plant = {wn, zeta, gain};
     for (const nominal of [0.75, 1.5]) for (const delay of [1, 10]) for (const disturbance of [-2, 0, 2]) {
-      const {samples, finalState} = simulate({plant, nominal, delay, disturbance});
-      const equilibriumU = (wn**2 - disturbance) / (wn**2 * gain);
+      const {samples, finalState} = simulate({plant: {...plant, disturbance}, nominal, delay});
+      const equilibriumU = 1/gain - disturbance;
       for (const s of samples) {
         assert.ok([s.y, s.v, s.uRaw, s.u, s.a, s.f, s.fHat].every(Number.isFinite));
         assert.ok(Math.abs(s.u) <= 4);
         // Do not promise rejection if the required steady input is unavailable.
-        if (Math.abs(equilibriumU) < 4 && s.t >= 9.5) {
+        if (Math.abs(equilibriumU) < 4 && s.t >= 19.5) {
           near(s.y, 1, 0.01); near(s.v, 0, 0.02); near(s.u, equilibriumU, 0.025);
         }
       }

@@ -69,8 +69,8 @@ test('out-of-range values, fractional horizons and nonnumeric settings are rejec
 test('all range corners produce finite bounded plans and traces', () => {
   for (const horizon of [2, 30]) for (const weight of [0.01, 2]) for (const limit of [0.5, 4]) {
     const { samples, pidSamples, plans } = simulateMPC({ horizon, weight, limit });
-    for (const { t, y, u } of [...samples, ...pidSamples]) {
-      assert.ok(Number.isFinite(t) && Number.isFinite(y) && Math.abs(u) <= limit);
+    for (const [trace, bound] of [[samples, limit], [pidSamples, 4]]) for (const {t, y, u} of trace) {
+      assert.ok(Number.isFinite(t) && Number.isFinite(y) && Math.abs(u) <= bound);
     }
     for (const { y, u } of plans) {
       assert.equal(y.length, horizon + 1);
@@ -84,7 +84,7 @@ test('all range corners produce finite bounded plans and traces', () => {
 test('restarts are deterministic, independent of previous runs and return fresh arrays', () => {
   const first = simulateMPC();
   simulateMPC({ horizon: 30, weight: 2, limit: 0.5 });
-  const second = simulateMPC(Object.freeze({ horizon: 12, weight: 0.25, limit: 2 }));
+  const second = simulateMPC(Object.freeze({ horizon: 12, weight: 0.25, limit: 4 }));
   assert.deepEqual(second, first);
   for (const key of ['samples', 'pidSamples', 'plans']) {
     assert.notEqual(second[key], first[key]);
@@ -100,7 +100,8 @@ test('comparison PID uses measured velocity, conditional integration and the sam
     const applied = [];
     let integral = 0;
     for (const [k, sample] of pidSamples.entries()) {
-      assert.deepEqual(Object.keys(sample).sort(), ['t', 'u', 'y']);
+      assert.equal(sample.d, 0);
+      assert.equal(sample.uPlant, sample.u);
       close(sample.t, k / 5);
       const y = response(applied), v = response(applied, stepRate);
       close(sample.y, y);
@@ -109,10 +110,10 @@ test('comparison PID uses measured velocity, conditional integration and the sam
         break;
       }
       const e = 1 - y, raw = 4 * e + 2 * integral - 2 * v;
-      close(sample.u, Math.min(limit, Math.max(-limit, raw)));
-      assert.ok(Math.abs(sample.u) <= limit);
+      close(sample.u, Math.min(4, Math.max(-4, raw)));
+      assert.ok(Math.abs(sample.u) <= 4);
       applied.push(sample.u);
-      const pushesFurther = (raw >= limit && e > 0) || (raw <= -limit && e < 0);
+      const pushesFurther = (raw >= 4 && e > 0) || (raw <= -4 && e < 0);
       if (!pushesFurther) integral += ts * e;
     }
   }
@@ -126,7 +127,8 @@ test('closed loop starts at rest and applies each bounded plan’s first move on
   close(samples[0].u, limit); // The optimum initially saturates for this unreachable target.
   const applied = [];
   for (const [k, sample] of samples.entries()) {
-    assert.deepEqual(Object.keys(sample).sort(), ['t', 'u', 'y']);
+    assert.equal(sample.d, 0);
+    assert.equal(sample.uPlant, sample.u);
     close(sample.t, k / 5);
     close(sample.y, response(applied));
     if (k === plans.length) {
@@ -144,5 +146,32 @@ test('closed loop starts at rest and applies each bounded plan’s first move on
       close(y[j + 1], response([...applied, ...u.slice(0, j + 1)]));
     }
     applied.push(sample.u);
+  }
+});
+
+test('unknown disturbance changes the physical trajectory, never the nominal MPC predictions', () => {
+  const limit = .5, nominal = simulateMPC({limit});
+  for (const amplitude of [-2, 2]) {
+    const run = simulateMPC({limit, plant: {disturbance: amplitude}});
+    for (const key of ['samples', 'pidSamples']) {
+      const actual = run[key], applied = [];
+      const k0 = actual.findIndex(s => s.t === 4);
+      assert.deepEqual(actual.slice(0,k0), nominal[key].slice(0,k0));
+      assert.equal(actual[k0].u, nominal[key][k0].u);
+      assert.equal(actual[k0].y, nominal[key][k0].y);
+      assert.equal(actual[k0].v, nominal[key][k0].v);
+      assert.deepEqual(run.plans[k0], nominal.plans[k0]);
+      for (const [k, s] of actual.entries()) {
+        assert.equal(s.d, s.t < 4 ? 0 : amplitude);
+        assert.equal(s.uPlant, s.u + s.d);
+        close(s.y, response(applied));
+        close(s.v, response(applied, stepRate));
+        if (key === 'samples' && k < run.plans.length) {
+          const {y, u} = run.plans[k];
+          for (let j = 1; j <= u.length; j++) close(y[j], response([...applied, ...u.slice(0,j)]));
+        }
+        applied.push(s.uPlant);
+      }
+    }
   }
 });

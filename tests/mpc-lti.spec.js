@@ -17,6 +17,19 @@ test('MPC settings change the closed loop; the time cursor inspects a plan witho
   await page.locator('#mpc-reset').click();await expect(pidOverlay).toHaveCount(0);expect(await path(page,'y')).toBe(y);expect(await path(page,'prediction')).toBe(pred);expect(errors).toEqual([]);
 });
 
+test('MPC planning bound and post-disturbance steady-input requirement are distinct from actuator authority',async({page})=>{
+  await page.goto(`${base}mpc-lti/?lang=en&gain=2&disturbance=2`);
+  await expect(page.locator('#mpc-limit')).toHaveValue('4');
+  await expect(page.locator('label[for=mpc-limit]')).toContainText(/planning/i);
+  await set(page,'limit',1);
+  const hint=page.locator('#mpc-limit-hint');
+  await expect(hint).toContainText('cannot hold');await expect(hint).toContainText('-1.5');
+  await set(page,'limit',1.5);await expect(hint).toContainText('within');
+  await page.locator('[data-lang=ko]').click();await expect(hint).toContainText('-1.5');
+  await expect(page.locator('label[for=mpc-limit]')).toContainText('계획');
+  await page.locator('#mpc-reset').click();await expect(page.locator('#mpc-limit')).toHaveValue('4');
+});
+
 test('MPC obeys the input limit and keeps the inspected plan across language changes on mobile',async({page})=>{
   await page.setViewportSize({width:320,height:812});await page.goto(`${base}mpc-lti/?lang=en`);
   await set(page,'limit',.5);await set(page,'time',99);await set(page,'horizon',30);

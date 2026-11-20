@@ -68,10 +68,11 @@ function simulate(){
   }
   $('mpc-final-y').textContent=run.samples.at(-1).y.toFixed(3);
   $('mpc-peak-u').textContent=Math.max(...run.samples.map(s=>Math.abs(s.u))).toFixed(2);
-  const required=1/plant.gain,need=Number(required.toFixed(3));
-  $('mpc-limit-hint').textContent=num('limit')*plant.gain<1-1e-12
-    ?tr(`목표 유지 불가: 출력 1을 유지하는 데 필요한 입력(1/K ≈ ${need})이 입력 한계보다 큽니다.`,`MPC cannot hold the target: the required input (1/K ≈ ${need}) exceeds the limit.`)
-    :tr(`출력 1을 유지하는 데 필요한 입력(1/K ≈ ${need})은 입력 한계 안에 있습니다.`,`The input required to hold the target (1/K ≈ ${need}) is within the selected limit.`);
+  const required=1/plant.gain-plant.disturbance, need=Number(required.toFixed(3));
+  const equilibrium=`u = 1/K − d ≈ ${need}`;
+  $('mpc-limit-hint').textContent=Math.abs(required)>num('limit')+1e-12
+    ?tr(`외란 인가 후 목표 유지 불가: 필요한 입력(${equilibrium})이 계획 입력 범위를 벗어납니다.`,`After the disturbance step, MPC cannot hold the target: the required input (${equilibrium}) is outside the planning bounds.`)
+    :tr(`외란 인가 후 출력을 1로 유지하는 데 필요한 입력(${equilibrium})은 계획 입력 범위 안에 있습니다.`,`After the disturbance step, the input required to hold the target (${equilibrium}) is within the planning bounds.`);
   draw();
 }
 function localize(){

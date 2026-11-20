@@ -1,7 +1,8 @@
 import {heldInputStep} from './second-order.js';
-const TS = 0.2;
-const STEPS = 100;
+import {DURATION, INPUT_LIMIT, conditions, inputDisturbance, clampInput} from './fundamentals-conditions.js';
 
+const TS = 0.2;
+const STEPS = DURATION / TS;
 
 const clamp = (u, limit) => Math.max(-limit, Math.min(limit, u));
 
@@ -50,7 +51,12 @@ function makePlanner(horizon, weight, limit, advance) {
   };
 }
 
-function simulatePID(limit, advance) {
+function physicalSample(k, [y, v], command, amplitude) {
+  const t = k * TS, u = clampInput(command), d = inputDisturbance(t, amplitude);
+  return {t, y, v, u, d, uPlant: u + d};
+}
+
+function simulatePID(advance, amplitude) {
   const samples = [];
   let state = [0, 0], integral = 0, u = 0;
   for (let k = 0; k < STEPS; k++) {
@@ -58,31 +64,33 @@ function simulatePID(limit, advance) {
     // Command uses I[k] and the measured velocity (no derivative kick).
     // Forward Euler updates I[k+1] unless the error would deepen saturation.
     const raw = 4 * error + 2 * integral - 2 * v;
-    u = clamp(raw, limit);
-    if (!((raw >= limit && error > 0) || (raw <= -limit && error < 0))) {
+    u = clampInput(raw);
+    if (!((raw >= INPUT_LIMIT && error > 0) || (raw <= -INPUT_LIMIT && error < 0))) {
       integral += TS * error;
     }
-    samples.push({ t: k * TS, y, u });
-    state = advance(state, u);
+    const sample = physicalSample(k, state, u, amplitude);
+    samples.push(sample);
+    state = advance(state, sample.uPlant);
   }
-  samples.push({ t: STEPS * TS, y: state[0], u });
+  samples.push(physicalSample(STEPS, state, u, amplitude));
   return samples;
 }
 
 // Unit step from rest. Sample u[k] drives [t[k], t[k+1]); the terminal sample
 // repeats the last applied input. Plans include current y before future outputs.
-export function simulateMPC({ horizon = 12, weight = 0.25, limit = 2, plant } = {}) {
+export function simulateMPC({ horizon = 12, weight = 0.25, limit = INPUT_LIMIT, plant } = {}) {
   if (!Number.isInteger(horizon) || horizon < 2 || horizon > 30) {
     throw new RangeError('horizon must be an integer in [2, 30]');
   }
   if (!Number.isFinite(weight) || weight < 0.01 || weight > 2) {
     throw new RangeError('weight must be a finite number in [0.01, 2]');
   }
-  if (!Number.isFinite(limit) || limit < 0.5 || limit > 4) {
+  if (!Number.isFinite(limit) || limit < 0.5 || limit > INPUT_LIMIT) {
     throw new RangeError('limit must be a finite number in [0.5, 4]');
   }
   const samples = [], plans = [];
-  const advance=heldInputStep(plant,TS);
+  const {disturbance: amplitude} = conditions(plant);
+  const advance = heldInputStep(plant, TS);
   const plan = makePlanner(horizon, weight, limit,advance);
   let state = [0, 0], previous = 0;
   for (let k = 0; k < STEPS; k++) {
@@ -96,10 +104,12 @@ export function simulateMPC({ horizon = 12, weight = 0.25, limit = 2, plant } = 
       y.push(prediction[0]);
     }
     plans.push({ y, u });
-    samples.push({ t: k * TS, y: state[0], u: u[0] });
-    previous = u[0];
-    state = advance(state, previous);
+    // Only the real plant experiences the unknown disturbance.
+    const sample = physicalSample(k, state, first, amplitude);
+    samples.push(sample);
+    previous = sample.u;
+    state = advance(state, sample.uPlant);
   }
-  samples.push({ t: STEPS * TS, y: state[0], u: previous });
-  return { samples, pidSamples: simulatePID(limit,advance), plans };
+  samples.push(physicalSample(STEPS, state, previous, amplitude));
+  return { samples, pidSamples: simulatePID(advance, amplitude), plans };
 }

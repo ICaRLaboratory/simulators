@@ -64,6 +64,38 @@ test('peak percentage measures sampled output above the unit target, not above i
   }
 });
 
+test('PID admits the unknown step at the plant, not in the controller or preceding interval', () => {
+  const plant = {wn: 2, zeta: 1, gain: 1.5};
+  for (const amplitude of [-2, 2]) {
+    const {samples} = stepResponse({kp: 0, ki: 0, kd: 0, plant: {...plant, disturbance: amplitude}});
+    for (const {t, y, v, u, d, disturbance, uPlant} of samples) {
+      // Exact critically damped response to the disturbance alone, from rest.
+      const time = Math.max(0, t - 4), decay = Math.exp(-plant.wn * time);
+      assert.equal(u, 0);
+      assert.equal(d, 0); // PID's D contribution, not the external step.
+      assert.equal(disturbance, t < 4 ? 0 : amplitude);
+      assert.equal(uPlant, disturbance);
+      close(y, plant.gain * amplitude * (1 - (1 + plant.wn * time) * decay), 1e-8);
+      close(v, plant.gain * amplitude * plant.wn ** 2 * time * decay, 2e-8);
+    }
+  }
+});
+
+test('PID integrates the plant with saturated u, and does not clamp again after adding the disturbance', () => {
+  const plant = {wn: .5, zeta: 2, gain: .5, disturbance: 2};
+  const {samples} = stepResponse({kp: 12, ki: 12, kd: 1, plant});
+  assert.equal(samples[0].uRaw, 12);
+  assert.equal(samples[0].u, 4);
+  assert.ok(samples.some(s => s.uPlant > 4));
+  for (const s of samples) {
+    close(s.d, -s.v, 1e-12);
+    assert.equal(s.uPlant, s.u + s.disturbance);
+  }
+  // During initial saturation the output is the response to 4, not the request of 12.
+  const t = samples[1].t, alpha = plant.wn * plant.zeta, w = plant.wn * Math.sqrt(plant.zeta ** 2 - 1);
+  close(samples[1].y, 4 * plant.gain * (1 - Math.exp(-alpha*t) * (Math.cosh(w*t) + alpha/w*Math.sinh(w*t))), 1e-10);
+});
+
 test('each effective gain must be a finite number inside its supported range', () => {
   for (const [key, max] of Object.entries({ kp: 12, ki: 12, kd: 8 })) {
     for (const value of [-0.01, max + 0.01, NaN, Infinity, -Infinity, '4', null, undefined]) {
@@ -80,7 +112,7 @@ test('all-off and derivative-only controllers leave the plant at rest', () => {
     assert.equal(result.steadyError, 1);
     assert.equal(result.peakAboveTarget, 0);
     for (const { t, ...signals } of result.samples) {
-      assert.deepEqual(signals, { y: 0, p: 0, i: 0, d: 0, u: 0 }, `t = ${t}`);
+      assert.deepEqual(signals, { y: 0, v: 0, p: 0, i: 0, d: 0, uRaw: 0, u: 0, disturbance: 0, uPlant: 0 }, `t = ${t}`);
     }
   }
 });
@@ -114,9 +146,10 @@ test('all eight gain-range corners produce finite samples and preserve the contr
   for (const kp of [0, 12]) for (const ki of [0, 12]) for (const kd of [0, 8]) {
     const { samples, peakAboveTarget } = stepResponse({ kp, ki, kd });
     assert.ok(Number.isFinite(peakAboveTarget));
-    for (const { t, y, p, i, d, u } of samples) {
+    for (const { t, y, p, i, d, uRaw, u } of samples) {
       assert.ok([t, y, p, i, d, u].every(Number.isFinite), `gains ${kp},${ki},${kd} at ${t}`);
-      assert.equal(u, p + i + d);
+      assert.equal(uRaw, p + i + d);
+      assert.equal(u, Math.max(-4, Math.min(4, uRaw)));
     }
   }
 });

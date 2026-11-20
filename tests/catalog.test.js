@@ -34,7 +34,7 @@ test('all implemented projects have static catalog fallback links without stale 
 test('control fundamentals lists five LTI graph labs in order with distinct references', async () => {
   const {catalog, filterCatalog} = await import('../assets/catalog.js');
   const local = catalog.filter(item => !item.external);
-  const graphIds = ['pid-lti','mpc-lti','deepc-lti','smc-lti','tdc-lti'];
+  const graphIds = ['pid-lti','mpc-lti','ddc-lti','smc-lti','tdc-lti'];
   const labs = filterCatalog({category:'제어 기초', ready:true});
   const [pid, mpc] = labs;
   assert.deepEqual(labs.map(item => item.id), graphIds);
@@ -55,7 +55,7 @@ test('control fundamentals lists five LTI graph labs in order with distinct refe
   for (const query of ['MPC', '예측 구간', 'prediction horizon'])
     assert.deepEqual(filterCatalog({category:'제어 기초', query, ready:true}), [mpc]);
   for (const [id,ko,en,doi] of [
-    ['deepc-lti','입출력 데이터','input-output data','10.23919/ECC.2019.8795639'],
+    ['ddc-lti','상태 피드백 이득','state-feedback gain','10.1109/TAC.2019.2959924'],
     ['smc-lti','위상 평면','phase plane','10.1109/TAC.1977.1101446'],
     ['tdc-lti','지연 가속도','delayed acceleration','10.1115/1.2894130'],
   ]) {
@@ -65,6 +65,7 @@ test('control fundamentals lists five LTI graph labs in order with distinct refe
       assert.deepEqual(filterCatalog({category:'제어 기초', query, ready:true}), [item]);
   }
   assert.equal(local.filter(item => item.view === 'apparatus').length, 16);
+  assert.match(catalog.find(i=>i.id==='aircraft-pitch').source,/mathworks\.com\/help\/control\/ref\/dynamicsystem\.compreal/);
 });
 
 test('catalog has 23 unique experiments, twenty-one local launches and two research links', async () => {

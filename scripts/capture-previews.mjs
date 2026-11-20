@@ -28,7 +28,7 @@ export async function prepareGraphPreview(page,id){
   for(const series of ['y','prediction']){
    await panel.locator(`#mpc-output-plot path[data-series="${series}"][d]`).waitFor({state:'visible'});
   }
- }else if(['deepc-lti','smc-lti','tdc-lti'].includes(id)){
+ }else if(['ddc-lti','smc-lti','tdc-lti'].includes(id)){
   panel=page.locator('#method-response-panel');
   await panel.locator('svg path[data-series="output"][d]').waitFor({state:'visible'});
  }else throw Error(`No graph preview recipe for ${id}`);

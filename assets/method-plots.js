@@ -1,6 +1,6 @@
 // Construct the SVG curves from numerical samples. Ranges never silently crop a run.
 const ns='http://www.w3.org/2000/svg';
-const styles={output:['#08796f'],target:['#9c552a','6 4'],input:['#244e75'],'record-u':['#73568d','4 2'],'record-y':['#08796f'],phase:['#08796f'],surface:['#9c552a','6 4'],unknown:['#38495c'],estimate:['#be5d23','5 3']};
+const styles={output:['#08796f'],target:['#9c552a','6 4'],input:['#244e75'],'record-u':['#73568d','4 2'],'record-y':['#08796f'],'record-v':['#a34a24','7 3'],phase:['#08796f'],surface:['#9c552a','6 4'],unknown:['#38495c'],estimate:['#be5d23','5 3']};
 const label=n=>String(Number(n.toPrecision(8)));
 function scale(min,max,count){
  if(min===max){const pad=Math.max(1,Math.abs(min)*.1);min-=pad;max+=pad;}

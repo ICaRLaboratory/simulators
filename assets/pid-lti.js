@@ -19,7 +19,7 @@ function node(tag,attrs,text) {
   if(text!==undefined)el.textContent=text;
   return el;
 }
-const styles={y:['#087f74',''],saved:['#5d5389','8 5'],target:['#ad581e','5 4'],p:['#087f74',''],i:['#b45923','8 4'],d:['#4b5aa1','3 4'],u:['#25252a','']};
+const styles={y:['#087f74',''],saved:['#5d5389','8 5'],target:['#ad581e','5 4'],p:['#087f74',''],i:['#b45923','8 4'],d:['#4b5aa1','3 4'],uRaw:['#5d5389','8 5'],u:['#25252a','']};
 
 function chart(id,curves,output) {
   const svg=$(id),width=Math.max(160,svg.clientWidth),height=svg.clientHeight;
@@ -57,7 +57,7 @@ function render(){
   $('mode-label').textContent=activeNames(gains);
   $('steady-error').textContent=run.steadyError===null?'—':run.steadyError.toFixed(3);
   $('end-value').textContent=run.samples.at(-1).y.toFixed(3);
-  $('peak-value').textContent=run.stability==='stable'?run.peakAboveTarget.toFixed(1)+'%':'—';
+  $('peak-value').textContent=run.peakAboveTarget.toFixed(1)+'%';
   const states={stable:local('안정','Stable'),marginal:local('한계 안정','Marginal'),unstable:local('불안정','Unstable')};
   $('stability').dataset.stability=run.stability;$('stability').textContent=states[run.stability];
   $('clear-pin').disabled=!saved;$('saved-key').hidden=!saved;
@@ -72,7 +72,7 @@ function draw(){
   if(!run)return;
   const curve=(name,key=name,samples=run.samples)=>({name,key,samples});
   chart('pid-output-plot',[curve('y'),...(saved?[curve('saved','y',saved.samples)]:[])],true);
-  chart('pid-terms-plot',[curve('u'),...keys.filter(k=>enabled(k)).map(k=>curve(k))],false);
+  chart('pid-terms-plot',[curve('u'),curve('uRaw'),...keys.filter(k=>enabled(k)).map(k=>curve(k))],false);
 }
 function localize(){
 

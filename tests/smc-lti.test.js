@@ -11,7 +11,7 @@ test('unit step from rest: ideal relay reaches the surface from below and switch
   const lambda = 1.5, gain = 2.5;
   const {samples, dt, duration} = simulate({plant, lambda, gain, phi: 0, disturbance: 0});
   assert.equal(dt, 0.02);
-  assert.equal(duration, 10);
+  assert.equal(duration, 20);
   assert.equal(samples.length, duration / dt + 1);
   const first = samples[0];
   assert.deepEqual([first.y, first.v, first.e, first.s], [0, 0, -1, -lambda]);
@@ -53,11 +53,11 @@ test('weak actuator clips the total request; initial motion is a critical-dampin
   assert.ok(samples.some(p => p.uRaw < -4));
 });
 
-// Independent RK4 replay of y'' = wn²(g_dc*u - y) - 2*zeta*wn*v + d.
+// Independent RK4 replay with d in the same input units as u.
 // Keep the sampled command fixed even at the intermediate RK stages.
 function replayInterval([y, v], u, d, plant, dt) {
   const h = dt / 16;
-  const acc = (y, v) => plant.wn ** 2 * (plant.gain * u - y) - 2 * plant.zeta * plant.wn * v + d;
+  const acc = (y, v) => plant.wn ** 2 * (plant.gain * (u + d) - y) - 2 * plant.zeta * plant.wn * v;
   for (let j = 0; j < 16; j++) {
     const a1 = acc(y, v), v2 = v + h * a1 / 2;
     const a2 = acc(y + h * v / 2, v2), v3 = v + h * a2 / 2;
@@ -69,19 +69,21 @@ function replayInterval([y, v], u, d, plant, dt) {
   return [y, v];
 }
 
-test('signed disturbance is held acceleration, added after clipping starting at the 4 s state', () => {
+test('the signed input disturbance is added after clipping starting at the 4 s state', () => {
   for (const [plant, disturbance] of [
     [{wn: 1.7, zeta: 0.1, gain: 1.3}, 0.8],
-    [{wn: 0.5, zeta: 1, gain: 0.5}, -1.5],
+    [{wn: 0.5, zeta: 1, gain: 0.5}, -2],
+    [{wn: 0.5, zeta: 1, gain: 0.5}, 1.5],
     [{wn: 1.3, zeta: 2, gain: 2}, -0.7],
   ]) {
-    const {samples, dt, disturbanceStart} = simulate({plant, disturbance});
-    const quiet = simulate({plant, disturbance: 0}).samples;
+    const {samples, dt, disturbanceStart} = simulate({plant: {...plant, disturbance}, phi: 0});
+    const quiet = simulate({plant, phi: 0}).samples;
     assert.equal(disturbanceStart, 4);
     let state = [0, 0];
     for (const [k, p] of samples.entries()) {
       const d = p.t < 4 ? 0 : disturbance;
       assert.equal(p.d, d);
+      near(p.uPlant, p.u + d);
       near(p.y, state[0], 5e-11);
       near(p.v, state[1], 5e-11);
       if (p.t <= 4) { // disturbance is not measured or canceled in the command
@@ -91,19 +93,23 @@ test('signed disturbance is held acceleration, added after clipping starting at 
       }
       if (k < samples.length - 1) state = replayInterval(state, p.u, d, plant, dt);
     }
-    if (plant.wn === 0.5) { // Even full positive actuation cannot hold y = 1 here.
+    if (plant.wn === 0.5 && disturbance > 0) { // The external load bypasses the actuator limiter.
+      assert.ok(samples.some(p => p.uPlant > 4));
+    }
+    if (plant.wn === 0.5 && disturbance < 0) { // Holding y = 1 needs the full 4 input units.
       const last = samples.at(-1);
-      assert.equal(last.u, 4);
-      assert.ok(last.e < -1);
+      near(last.y, 1, 0.01);
+      near(last.u, 4, 0.01);
     }
   }
 });
 
 test('a wider boundary layer suppresses relay chatter but increases the matched-load offset', () => {
-  const lambda = 2, gain = 2, disturbance = 0.8;
-  const run = phi => simulate({lambda, gain, phi, disturbance}).samples;
+  const lambda = 2, gain = 2, plant = {wn: 1, zeta: 0.5, gain: 1.5, disturbance: 0.8};
+  const b = plant.gain * plant.wn ** 2;
+  const run = phi => simulate({lambda, gain, phi, plant}).samples;
   const variation = samples => { // total variation of applied commands in the final 2 s
-    const tail = samples.filter(p => p.t >= 8 && p.t < 10);
+    const tail = samples.filter(p => p.t >= 18 && p.t < 20);
     return tail.slice(1).reduce((sum, p, i) => sum + Math.abs(p.u - tail[i].u), 0);
   };
   const ideal = run(0), relayVariation = variation(ideal);
@@ -111,22 +117,36 @@ test('a wider boundary layer suppresses relay chatter but increases the matched-
   for (const phi of [0.2, 0.4]) {
     const smooth = run(phi);
     for (const p of smooth) {
-      near(p.uReaching, -gain * Math.max(-1, Math.min(1, p.s / phi))); // default b = 1
+      near(p.uReaching, -gain * Math.max(-1, Math.min(1, p.s / phi)) / b);
       assert.equal(p.saturated, false);
     }
     assert.ok(variation(smooth) < relayVariation / 100);
-    // At an unsaturated equilibrium v=0 and 0 = -gain*s/phi + d.
-    const last = smooth.at(-1), expectedS = disturbance * phi / gain;
+    // At an unsaturated equilibrium v=0 and 0 = -gain*s/phi + b*d.
+    const last = smooth.at(-1), expectedS = b * plant.disturbance * phi / gain;
     near(last.s, expectedS, 1e-4);
     near(last.e, expectedS / lambda, 1e-4);
     near(last.v, 0, 1e-4);
-    near(last.u, last.y - disturbance, 1e-4);
+    near(last.u, last.y / plant.gain - plant.disturbance, 1e-4);
+  }
+});
+
+test('a load exceeding the reaching gain can prevent sliding even with a feasible target input', () => {
+  for (const disturbance of [-2, 2]) {
+    const plant = {wn: 2, zeta: 1, gain: 2, disturbance}, gain = 0.5;
+    assert.ok(gain < plant.wn ** 2 * plant.gain * Math.abs(disturbance));
+    assert.ok(Math.abs(1 / plant.gain - disturbance) < 4);
+    const last = simulate({plant, gain}).samples.at(-1);
+    assert.equal(last.saturated, true);
+    assert.equal(last.u, 4 * Math.sign(disturbance));
+    near(last.y, plant.gain * (last.u + disturbance), 1e-7);
+    assert.ok(Math.abs(last.s) > 1);
   }
 });
 
 test('options have finite inclusive ranges and use the shared plant defaults', () => {
-  const defaults = {lambda: 1.5, gain: 2, phi: 0.1, disturbance: 0.8, plant: {wn: 1, zeta: 0.5, gain: 1}};
+  const defaults = {lambda: 1.5, gain: 2, phi: 0.1, plant: {wn: 1, zeta: 0.5, gain: 1, disturbance: 0}};
   const expected = simulate(defaults).samples;
+  assert.ok(expected.every(p => p.d === 0 && p.uPlant === p.u));
   for (const [k, p] of simulate().samples.entries()) assert.deepEqual(p, expected[k]);
   for (const [key, lo, hi] of [['lambda', 0.5, 3], ['gain', 0.5, 4], ['phi', 0, 0.5], ['disturbance', -2, 2]]) {
     for (const value of [lo, hi]) assert.doesNotThrow(() => simulate({[key]: value}));

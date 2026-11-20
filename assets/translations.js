@@ -1,9 +1,9 @@
 // Korean source strings remain readable without JavaScript; English equivalents are shared by DOM and canvas.
 export const english = {
  '제어 기초':'Control fundamentals',
- '2차 LTI 시스템의 데이터 기반 예측 제어(DeePC)':'Data-enabled predictive control (DeePC) of a second-order LTI system',
- '측정 잡음이 없는 결정론적 실험에서 수집한 입출력 데이터로 미래 출력을 예측하고 목표를 추종할 입력을 구합니다.':'Use input-output data from a deterministic, noiseless experiment to predict future outputs and choose inputs that track the reference.',
- '측정 입출력 데이터':'Measured input-output data','입력 신호의 여기 조건':'Input excitation','출력 예측':'Output prediction',
+ '2차 LTI 시스템의 데이터 기반 제어(DDC)':'Data-driven control (DDC) of a second-order LTI system',
+ '측정한 입력과 상태로 상태 피드백 이득을 구합니다. 데이터의 랭크와 폐루프 극점을 확인하고, 출력이 목표값 1로 수렴하는 과정을 살펴봅니다.':'Use measured inputs and states to compute a state-feedback gain. Inspect the data rank and closed-loop poles as the output approaches the unit setpoint.',
+ '입력·상태 데이터':'Input and state data','상태 피드백 이득':'State-feedback gain','폐루프 극점':'Closed-loop poles',
  '2차 LTI 시스템의 슬라이딩 모드 제어(SMC)':'Sliding mode control (SMC) of a second-order LTI system',
  '오차와 오차 변화율의 위상 평면에서 궤적이 슬라이딩 면에 접근하는 과정과 경계층 폭에 따른 스위칭 입력의 변화를 살펴봅니다.':'Follow the trajectory toward the sliding surface in the phase plane of error and error rate. Vary the boundary layer width to see how the switching input changes.',
  '위상 평면':'Phase plane','슬라이딩 면 기울기':'Sliding surface slope','경계층 폭':'Boundary layer width',
