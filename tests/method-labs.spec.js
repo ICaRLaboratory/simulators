@@ -23,7 +23,21 @@ test('DeePC: insufficient excitation leaves recorded input/output visible withou
 test('diagnostics use the measured PE rank and the TDC reference and final physical state',async({page})=>{
  await page.goto(base+'deepc-lti/?lang=en');await expect(page.locator('#method-stat')).toHaveText('14 / 14');await page.locator('#method-excitation').selectOption('0');await expect(page.locator('#method-stat')).toHaveText('1 / 14');
  await page.goto(base+'tdc-lti/?lang=en');await expect(path(page,'output')).toBeVisible();const truth=await page.evaluate(async()=>{const {simulate}=await import('../assets/models/tdc-lti.js');const r=simulate();return {final:r.finalState.y.toFixed(3),peak:Math.max(...r.samples.map(s=>Math.abs(s.u))).toFixed(3)};});
- await expect(page.locator('#method-final')).toHaveText(truth.final);await expect(page.locator('#method-peak')).toHaveText(truth.peak);expect(await path(page,'target').evaluate(p=>p.getBBox().height)).toBeGreaterThan(30);
+ await expect(page.locator('#method-final')).toHaveText(truth.final);await expect(page.locator('#method-peak')).toHaveText(truth.peak);
+});
+test('all Control fundamentals output plots hold the reference at the unit tick from t=0',async({page})=>{
+ const selectors={'pid-lti':'#pid-output-plot path:not([data-series])','mpc-lti':'#mpc-output-plot path:not([data-series])'};
+ for(const id of ['pid-lti','mpc-lti','deepc-lti','smc-lti','tdc-lti']){
+  await page.goto(`${base}${id}/`);const target=page.locator(selectors[id]??'#response-plot path[data-series="target"]');await expect(target).toHaveCount(1);
+  const errors=await target.evaluate(p=>{
+   const svg=p.ownerSVGElement,box=p.getBBox();
+   const tick=[...svg.querySelectorAll('text[text-anchor="end"]')].find(el=>el.textContent==='1');
+   const y=Number(tick.getAttribute('y'))-4;
+   const grid=[...svg.querySelectorAll('line')].find(el=>Math.abs(Number(el.getAttribute('y1'))-y)<.01 && el.getAttribute('y1')===el.getAttribute('y2'));
+   return [box.height,box.y-y,box.x-Number(grid.getAttribute('x1')),box.x+box.width-Number(grid.getAttribute('x2'))];
+  });
+  for(const err of errors)expect(Math.abs(err),id).toBeLessThan(.02);
+ }
 });
 test('cross-lab navigation carries language and plant through classical and modern labs',async({page})=>{
  await page.goto(base+'mpc-lti/?lang=en&gain=1.5&zeta=1.2');for(const id of ['deepc-lti','smc-lti','tdc-lti','pid-lti']){await page.locator(`a[href*="../${id}/"]`).first().click();await expect(page.locator('#plant-gain')).toHaveValue('1.5');await expect(page.locator('#plant-zeta')).toHaveValue('1.2');await expect(page.locator('html')).toHaveAttribute('lang','en');}

@@ -24,7 +24,7 @@ function oracleInterval([y, v], {wn, zeta, gain}, b0, u, d, dt) {
   return {state: [y, v], f: integral / dt};
 }
 
-test('the shaped unit move starts from rest on the fixed clock; no fictitious prehistory', () => {
+test('the unit setpoint is active on the first hold from rest; no fictitious prehistory', () => {
   const plant = {wn: 1.5, zeta: 0.7, gain: 0.8}, nominal = 0.9, delay = 8;
   const {samples, dt, duration, b0} = simulate({plant, nominal, delay, disturbance: 0});
   assert.equal(dt, 0.02);
@@ -32,15 +32,13 @@ test('the shaped unit move starts from rest on the fixed clock; no fictitious pr
   near(b0, nominal * plant.gain * plant.wn**2);
   let state = [0, 0];
   for (let k = 0; k < delay; k++) {
-    const s = samples[k], x = k * dt / 3; // three-second quintic rest-to-rest move
-    const r = 10*x**3 - 15*x**4 + 6*x**5;
-    const rd = (30*x**2 - 60*x**3 + 30*x**4)/3;
-    const rdd = (60*x - 180*x**2 + 120*x**3)/9;
+    const s = samples[k];
     assert.equal(s.t, k * dt);
-    near(s.r, r);
+    assert.equal(s.r, 1);
     near(s.y, state[0]); near(s.v, state[1]);
     assert.equal(s.fHat, 0);
-    near(s.u, (rdd + 5*(rd - state[1]) + 6.25*(r - state[0])) / b0);
+    const raw = (6.25*(1 - state[0]) - 5*state[1]) / b0;
+    near(s.uRaw, raw); near(s.u, Math.max(-4, Math.min(4, raw)));
     state = oracleInterval(state, plant, b0, s.u, 0, dt).state;
   }
 });
@@ -53,15 +51,13 @@ test('independent closed loop: state and interval-average F, including the last 
     const truth = [];
     let state = [0, 0];
     for (const [k, s] of samples.entries()) {
-      const t = k * dt, x = Math.min(1, t / 3);
-      const r = 10*x**3 - 15*x**4 + 6*x**5;
-      const rd = (30*x**2 - 60*x**3 + 30*x**4)/3;
-      const rdd = (60*x - 180*x**2 + 120*x**3)/9;
+      const t = k * dt;
       const estimate = k < delay ? 0 : truth[k - delay];
-      const command = (rdd + 6.25*(r - state[0]) + 5*(rd - state[1]) - estimate) / b0;
+      const raw = (6.25*(1 - state[0]) - 5*state[1] - estimate) / b0;
+      const command = Math.max(-4, Math.min(4, raw));
       const {state: next, f} = oracleInterval(state, plant, b0, command, 0, dt);
       assert.equal(s.t, t);
-      near(s.r, r); near(s.y, state[0], 1e-9); near(s.v, state[1], 1e-9);
+      assert.equal(s.r, 1); near(s.uRaw, raw, 1e-9); near(s.y, state[0], 1e-9); near(s.v, state[1], 1e-9);
       near(s.fHat, estimate, 1e-9); near(s.u, command, 1e-9);
       near(s.f, f, 1e-9);
       state = next; truth.push(f);
@@ -136,7 +132,9 @@ test('reports bounds, defaults, timing convention and the conceptual TDC source 
   assert.match(spec.history, /interval average/i);
   assert.match(spec.source, /https:\/\/doi\.org\/10\.1115\/1\.2894130/);
   assert.deepEqual(samples, simulate({plant: {wn: 1, zeta: 0.5, gain: 1}, delay: 1, nominal: 1, disturbance: 0.8}).samples);
-  assert.ok(samples.every(s => !s.saturated && Math.abs(s.r - s.y) < 0.01));
+  assert.deepEqual([samples[0].t, samples[0].y, samples[0].v, samples[0].r, samples[0].uRaw, samples[0].u], [0, 0, 0, 1, 6.25, 4]);
+  assert.ok(samples.every(s => s.r === 1));
+  assert.ok(samples.slice(-25).every(s => !s.saturated && Math.abs(1 - s.y) < 0.01));
 });
 
 test('plant and controller corners remain finite; feasible steady states track without sustained switching', () => {

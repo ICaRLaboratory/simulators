@@ -1,6 +1,6 @@
 import {coefficients, heldInputStep, ranges} from './second-order.js';
 
-const DT = 0.02, DURATION = 10, MOVE_TIME = 3, INPUT_LIMIT = 4;
+const DT = 0.02, DURATION = 10, INPUT_LIMIT = 4;
 const DISTURBANCE_START = 4;
 
 const knob = (min, max, initial, meaning) => Object.freeze({min, max, initial, meaning});
@@ -22,14 +22,6 @@ function checkRange(name, value) {
   }
 }
 
-// Quintic unit move, with continuous velocity and acceleration at both joins.
-function reference(t) {
-  if (t >= MOVE_TIME) return [1, 0, 0];
-  const x = t / MOVE_TIME, q = x * (1 - x);
-  return [x**3 * (10 + x*(-15 + 6*x)), 30*q*q / MOVE_TIME,
-    60*q*(1 - 2*x) / MOVE_TIME**2];
-}
-
 export function simulate({plant, nominal = spec.nominal.initial, delay = spec.delay.initial,
   disturbance = spec.disturbance.initial} = {}) {
   if (!Number.isInteger(delay)) throw new RangeError('delay must be an integer sample lag');
@@ -41,15 +33,16 @@ export function simulate({plant, nominal = spec.nominal.initial, delay = spec.de
   const {b} = coefficients(plant);
   const b0 = nominal * b, advance = heldInputStep(plant, DT);
   const samples = [];
+  const r = 1; // Command from the first hold; do not differentiate the setpoint jump.
   let state = [0, 0];
   for (let k = 0; k < DURATION / DT; k++) {
     const t = k * DT, [y, v] = state;
-    const [r, rd, rdd] = reference(t);
+
     // Row j describes [t_j, t_{j+1}). Its average acceleration measurement
     // first exists at t_{j+1}; delay=1 selects the most recent COMPLETE hold.
     const past = samples[k - delay];
     const fHat = past ? past.a - b0*past.u : 0;
-    const uRaw = (rdd + 6.25*(r - y) + 5*(rd - v) - fHat) / b0;
+    const uRaw = (6.25*(r - y) - 5*v - fHat) / b0;
     const u = Math.max(-INPUT_LIMIT, Math.min(INPUT_LIMIT, uRaw));
     const d = t >= DISTURBANCE_START ? disturbance : 0;
     state = advance(state, u + d/b); // d is additive acceleration, not actuator effort

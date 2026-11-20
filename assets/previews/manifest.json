@@ -325,7 +325,7 @@
     "file": "tdc-lti-ko.png",
     "source": "tdc-lti/?lang=ko",
     "renderer": "svg",
-    "sha256": "58072585bd60d6966bb5f1cccf6ce6c8da22fb7733a176bd371fda847652bfd8"
+    "sha256": "f130e7e67cc0747aacb149f4a98fd38c95db40c8791b7e58ec6ef5f2eddb89cb"
   },
   {
     "id": "tdc-lti",
@@ -333,7 +333,7 @@
     "file": "tdc-lti-en.png",
     "source": "tdc-lti/?lang=en",
     "renderer": "svg",
-    "sha256": "a2200586ffc90ecdd20ecb21561c12c9ae2524fe3999523a86dfafe3ff51e744"
+    "sha256": "b4685e960aac9da6071f0abc311a15030242ee99bbf76b883cdfdf8a6eee0788"
   },
   {
     "id": "research-tracking",
