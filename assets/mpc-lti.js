@@ -88,4 +88,5 @@ for(const key of optionKeys)input(key).addEventListener('input',simulate);
 input('time').addEventListener('input',draw);$('compare-pid').addEventListener('change',draw);
 $('mpc-reset').addEventListener('click',()=>{for(const key of [...optionKeys,'time'])input(key).value=input(key).defaultValue;plantUI.reset();$('compare-pid').checked=true;simulate();});
 document.addEventListener('icar:lang',localize);setupLanguage();
+for(const button of document.querySelectorAll('.language-switch button'))button.disabled=false;
 const resize=new ResizeObserver(draw);for(const id of ['mpc-output-plot','mpc-input-plot'])resize.observe($(id));

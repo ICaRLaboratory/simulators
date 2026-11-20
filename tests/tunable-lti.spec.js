@@ -1,5 +1,12 @@
 import {test,expect} from '@playwright/test';
 const base=process.env.SIM_BASE||'http://127.0.0.1:8765/simulators/';
+for(const id of ['pid-lti','mpc-lti'])test(`${id}: language choice is available only after the lab can handle it`,async({page})=>{
+ let release;const gate=new Promise(resolve=>{release=resolve;});
+ await page.route(`**/assets/${id}.js`,async route=>{await gate;await route.continue();});
+ await page.goto(`${base}${id}/?lang=ko`,{waitUntil:'commit'});const en=page.locator('[data-lang=en]');
+ try{await expect(en).toBeDisabled({timeout:1500});}finally{release();}
+ await en.click();await expect(page.locator('html')).toHaveAttribute('lang','en');
+});
 const set=(page,id,val)=>page.locator('#plant-'+id).evaluate((n,v)=>{n.value=v;n.dispatchEvent(new Event('input',{bubbles:true}));},String(val));
 const curve=(p,key,id)=>p.locator(`#${id}-output-plot [data-series=${key}]`).getAttribute('d');
 test('tuning all three plant parameters changes PID and the MPC comparison carries the same plant both ways',async({page})=>{

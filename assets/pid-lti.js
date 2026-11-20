@@ -91,5 +91,6 @@ $('pid-reset').addEventListener('click',()=>{
   plantUI.reset();saved=null;render();
 });
 document.addEventListener('icar:lang',localize);setupLanguage();
+for(const button of document.querySelectorAll('.language-switch button'))button.disabled=false;
 const observer=new ResizeObserver(draw);
 for(const id of ['pid-output-plot','pid-terms-plot'])observer.observe($(id));
