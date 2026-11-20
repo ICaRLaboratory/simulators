@@ -1,6 +1,8 @@
 import {setupLanguage} from './i18n.js';
+import {equilibriumInput} from './plant-equation.js';
 import {setupPlantControls} from './plant-controls.js';
 import {simulateMPC} from './models/mpc-lti.js';
+import {Y_SCALES,boundPlot} from './plot-scale.js';
 
 const $=id=>document.getElementById(id);
 const tr=(ko,en)=>document.documentElement.lang==='en'?en:ko;
@@ -22,26 +24,26 @@ function chart(key,step,series,ref,maxTime,selectedTime){
   const svg=$(`mpc-${key}-plot`),w=svg.clientWidth,h=svg.clientHeight;
   if(!w||!h)return;
   const left=44,right=w-16,top=14,bottom=h-36;
-  const values=[0,...ref,...series.flatMap(line=>line.points.map(p=>p.v))];
-  const min=Math.min(...values),max=Math.max(...values),raw=(max-min)/4;
-  const mag=10**Math.floor(Math.log10(raw)),dy=([1,2,2.5,5,10].find(m=>m*mag>=raw)??10)*mag;
-  const low=dy*Math.floor(min/dy),high=dy*Math.ceil(max/dy);
+  const [low,high,dy]=Y_SCALES[key];
   const X=t=>left+(right-left)*t/maxTime,Y=v=>top+6+(bottom-top-12)*(high-v)/(high-low);
   const frag=document.createDocumentFragment(),add=(tag,attrs,text)=>frag.append(element(tag,attrs,text));
-  for(let j=0;j<=Math.round((high-low)/dy);j++){
-    const v=low+j*dy,y=Y(v);add('line',{x1:left,x2:right,y1:y,y2:y,stroke:'#d6dad8'});
-    add('text',{x:left-6,y:y+4,'text-anchor':'end'},Number(v.toFixed(3)));
+  let min=Infinity,max=-Infinity;
+  for(const {points} of series)for(const {v} of points){min=Math.min(min,v);max=Math.max(max,v);}
+  const clip=boundPlot(svg,frag,{left,right,top:Y(high),bottom:Y(low),low,high,min,max});
+  for(let v=low;v<=high;v+=dy){
+    const y=Y(v);add('line',{x1:left,x2:right,y1:y,y2:y,stroke:'#d6dad8'});
+    add('text',{x:left-6,y:y+4,'text-anchor':'end'},v);
   }
   for(let t=0;t<=maxTime;t+=5){const x=X(t);add('text',{x,y:bottom+15,'text-anchor':'middle'},t);}
   add('text',{x:(left+right)/2,y:h-3,'text-anchor':'middle'},tr('시간 (s)','Time (s)'));
-  for(const v of ref)add('path',{d:`M${left},${Y(v)}H${right}`,stroke:colors.ref,'stroke-dasharray':dashes.ref,fill:'none','stroke-width':1.5});
+  for(const v of ref)add('path',{d:`M${left},${Y(v)}H${right}`,'clip-path':clip,stroke:colors.ref,'stroke-dasharray':dashes.ref,fill:'none','stroke-width':1.5});
   const selected=X(selectedTime);add('line',{x1:selected,x2:selected,y1:top,y2:bottom,stroke:'#6a717a','stroke-dasharray':'2 4'});
   for(const {name,points} of series){
     let d='';for(const [k,p] of points.entries()){
       const x=X(p.t).toFixed(2),y=Y(p.v).toFixed(2);d+=k?(step?`H${x}V${y}`:`L${x},${y}`):`M${x},${y}`;
     }
-    add('path',{d,'data-series':name,stroke:colors[name],'stroke-width':name==='prediction'?3:2,'stroke-dasharray':dashes[name]??'none','stroke-linejoin':'round','stroke-linecap':name==='prediction'?'round':'butt',fill:'none'});
-    if(name==='prediction')add('circle',{cx:selected,cy:Y(points[0].v),r:3.4,fill:'white',stroke:colors.prediction,'stroke-width':2});
+    add('path',{d,'data-series':name,'clip-path':clip,stroke:colors[name],'stroke-width':name==='prediction'?3:2,'stroke-dasharray':dashes[name]??'none','stroke-linejoin':'round','stroke-linecap':name==='prediction'?'round':'butt',fill:'none'});
+    if(name==='prediction')add('circle',{cx:selected,cy:Y(points[0].v),r:3.4,'clip-path':clip,fill:'white',stroke:colors.prediction,'stroke-width':2});
   }
   svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.replaceChildren(frag);
 }
@@ -69,8 +71,8 @@ function simulate(){
   $('mpc-final-y').textContent=run.samples.at(-1).y.toFixed(3);
   $('mpc-peak-u').textContent=Math.max(...run.samples.map(s=>Math.abs(s.u))).toFixed(2);
   const required=1/plant.gain-plant.disturbance, need=Number(required.toFixed(3));
-  const equilibrium=`u = 1/K − d ≈ ${need}`;
-  $('mpc-limit-hint').textContent=Math.abs(required)>num('limit')+1e-12
+  const equilibrium=equilibriumInput(need);
+  $('mpc-limit-hint').innerHTML=Math.abs(required)>num('limit')+1e-12
     ?tr(`외란 인가 후 목표 유지 불가: 필요한 입력(${equilibrium})이 계획 입력 범위를 벗어납니다.`,`After the disturbance step, MPC cannot hold the target: the required input (${equilibrium}) is outside the planning bounds.`)
     :tr(`외란 인가 후 출력을 1로 유지하는 데 필요한 입력(${equilibrium})은 계획 입력 범위 안에 있습니다.`,`After the disturbance step, the input required to hold the target (${equilibrium}) is within the planning bounds.`);
   draw();

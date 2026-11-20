@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, mkdtemp, mkdir, cp, rm } from 'node:fs/promises';
+import { readFile, mkdtemp, mkdir, cp, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -34,11 +34,11 @@ for (const definition of [tracking, parking]) {
 test('isolated generated pages expose bilingual bicycle explanations above controls', async () => {
   const temp = await mkdtemp(join(tmpdir(), 'action-bicycle-'));
   try {
-    await mkdir(join(temp, 'scripts'));
     await cp(new URL('package.json', root), join(temp, 'package.json'));
     await mkdir(join(temp, 'assets/models'), { recursive: true });
     for (const { id } of [tracking, parking]) await cp(new URL(`assets/models/${id}.js`, root), join(temp, `assets/models/${id}.js`));
-    await cp(new URL('scripts/build-experiment-pages.mjs', root), join(temp, 'scripts/build-experiment-pages.mjs'));
+    await cp(new URL('scripts/', root), join(temp, 'scripts'), {recursive:true});
+    await symlink(new URL('node_modules/', root), join(temp, 'node_modules'), 'junction');
     execFileSync(process.execPath, ['scripts/build-experiment-pages.mjs', '--available'], { cwd: temp });
     for (const definition of [tracking, parking]) {
       const html = await readFile(join(temp, definition.id, 'index.html'), 'utf8');

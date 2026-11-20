@@ -261,7 +261,7 @@
     "file": "pid-lti-ko.png",
     "source": "pid-lti/?lang=ko",
     "renderer": "svg",
-    "sha256": "984f1d9aaad2c6363403e1a4040196c6310ca2d40e90c41b9962f892eb51e579"
+    "sha256": "6c969fe191d229512667f4fc76aff482e64180ebf8f1d32121dcc405fc52f7c1"
   },
   {
     "id": "pid-lti",
@@ -269,7 +269,7 @@
     "file": "pid-lti-en.png",
     "source": "pid-lti/?lang=en",
     "renderer": "svg",
-    "sha256": "41b75dee2d169df053f8296253f8bc35e68b0728c7fa18e0283e4c03fec0a0e0"
+    "sha256": "08ae30a9977772061d7172cf7ad7299f1464d196e27a07c17f77321fc1f3e87e"
   },
   {
     "id": "mpc-lti",
@@ -277,7 +277,7 @@
     "file": "mpc-lti-ko.png",
     "source": "mpc-lti/?lang=ko",
     "renderer": "svg",
-    "sha256": "a33ca770e8f960ceea729a322ed9c252484b81238e8c505a073cff742ebc092f"
+    "sha256": "5565a20828b52c46515828fbe9ba5d8588f4450efe3adbd0b68576a79a8f0ee7"
   },
   {
     "id": "mpc-lti",
@@ -285,7 +285,7 @@
     "file": "mpc-lti-en.png",
     "source": "mpc-lti/?lang=en",
     "renderer": "svg",
-    "sha256": "a94edb07250d597fc7c23e80760556618f77c56ca948003e454a61fe1fe687a8"
+    "sha256": "0207a17cab5ecc3e7407da900a887996b6b70ecbe8c418c38e4ad1f83819843f"
   },
   {
     "id": "ddc-lti",
@@ -293,7 +293,7 @@
     "file": "ddc-lti-ko.png",
     "source": "ddc-lti/?lang=ko",
     "renderer": "svg",
-    "sha256": "dbdc12196353f068f2e4274e34460030c778eefeab6df7210971da0c2ebf5d9c"
+    "sha256": "305bc434eb09518df28507379826810b25fec64b190f76ff65789d360ff00827"
   },
   {
     "id": "ddc-lti",
@@ -301,7 +301,7 @@
     "file": "ddc-lti-en.png",
     "source": "ddc-lti/?lang=en",
     "renderer": "svg",
-    "sha256": "f5d0525afcce793bd80bccd1df438d48f07456e1d6b1304ad8f1ae6e4528a2f6"
+    "sha256": "f785e3227c597d444ca9cf890d2bdb44682cf1e09a072f30087c16d2f088e133"
   },
   {
     "id": "smc-lti",
@@ -309,7 +309,7 @@
     "file": "smc-lti-ko.png",
     "source": "smc-lti/?lang=ko",
     "renderer": "svg",
-    "sha256": "a315bee27fcf2f12b265249fc1fa2e514ab6ddf02743330b6c34376195f52d9a"
+    "sha256": "401f8e46c3204208418c1344139ca2d84ab83002ffdef81adc0cbb13cfd21f46"
   },
   {
     "id": "smc-lti",
@@ -317,7 +317,7 @@
     "file": "smc-lti-en.png",
     "source": "smc-lti/?lang=en",
     "renderer": "svg",
-    "sha256": "a094662f7cbcb1fce1f102f9dfeee2ee559a8dc7426ba8d9a1710e1fa80d0b55"
+    "sha256": "74df2d73faf366cc57c2fe05bb2bf3a890f820b60e81d65c2a447d784cdedd86"
   },
   {
     "id": "tdc-lti",
@@ -325,7 +325,7 @@
     "file": "tdc-lti-ko.png",
     "source": "tdc-lti/?lang=ko",
     "renderer": "svg",
-    "sha256": "db3ef1c8ad549f98397256bd3c2355088df63a979ad7d6917d2261cce1e103df"
+    "sha256": "5275a23590d605049819b57a1e46f8de0698a8d3a7c8a6ca2974f24514490b10"
   },
   {
     "id": "tdc-lti",
@@ -333,7 +333,7 @@
     "file": "tdc-lti-en.png",
     "source": "tdc-lti/?lang=en",
     "renderer": "svg",
-    "sha256": "b17cb52240b550618391988f42c4d6af548531cbd314ad0749da4f1879817c9d"
+    "sha256": "6de88a910b0cafb21a9aa0523da88eaff90bfbfa67876a9dd2adcb6ce2af5a5b"
   },
   {
     "id": "research-tracking",

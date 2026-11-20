@@ -47,7 +47,7 @@
 .pid-model summary { cursor: pointer; padding: 13px 18px; font-weight: 600; }
 .pid-model div { padding: 0 18px 14px; }
 .pid-model p { margin: 6px 0; }
-.pid-model .eq { font-family: var(--mono); font-size: .92rem; }
+
 .pid-source { margin-top: 12px; font-size: 14px; }
 .pid-source a { text-decoration: underline; text-underline-offset: 3px; }
 @media(max-width: 780px) {

@@ -2,6 +2,7 @@ import {setupLanguage} from './i18n.js';
 import {setupPlantControls} from './plant-controls.js';
 import {labs} from './method-labs-content.js';
 import {plot,trace} from './method-plots.js';
+import {Y_SCALES} from './plot-scale.js';
 const id=document.body.dataset.method, config=labs[id];
 const loaders={'ddc-lti':()=>import('./models/ddc-lti.js'),'smc-lti':()=>import('./models/smc-lti.js'),'tdc-lti':()=>import('./models/tdc-lti.js')};
 const {simulate}=await loaders[id]();
@@ -16,14 +17,14 @@ function draw(){
  const states=result.finalState?[...samples,{...result.finalState,r:1}]:samples;
  const last=states.at(-1),onset=options.disturbance?result.disturbanceStart:null,time={axis,empty,marker:onset};
  const target=smc?{name:'target',points:last?[[0,1],[last.t,1]]:[]}:trace('target',states,'r');
- const ys=last?[trace('output',states,'y'),target]:[];plot($('response-plot'),ys,time);
- if(ddc){const record=result.record;plot($('diag-plot'),[trace('record-u',record,'u',{step:true}),trace('record-y',record,'y'),trace('record-v',record,'v')],{axis,empty:tr('측정 기록 없음','No recorded samples')});}
- else if(smc){const e=samples.map(s=>s.e),ext=[Math.min(0,...e),Math.max(0,...e)];plot($('diag-plot'),[{name:'surface',points:ext.map(x=>[x,-options.lambda*x])},trace('phase',samples,'v',{x:'e'})],{axis:tr('추종 오차 e','Tracking error e'),empty});}
- else {const holds=[...samples,{...samples.at(-1),t:last.t}];plot($('diag-plot'),[trace('unknown',holds,'f',{step:true}),trace('estimate',holds,'fHat',{step:true})],time);}
+ const ys=last?[trace('output',states,'y'),target]:[];plot($('response-plot'),ys,{...time,yScale:Y_SCALES.output});
+ if(ddc){const record=result.record;plot($('diag-plot'),[trace('record-u',record,'u',{step:true}),trace('record-y',record,'y'),trace('record-v',record,'v')],{axis,empty:tr('측정 기록 없음','No recorded samples'),yScale:Y_SCALES.record});}
+ else if(smc){const e=samples.map(s=>s.e),ext=[Math.min(0,...e),Math.max(0,...e)];plot($('diag-plot'),[{name:'surface',points:ext.map(x=>[x,-options.lambda*x])},trace('phase',samples,'v',{x:'e'})],{axis:tr('추종 오차 e','Tracking error e'),empty,yScale:Y_SCALES.velocity});}
+ else {const holds=[...samples,{...samples.at(-1),t:last.t}];plot($('diag-plot'),[trace('unknown',holds,'f',{step:true}),trace('estimate',holds,'fHat',{step:true})],{...time,yScale:Y_SCALES.residual});}
  const zoom=smc&&$('input-zoom').checked,window=zoom?samples.filter(s=>s.t>=4-1e-9&&s.t<=4.4+1e-9):samples;
  // Close the last held interval without plotting an unused command at the final instant.
  const control=trace('input',window.filter(s=>s!==last),'u',{step:true});if(last&&control.points.length&&!zoom&&control.points.at(-1)[0]<last.t)control.points.push([last.t,control.points.at(-1)[1]]);
- plot($('input-plot'),[control],{...time,domain:zoom?[4,4.4]:null});
+ plot($('input-plot'),[control],{...time,domain:zoom?[4,4.4]:null,yScale:Y_SCALES.input});
 }
 function update(){
  const plant=plantUI.refresh();options=Object.fromEntries(config.settings.map(({key})=>[key,Number(field(key).value)]));options.disturbance=plant.disturbance;result=simulate({...options,plant});

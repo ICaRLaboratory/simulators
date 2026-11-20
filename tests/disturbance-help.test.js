@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync} from 'node:fs';
+import {cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
@@ -12,11 +12,11 @@ function generatedPages() {
   // Run the real generator in isolation; never rewrite checked-in pages.
   const temp = mkdtempSync(join(tmpdir(), 'disturbance-help-'));
   try {
-    mkdirSync(join(temp, 'scripts'));
     mkdirSync(join(temp, 'assets'));
     cpSync(new URL('package.json', root), join(temp, 'package.json'));
     cpSync(new URL('assets/models', root), join(temp, 'assets/models'), {recursive:true});
-    cpSync(new URL('scripts/build-experiment-pages.mjs', root), join(temp, 'scripts/build-experiment-pages.mjs'));
+    cpSync(new URL('scripts/', root), join(temp, 'scripts'), {recursive:true});
+    symlinkSync(new URL('node_modules/', root), join(temp, 'node_modules'), 'junction');
     execFileSync(process.execPath, ['scripts/build-experiment-pages.mjs'], {cwd:temp});
     return Object.fromEntries(ids.map(id => [id, readFileSync(join(temp, id, 'index.html'), 'utf8')]));
   } finally { rmSync(temp, {recursive:true, force:true}); }

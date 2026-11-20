@@ -85,7 +85,7 @@ for(const id of ['smc-lti','tdc-lti'])test(`${id}: shared input disturbance on a
  const quiet=await path(page,'output').getAttribute('d');
  await load.press('Home');await expect(load).toHaveValue('-2');await expect(onset).toHaveAttribute('data-onset','4');
  await expect(path(page,'output')).not.toHaveAttribute('d',quiet);
- await page.locator('.pid-model summary').click();await expect(page.locator('.pid-model')).toContainText('b(u + d)');
+ await page.locator('.pid-model summary').click();await expect(page.locator('.pid-model .eq math').filter({hasText:'b(u+d)'}).first()).toBeVisible();
  await expect(page.locator('.pid-guide')).toContainText(/input disturbance/i);
  await page.locator('[data-lang=ko]').click();await expect(page.locator('.pid-guide')).toContainText('입력 외란');
  await expect(load).toHaveValue('-2');await page.locator('#method-reset').click();

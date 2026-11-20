@@ -157,21 +157,29 @@ function apparatus(canvas, sim, sceneDistance) {
   }
 }
 
+// Display windows only: allow negative speed under load, angular overshoot,
+// and the full beam rail. Never limit the simulated output to these ticks.
+const responseTicks = Object.freeze({
+  'cruise-control': Object.freeze([-10, 0, 10, 20, 30, 40, 50]),
+  'dc-motor': Object.freeze([-8, -4, 0, 4, 8]),
+  'ball-and-beam': Object.freeze([-1, -.5, 0, .5, 1]),
+});
+
 function drawGraph(canvas, history, sim) {
   const {ctx:c,width:w,height:h} = canvasContext(canvas);
   const pad={left:48,right:19,top:23,bottom:27};
   const leftTime=Math.max(0,sim.state.t-15),rightTime=Math.max(15,sim.state.t);
   const points=history.filter(p=>p.t>=leftTime);
-  const vals=points.flatMap(p=>[p.y,p.target]).concat([sim.params.target,sim.state.y,0]);
-  let low=Math.min(...vals),high=Math.max(...vals);
-  const margin=Math.max((high-low)*.17,.1); low-=margin;high+=margin;
+  const ticks=responseTicks[sim.kind],low=ticks[0],high=ticks.at(-1);
   const x=t=>pad.left+(t-leftTime)/(rightTime-leftTime)*(w-pad.left-pad.right);
   const y=value=>h-pad.bottom-(value-low)/(high-low)*(h-pad.top-pad.bottom);
   c.font='12px "JetBrains Mono", monospace';c.lineWidth=1;
-  for(let i=0;i<=4;i++) {
-    const value=low+(high-low)*i/4,py=y(value);
+  for(const value of ticks) {
+    const py=y(value);
     c.strokeStyle='#ededeb';c.beginPath();c.moveTo(pad.left,py);c.lineTo(w-pad.right,py);c.stroke();
-    c.fillStyle=MUTED;c.textAlign='right';c.fillText(value.toFixed(Math.abs(high-low)<3?2:1),pad.left-8,py+3);
+    c.fillStyle=MUTED;c.textAlign='right';c.fillText(String(value),pad.left-8,py+3);
+  }
+  for(let i=0;i<=4;i++) {
     const time=leftTime+(rightTime-leftTime)*i/4;
     c.textAlign='center';c.fillText(time.toFixed(1),x(time),h-7);
   }
@@ -182,6 +190,14 @@ function drawGraph(canvas, history, sim) {
     if(points.length===1){c.fillStyle=color;c.beginPath();c.arc(x(points[0].t),y(points[0][key]),3,0,Math.PI*2);c.fill();}
   }
   c.restore();
+  // Report excursions for the displayed time window, not just the latest value.
+  let min=low,max=high;
+  for(const {y} of points){min=Math.min(min,y);max=Math.max(max,y);}
+  const parts=[];
+  if(min<low)parts.push(`${t('표시 하한 미만 · 최솟값')} ≈ ${+min.toPrecision(4)} ${sim.config.unit}`);
+  if(max>high)parts.push(`${t('표시 상한 초과 · 최댓값')} ≈ ${+max.toPrecision(4)} ${sim.config.unit}`);
+  const note=$('#response-overflow'),text=parts.join(' / ');
+  if(note.textContent!==text){note.textContent=text;note.hidden=!text;}
 }
 
 async function setupSimulation(kind) {
@@ -193,7 +209,6 @@ async function setupSimulation(kind) {
     return `<div class="parameter"><label for="${key}">${label}${key==='target'?` (${sim.config.unit})`:''}<output id="${key}-value" for="${key}">${sim.params[key]}</output></label><input id="${key}" type="range" min="${min}" max="${max}" step="${step}" value="${sim.params[key]}" aria-describedby="${key}-help"><div class="range-limits" aria-hidden="true"><span>${min}</span><span>${max}</span></div><p id="${key}-help">${help}</p></div>`;
   }).join('');
   document.querySelectorAll('.unit').forEach(node=>node.textContent=sim.config.unit);
-  $('#model-description').textContent=sim.config.model;
   $('#model-limits').textContent=kind==='cruise-control' ? '단순 질량·선형 저항 모델입니다. 기어, 엔진 지연, 공기저항의 비선형성은 제외합니다. 외란 버튼은 일정한 부하를 켜고 끕니다.' : kind==='dc-motor' ? '단순화한 2차 위치 모델입니다. 전기 회로, 마찰 비선형성 및 기어 백래시는 제외합니다. 외란 버튼은 일정한 부하를 켜고 끕니다.' : '공은 미끄러짐 없이 구르는 구로 근사합니다. 빔 구동기 지연은 제외하며, ±1 m 레일 끝에 도달하면 실험을 정지합니다. 외란 버튼으로 공의 움직임을 교란합니다.';
   let running=false,lastFrame=0,accumulator=0,raf=0,lastSample=0,sceneDistance=0;
   let apparatus3D=null;
@@ -234,8 +249,8 @@ async function setupSimulation(kind) {
         sim.step(STEP);accumulator-=STEP;
         if(![sim.state.t,sim.state.y,sim.state.v,sim.state.u].every(Number.isFinite)){fail('수치 계산 범위를 벗어났습니다.');return;}
         if(kind==='cruise-control')sceneDistance=motionDistance(sceneDistance,previousVelocity,sim.state.y,STEP);
+        if(sim.state.failed||sim.state.t-lastSample>=.05){history.push({t:sim.state.t,y:sim.state.y,target:sim.params.target});lastSample=sim.state.t;}
         if(sim.state.failed){fail(kind==='ball-and-beam'?'공이 레일 범위를 벗어났습니다.':'모델의 안전 범위를 벗어났습니다.');return;}
-        if(sim.state.t-lastSample>=.05){history.push({t:sim.state.t,y:sim.state.y,target:sim.params.target});lastSample=sim.state.t;}
       }
       while(history.length>1&&history[1].t<sim.state.t-15)history.shift();
       render();

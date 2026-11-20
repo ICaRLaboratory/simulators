@@ -13,7 +13,7 @@ test('tuning all three plant parameters changes PID and the MPC lab carries the 
  await page.goto(base+'pid-lti/?lang=ko');await expect(page.locator('#plant-wn')).toBeVisible({timeout:2000});
  const baseY=await curve(page,'y','pid');await page.locator('#pin-response').click();await set(page,'wn',2);const fast=await curve(page,'y','pid');expect(fast===baseY).toBe(false);
  await set(page,'zeta',1);expect(await curve(page,'y','pid')===fast).toBe(false);await set(page,'gain',.5);await expect(page.locator('#steady-error')).toHaveText('0.333');
- await expect(page.locator('#pin-info')).toContainText('K=1');await expect(page.locator('#plant-equation')).toContainText('2 / (s² + 4s + 4)');
+ await expect(page.locator('#pin-info')).toContainText('K=1');const frac=page.locator('#plant-equation mfrac');await expect(frac.locator(':scope > :first-child')).toHaveText('2');await expect(frac.locator(':scope > :last-child')).toHaveText('s2+4s+4');
  await page.locator('#mpc-lab-link').click();await expect(page.locator('#plant-wn')).toHaveValue('2');await expect(page.locator('#plant-zeta')).toHaveValue('1');await expect(page.locator('#plant-gain')).toHaveValue('0.5');
  await page.locator('[data-lang=en]').click();await page.locator('#mpc-limit').focus();await page.keyboard.press('Home');await expect(page.locator('#mpc-limit-hint')).toContainText('cannot hold');
  const m=await curve(page,'y','mpc'),p=await curve(page,'prediction','mpc');await set(page,'gain',2);await expect(page.locator('#mpc-limit-hint')).toContainText('within');

@@ -49,6 +49,8 @@
 
 각 모델의 단위·가정·제어식·정지 조건은 해당 페이지의 접힌 모델 설명에 제공합니다.
 
+수식은 TeX 원고에서 생성한 정적 MathML과 자체 호스팅한 STIX Two Math 글꼴로 표시합니다. 방문자 브라우저에서는 TeX 엔진을 불러오지 않으며, 모델 설명은 JavaScript 없이도 읽을 수 있습니다. 수식 원고를 수정한 뒤에는 `npm ci --include=dev`로 고정된 생성 도구를 설치하고 해당 페이지를 다시 생성하세요. [수식 글꼴·스타일시트 출처와 재생성 절차](assets/vendor/paper-math/README.md)
+
 ## 로컬 실행
 
 Node.js 22 이상과 Python 3 권장. 웹사이트 자체에는 빌드나 npm 의존성이 필요하지 않습니다.
@@ -78,7 +80,7 @@ ES modules를 사용하므로 파일 더블클릭 대신 HTTP 서버로 여세�
 - `assets/vendor/three.js`는 정확한 버전을 고정한 로컬 파일입니다. 방문자가 npm이나 CDN에 연결할 필요가 없습니다. 라이선스와 재생성 절차는 `assets/vendor/README.md`를 참고합니다.
 - `tests/three-*.test.js`는 실제 상태와 장면 좌표·비변경성을, `tests/three-view.spec.js` 및 `tests/three-integration.spec.js`는 실제 WebGL·카메라·폴백·반응형을 검사합니다.
 
-공통 형식의 12개 실험의 모델·번역·제어 구조 정의는 `assets/models/`에 있습니다. 정의 변경 후 `node scripts/build-experiment-pages.mjs`로 정적 페이지를 다시 생성합니다. 나머지 장치 실험 4개와 그래프 전용 실험 5개는 이 생성기를 사용하지 않습니다. DDC·SMC·TDC 페이지는 `node scripts/build-method-labs.mjs`로 생성하고, `--check`로 현재 페이지가 생성 결과와 일치하는지 검사합니다.
+공통 형식의 장치 실험 12개는 `assets/models/`의 모델과 `scripts/apparatus-equations.mjs`의 수식 원고를 사용합니다. 변경 후 `node scripts/build-experiment-pages.mjs`로 페이지를 생성합니다. 나머지 장치 실험 4개의 수식은 `node scripts/build-handwritten-math.mjs`로 갱신합니다. 제어 기초 실험 5개는 `node scripts/build-method-labs.mjs`로 DDC·SMC·TDC 페이지와 PID·MPC의 수식 부분을 갱신합니다.
 
 ## 재생 방식
 

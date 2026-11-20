@@ -1,6 +1,8 @@
 import {setupLanguage} from './i18n.js';
-import {setupPlantControls,plantLabel} from './plant-controls.js';
+import {pinnedPlant} from './plant-equation.js';
+import {setupPlantControls} from './plant-controls.js';
 import {stepResponse} from './models/pid-lti.js';
+import {Y_SCALES,boundPlot} from './plot-scale.js';
 
 const $=id=>document.getElementById(id), keys=['p','i','d'];
 const svgNS='http://www.w3.org/2000/svg';
@@ -25,28 +27,26 @@ function chart(id,curves,output) {
   const svg=$(id),width=Math.max(160,svg.clientWidth),height=svg.clientHeight;
   if(!height)return;
   const left=44,right=width-16,top=15,bottom=height-39;
-  // Preserve a stable scale for ordinary responses and expand it for diverging cases.
-  let low=0,high=output?1.35:1;
-  for(const c of curves)for(const s of c.samples){const v=s[c.key];low=Math.min(low,v);high=Math.max(high,v);}
-  const raw=(high-low)/4,power=10**Math.floor(Math.log10(raw));
-  const step=([1,2,2.5,5,10].find(k=>k*power>=raw)||10)*power;
-  const lo=Math.floor(low/step)*step,hi=Math.ceil(high/step)*step;
-  const X=t=>left+t/20*(right-left),Y=v=>bottom-(v-lo)/(hi-lo)*(bottom-top);
+  const [low,high,step]=output?Y_SCALES.output:Y_SCALES.input;
+  const X=t=>left+t/20*(right-left),Y=v=>bottom-(v-low)/(high-low)*(bottom-top);
   const frag=document.createDocumentFragment();
+  let min=Infinity,max=-Infinity;
+  for(const {samples,key} of curves)for(const s of samples){min=Math.min(min,s[key]);max=Math.max(max,s[key]);}
+  const clip=boundPlot(svg,frag,{left,right,top,bottom,low,high,min,max});
   const add=(tag,attrs,text)=>frag.append(node(tag,attrs,text));
   const line=(x1,y1,x2,y2,color)=>add('line',{x1,y1,x2,y2,stroke:color});
-  for(let j=0;j<=Math.round((hi-lo)/step);j++){
-    const v=lo+j*step,y=Y(v);
+  for(let v=low;v<=high;v+=step){
+    const y=Y(v);
     line(left,y,right,y,v===0?'#a3a5a4':'#d9ddda');
-    add('text',{x:left-7,y:y+4,'text-anchor':'end'},Math.abs(v)>=10000?v.toExponential(0):String(+v.toFixed(3)));
+    add('text',{x:left-7,y:y+4,'text-anchor':'end'},v);
   }
   for(let t=0;t<=20;t+=5){const x=X(t);line(x,bottom,x,bottom+4,'#868a89');add('text',{x,y:bottom+16,'text-anchor':'middle'},t);}
   add('text',{x:(right+left)/2,y:height-4,'text-anchor':'middle'},local('시간 (s)','Time (s)'));
-  if(output){const [stroke,dash]=styles.target;add('path',{d:`M${left},${Y(1)}H${right}`,fill:'none',stroke,'stroke-width':1.7,'stroke-dasharray':dash});}
+  if(output){const [stroke,dash]=styles.target;add('path',{d:`M${left},${Y(1)}H${right}`,'clip-path':clip,fill:'none',stroke,'stroke-width':1.7,'stroke-dasharray':dash});}
   for(const {name,key,samples} of curves){
     const [stroke,dash]=styles[name];let path='';
     for(const [j,s] of samples.entries())path+=`${j?'L':'M'}${X(s.t).toFixed(2)},${Y(s[key]).toFixed(2)}`;
-    add('path',{'data-series':name,d:path,fill:'none',stroke,'stroke-width':name==='u'?3:2.1,'stroke-dasharray':dash||'none','stroke-linejoin':'round'});
+    add('path',{'data-series':name,d:path,'clip-path':clip,fill:'none',stroke,'stroke-width':name==='u'?3:2.1,'stroke-dasharray':dash||'none','stroke-linejoin':'round'});
   }
   svg.setAttribute('viewBox',`0 0 ${width} ${height}`);svg.replaceChildren(frag);
 }
@@ -64,7 +64,8 @@ function render(){
   if(saved){
     const label=`${activeNames(saved.gains)} (${keys.map(k=>saved.gains['k'+k]).join(', ')})`;
     $('saved-key').textContent=local('고정: ','Pinned: ')+label;
-    $('pin-info').textContent=local('고정한 응답: ','Pinned response: ')+label+' · '+plantLabel(saved.plant);
+    $('pin-info').textContent=local('고정한 응답: ','Pinned response: ')+label+' · ';
+    $('pin-info').insertAdjacentHTML('beforeend',pinnedPlant(saved.plant));
   }else $('pin-info').textContent=local('현재 응답을 고정하면 이득을 바꾼 결과와 겹쳐 볼 수 있습니다.','Pin a response to overlay it with the next setting.');
   draw();
 }

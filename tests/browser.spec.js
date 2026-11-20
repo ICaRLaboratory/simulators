@@ -99,7 +99,9 @@ test('rail failure stops beam and reset permits another experiment',async({page}
  await page.locator('#start-pause').click();
  await expect(page.locator('#start-pause')).toBeDisabled({timeout:5000});
  await expect(page.locator('#simulation-message')).toContainText('레일');
+ await expect(page.locator('#response-overflow')).toContainText('표시 상한 초과');
  await page.locator('#reset').click();
+ await expect(page.locator('#response-overflow')).toBeHidden();
  await expect(page.locator('#start-pause')).toBeEnabled();
  await expect(page.locator('#sim-output')).toHaveText('0.000');
 });
