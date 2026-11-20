@@ -4,6 +4,34 @@ export const ids=['rotary-pendulum','ball-and-plate','robot-arm','parking','heat
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const text=(tag,pair,attrs='')=>`<${tag} ${attrs} data-en="${esc(pair[1])}">${esc(pair[0])}</${tag}>`;
 const aria=pair=>`aria-label="${esc(pair[0])}" data-en-aria="${esc(pair[1])}"`;
+// Omit href to link the related project already named by definition.source.
+const modelSources={
+ 'aircraft-pitch':[
+  {href:'https://ctms.engin.umich.edu/CTMS/?example=AircraftPitch&section=SystemModeling',
+   label:['CTMS 항공기 피치 모델 ↗','CTMS aircraft pitch model ↗'],
+   note:['피치율을 q_web = 56.7 q_CTMS로 환산하면 CTMS의 선형 상태방정식과 이 실험의 방정식이 일치합니다. q_web은 피치각의 시간 미분(rad/s)입니다.',
+         'The linear plant matches the CTMS state equations after rescaling the pitch rate: q_web = 56.7 q_CTMS. Here q_web is the time derivative of pitch angle in rad/s.']},
+  {label:['관련 MATLAB 프로젝트: Rick Hill의 피치 제어 앱 ↗','Related MATLAB project: Rick Hill’s pitch control app ↗'],
+   note:['File Exchange 앱은 같은 모델에 LQR 상태 피드백을 적용합니다. 이 실험은 승강타 각도를 제한한 PID 제어를 사용합니다.',
+         'The File Exchange app applies LQR state feedback to the same plant. This experiment uses PID control with a limit on elevator deflection.']}
+ ],
+ cstr:[
+  {label:['관련 MATLAB 프로젝트: Amir Amini의 CSTR 제어 예제 ↗','Related MATLAB project: Amir Amini’s CSTR control example ↗'],
+   note:['Amini의 File Exchange 예제는 반응물 농도, 반응 온도, 냉각수 온도의 세 상태를 계산합니다. 이 실험의 반응기 모델은 농도와 반응 온도의 두 상태만 계산하며, PI 제어기가 재킷 온도를 직접 지정합니다.',
+         'Amini’s File Exchange example integrates three states: reactant concentration, reactor temperature and coolant temperature. The browser plant has two states: concentration and reactor temperature. Its PI controller sets jacket temperature directly.']},
+  {href:'https://apmonitor.com/wiki/index.php/Apps/StirredReactor',
+   label:['비교 모델: APMonitor의 교반 반응기 벤치마크 ↗','Comparison model: APMonitor stirred-reactor benchmark ↗'],
+   note:['APMonitor가 소개한 Henson–Seborg 벤치마크와 물질·열수지 구조, 공급 온도(350 K), 활성화 온도(E/R = 8750 K)가 같습니다. 이 실험에서는 350 K에서 반응 속도 상수가 1/60 s⁻¹이 되도록 보정했습니다.',
+         'The Henson–Seborg benchmark documented by APMonitor has the same mass and energy balance structure, feed temperature (350 K) and activation temperature (E/R = 8750 K). This experiment calibrates the rate constant to 1/60 s⁻¹ at 350 K.']}
+ ]
+};
+function sourceNotes(d){
+ const link=(label,href)=>text('a',label,`href="${esc(href)}" target="_blank" rel="noopener noreferrer"`);
+ const records=modelSources[d.id];
+ if(!records)return text('h2',['관련 프로젝트','Related project'])+link(['관련 MATLAB 프로젝트 ↗','Related MATLAB project ↗'],d.source);
+ return text('h2',['모델과 참고 자료','Model and references'])+records.map(({href,label,note})=>
+  `<p>${link(label,href??d.source)}<br>${text('span',note)}</p>`).join('');
+}
 function loop(d){
  // Compact 1040-wide loop that fits the desktop container without scrolling,
  // shaped like the hand-made diagrams: the reference is a dashed labelled
@@ -37,7 +65,7 @@ function page(d){
 ${d.plots.map((p,i)=>`<div class="panel graph-panel"><div class="panel-heading">${text('h2',p.label.map(s=>s+' · '+p.unit))}<div class="legend">${p.series.map(s=>text('span',s.label,`class="${s.dash?'target-line':'actual-line'}" style="--series:${esc(s.color)}"`)).join('')}</div></div><canvas class="response" id="plot-${i}" role="img" ${aria(p.label.map(s=>s+' · '+p.unit))}></canvas>${text('p',[`최근 15초 · 시간 (s) · 고정 범위 ${p.range.join(' … ')} ${p.unit}`,`Last 15 seconds · time (s) · fixed range ${p.range.join(' … ')} ${p.unit}`],'class="canvas-caption"')}</div>`).join('')}</section>
 <aside class="panel controls" aria-labelledby="controls-title"><div class="panel-heading">${text('h2',['실험 설정','Experiment settings'],'id="controls-title"')}</div><div class="action-buttons"><button id="start-pause" class="primary" type="button" disabled>시작</button>${text('button',['초기화','Reset'],'id="reset" type="button" disabled')}</div>${d.disturbanceParameters?.length?`<fieldset class="disturbance-controls">${text('legend',['외란','Disturbance'])}<div id="disturbance-parameters"></div>`:''}${text('button',d.disturbance,'id="disturb" class="disturb-button" type="button" aria-describedby="disturbance-help" disabled')}${text('p',disturbanceHelp,'id="disturbance-help" class="control-help"')}${d.disturbanceParameters?.length?'</fieldset>':''}${text('p',['초기화하면 일시정지하며 설정은 유지됩니다.','Reset pauses the experiment and keeps your settings.'],'class="control-help"')}<div id="parameter-controls"></div><p id="simulation-message" class="simulation-message" role="status" aria-live="polite">모델을 불러오는 중입니다.</p><noscript>JavaScript를 켜면 실험을 실행할 수 있습니다.</noscript></aside></div>
 <section class="control-loop panel" aria-labelledby="loop-title"><div class="panel-heading">${text('h2',['제어 구조','Control structure'],'id="loop-title"')}</div>${text('p',['그림에 초점을 맞춘 뒤 방향키로 좌우로 스크롤하세요.','Focus the diagram and use arrow keys to scroll horizontally.'],'id="loop-scroll-help" class="loop-scroll-help"')}${loop(d)}<details class="loop-notes">${text('summary',['모델·제어식·단위·실험 범위','Model, equations, units and limits'])}<div class="loop-details"><div>${text('h3',['모델과 제어식','Model and control equations'])}${d.equations.map(e=>`<p class="loop-equation">${esc(e)}</p>`).join('')}</div><div>${text('h3',['실험 범위와 단위','Limits and units'])}${d.notes.map(n=>text('p',n)).join('')}${text('p',['고정 계산 간격 0.005 s. 숨겨진 탭은 일시정지합니다.','Fixed integration step: 0.005 s. Hidden tabs pause.'])}<ul>${d.parameters.map(p=>`<li>${text('span',p.label)}: ${esc(p.min)} … ${esc(p.max)} ${esc(p.unit)}</li>`).join('')}</ul></div></div></details></section>
-<section class="model-notes panel">${text('h2',['관련 프로젝트','Related project'])}${text('a',['관련 MATLAB 프로젝트 ↗','Related MATLAB project ↗'],`href="${esc(d.source)}" target="_blank" rel="noopener noreferrer"`)}</section></main><footer class="site-footer"><span><strong>Control Simulators</strong><span class="footer-tag">Interactive Control Lab</span></span>${text('a',['실험 목록으로 돌아가기 ↑','Back to experiments ↑'],'href="../"')}</footer></body></html>
+<section class="model-notes panel">${sourceNotes(d)}</section></main><footer class="site-footer"><span><strong>Control Simulators</strong><span class="footer-tag">Interactive Control Lab</span></span>${text('a',['실험 목록으로 돌아가기 ↑','Back to experiments ↑'],'href="../"')}</footer></body></html>
 `;
 }
 const missing=[],definitions=[];

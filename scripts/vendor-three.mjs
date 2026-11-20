@@ -14,16 +14,23 @@ if (esbuild.version !== '0.28.2') throw new Error('Expected esbuild@0.28.2');
 const out = new URL('../assets/vendor/', import.meta.url);
 await mkdir(out, {recursive: true});
 const file = new URL('three.js', out);
+// Preserve third-party terms even when the module is downloaded without sidecars.
+const noticesFile = 'THIRD-PARTY-NOTICES.txt';
+const notices = await readFile(new URL(noticesFile, out), 'utf8');
+const noticeHash = createHash('sha256').update(notices).digest('hex');
+if (noticeHash !== 'f9e8b88f493a65177601ab9f8f19a2a3cbf600acc1c0d09fc324a71e8a2ced51') throw new Error('Unexpected or incomplete r187 notices');
 await esbuild.build({
   stdin: {contents: "export * from 'three'; export {OrbitControls} from 'three/addons/controls/OrbitControls.js';", resolveDir: resolve(deps)},
   outfile: file.pathname, bundle: true, format: 'esm', minify: true,
   charset: 'ascii', legalComments: 'none', target: 'es2022',
+  banner: {js: `/*!\n${notices}*/`},
 });
 await copyFile(resolve(packageRoot, 'LICENSE'), new URL('THREE-LICENSE.txt', out));
 const bytes = await readFile(file);
 const manifest = {name: 'three', version: meta.version, license: meta.license,
   source: 'https://registry.npmjs.org/three/-/three-0.187.0.tgz',
   integrity: 'sha512-Qiu7R+Cmh8CstZsY1uJOSWnVlfo7ZtNLV7mF8Jltk3LB3AtDu9cRZlcnRKkAk8Y4z6KKw35z7Y7Urd7jWY8etA==',
-  bundler: 'esbuild@0.28.2', sha256: createHash('sha256').update(bytes).digest('hex')};
+  bundler: 'esbuild@0.28.2', notices: {file: noticesFile, sha256: noticeHash},
+  sha256: createHash('sha256').update(bytes).digest('hex')};
 await writeFile(new URL('three-manifest.json', out), JSON.stringify(manifest, null, 2) + '\n');
 console.log(JSON.stringify({...manifest, bytes: bytes.length}));

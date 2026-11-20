@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {catalog} from '../assets/catalog.js';
 const ids=['rotary-pendulum','ball-and-plate','robot-arm','parking','heat-exchanger','drone','impedance-robot','path-tracking','suspension','cstr','aircraft-pitch','rocket-landing'];
 const base=process.env.SIM_BASE||'http://127.0.0.1:8765/simulators/';
 const pixels=page=>page.locator('.response').evaluateAll(nodes=>nodes.map(n=>n.toDataURL()));
@@ -56,7 +57,9 @@ for(const id of ids){
  });
  test(`${id}: static Korean equations and project without JavaScript`,async({browser})=>{
   const context=await browser.newContext({javaScriptEnabled:false});const page=await context.newPage();await page.goto(`${base}${id}/`);
-  await expect(page.locator('h1')).toContainText(/[가-힣]/);await expect(page.locator('#start-pause')).toBeDisabled();await page.locator('summary').click();await expect(page.locator('.loop-equation').first()).toBeVisible();await expect(page.getByRole('link',{name:'관련 MATLAB 프로젝트 ↗'})).toBeVisible();await context.close();
+  await expect(page.locator('h1')).toContainText(/[가-힣]/);await expect(page.locator('#start-pause')).toBeDisabled();await page.locator('summary').click();await expect(page.locator('.loop-equation').first()).toBeVisible();
+  await expect(page.getByRole('link',{name:/관련 MATLAB 프로젝트/})).toHaveAttribute('href',catalog.find(item=>item.id===id).source);
+  await expect(page.getByRole('link',{name:/관련 MATLAB 프로젝트/})).toBeVisible();await context.close();
  });
 }
 async function controlledFrames(page){
