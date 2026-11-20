@@ -6,16 +6,18 @@ const set=(page,id,value)=>page.locator(`#mpc-${id}`).evaluate((e,v)=>{e.value=v
 test('MPC settings change the closed loop; the time cursor inspects a plan without changing the run',async({page})=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   expect((await page.goto(`${base}mpc-lti/?lang=ko`)).status()).toBe(200);
-  const y=await path(page,'y'),pid=await path(page,'pid');expect(y).not.toBe(pid);
+  const y=await path(page,'y');
+  const pidOverlay=page.locator('#compare-pid, [data-pid], path[data-series="pid"]');
+  await expect(pidOverlay).toHaveCount(0);
+  await expect(page.locator('#mpc-input-plot path[data-series="u"]')).toBeVisible();
   const pred=await path(page,'prediction');await page.locator('#mpc-time').focus();await page.keyboard.press('ArrowRight');
   expect(await path(page,'prediction')).not.toBe(pred);expect(await path(page,'y')).toBe(y);
-  await set(page,'horizon',4);const short=await path(page,'y');expect(short).not.toBe(y);expect(await path(page,'pid')).toBe(pid);
+  await set(page,'horizon',4);const short=await path(page,'y');expect(short).not.toBe(y);
   await set(page,'weight',2);expect(await path(page,'y')).not.toBe(short);
-  await page.locator('#compare-pid').uncheck();await expect(page.locator('path[data-series="pid"]')).toHaveCount(0);
-  await page.locator('#mpc-reset').click();await expect(page.locator('#compare-pid')).toBeChecked();expect(await path(page,'y')).toBe(y);expect(await path(page,'prediction')).toBe(pred);expect(errors).toEqual([]);
+  await page.locator('#mpc-reset').click();await expect(pidOverlay).toHaveCount(0);expect(await path(page,'y')).toBe(y);expect(await path(page,'prediction')).toBe(pred);expect(errors).toEqual([]);
 });
 
-test('both controllers obey the same low limit and keep the inspected plan across language changes on mobile',async({page})=>{
+test('MPC obeys the input limit and keeps the inspected plan across language changes on mobile',async({page})=>{
   await page.setViewportSize({width:320,height:812});await page.goto(`${base}mpc-lti/?lang=en`);
   await set(page,'limit',.5);await set(page,'time',99);await set(page,'horizon',30);
   await expect(page.locator('#mpc-peak-u')).toHaveText('0.50');expect(Number(await page.locator('#mpc-final-y').textContent())).toBeLessThan(.51);

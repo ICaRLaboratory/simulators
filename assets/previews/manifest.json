@@ -277,7 +277,7 @@
     "file": "mpc-lti-ko.png",
     "source": "mpc-lti/?lang=ko",
     "renderer": "svg",
-    "sha256": "206cec067b58d292ac34c22b3483eb8a595f01d9799aed7e63553996f66184d0"
+    "sha256": "6bd6883fb6701405620ae2d2e203c37fd8c6511cf8a81d0e9a88701d4e27d00e"
   },
   {
     "id": "mpc-lti",
@@ -285,7 +285,7 @@
     "file": "mpc-lti-en.png",
     "source": "mpc-lti/?lang=en",
     "renderer": "svg",
-    "sha256": "3f3654ec59e0fb77ad021a7eb84e28849fc08df4a6a1dcd1771c9e4c8dba67f8"
+    "sha256": "4bf9d7135a5e11c97ea03568adc84351c8a7c9d6c97fd9e6d6397113dfe70e33"
   },
   {
     "id": "research-tracking",

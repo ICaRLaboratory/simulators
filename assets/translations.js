@@ -2,8 +2,8 @@
 export const english = {
  '제어 기초':'Control fundamentals',
  '2차 LTI 시스템의 MPC 제어':'MPC control of a second-order LTI system',
- '모델 예측 제어(MPC)의 예측 구간과 입력 제한을 바꾸며 같은 2차 LTI 시스템에서 MPC와 PID의 목표 추종 응답을 비교합니다.':'Adjust the prediction horizon and input limit in model predictive control (MPC), and compare MPC and PID tracking responses for the same second-order LTI system.',
- '예측 구간':'Prediction horizon','입력 변화 가중치':'Input move weight','PID 응답 비교':'Compare PID response',
+ '예측 구간과 입력 제한을 바꾸며 2차 시스템의 MPC 계단응답과 각 시점의 예측 궤적을 살펴봅니다.':'Adjust the prediction horizon and input limit to explore the MPC step response and the trajectory predicted at each planning instant.',
+ '예측 구간':'Prediction horizon','입력 변화 가중치':'Input move weight','예측 궤적':'Predicted trajectory',
  '2차 LTI 시스템의 PID 제어':'PID control of a second-order LTI system',
  '같은 2차 선형 시불변(LTI) 시스템에서 P·I·D 항을 하나씩 바꾸며 단위 계단 응답과 정상상태 오차를 비교합니다.':'Change the P, I and D terms one at a time to compare unit-step responses and steady-state error for the same second-order linear time-invariant (LTI) system.',
  'P·I·D 항 선택':'P/I/D term selection','기준 응답 고정':'Pin baseline response',

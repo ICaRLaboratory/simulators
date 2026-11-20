@@ -26,7 +26,7 @@ export async function prepareGraphPreview(page,id){
  if(id==='pid-lti')panel=await preparePidPreview(page);
  else if(id==='mpc-lti'){
   panel=page.locator('#mpc-response-panel');
-  for(const series of ['y','pid','prediction']){
+  for(const series of ['y','prediction']){
    await panel.locator(`#mpc-output-plot path[data-series="${series}"][d]`).waitFor({state:'visible'});
   }
  }else throw Error(`No graph preview recipe for ${id}`);

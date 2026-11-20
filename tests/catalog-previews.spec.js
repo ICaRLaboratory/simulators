@@ -26,13 +26,13 @@ for (const lang of ['ko', 'en']) test(`graph preview compares PI with a pinned P
  expect(new Set(curves).size).toBe(2);
 });
 
-for (const lang of ['ko','en']) test(`MPC preview includes the response, PID comparison and prediction (${lang})`, async ({page}) => {
+for (const lang of ['ko','en']) test(`MPC preview shows the response and prediction without a PID overlay (${lang})`, async ({page}) => {
  await page.goto(`${base}mpc-lti/?lang=${lang}`);
  const panel = await prepareGraphPreview(page,'mpc-lti');
  await expect(panel).toHaveAttribute('id','mpc-response-panel');
  await expect(panel.getByRole('heading')).toHaveText(lang === 'ko' ? '단위 계단응답' : 'Unit-step response');
- await expect(page.locator('#compare-pid')).toBeChecked();
- for (const series of ['y','pid','prediction']) {
+ await expect(panel.locator('[data-series="pid"], [data-pid]')).toHaveCount(0);
+ for (const series of ['y','prediction']) {
   const path=panel.locator(`#mpc-output-plot path[data-series="${series}"]`);
   await expect(path).toBeVisible();
   await expect(path).toHaveAttribute('d',/\S/);

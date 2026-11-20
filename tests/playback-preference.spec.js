@@ -29,10 +29,10 @@ test('the PID graph lab has term switches rather than playback or camera control
  await expect(page.locator('#start-pause, #apparatus, .playback-preference')).toHaveCount(0);
  await expect(page.locator('#pid-output-plot path[data-series="y"]')).toBeVisible();
 });
-test('the MPC graph lab compares PID without playback, camera or pin controls',async({page})=>{
+test('the MPC graph lab shows its prediction without PID, playback, camera or pin controls',async({page})=>{
  await page.goto(base+'mpc-lti/');
- await expect(page.locator('#compare-pid')).toBeChecked();
- await expect(page.locator('#mpc-output-plot path[data-series="pid"]')).toBeVisible();
+ await expect(page.locator('#compare-pid')).toHaveCount(0);
+ await expect(page.locator('#mpc-output-plot path[data-series="prediction"]')).toBeVisible();
  await expect(page.locator('#start-pause, #apparatus, .three-reset, .playback-preference, #pin-response')).toHaveCount(0);
 });
 test('dashboard does not get a simulation playback control',async({page})=>{

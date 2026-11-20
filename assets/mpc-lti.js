@@ -15,8 +15,8 @@ function element(tag,attrs,text){
   const e=document.createElementNS(svgNS,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);
   if(text!==undefined)e.textContent=text;return e;
 }
-const colors={y:'#087f74',u:'#087f74',pid:'#594488',prediction:'#1d56a3',ref:'#a8551d'};
-const dashes={pid:'8 4',prediction:'2 4',ref:'6 4'};
+const colors={y:'#087f74',u:'#087f74',prediction:'#1d56a3',ref:'#a8551d'};
+const dashes={prediction:'2 4',ref:'6 4'};
 
 function chart(key,step,series,ref,maxTime,selectedTime){
   const svg=$(`mpc-${key}-plot`),w=svg.clientWidth,h=svg.clientHeight;
@@ -47,17 +47,12 @@ function chart(key,step,series,ref,maxTime,selectedTime){
 }
 function draw(){
   if(!run)return;
-  const k=num('time'),{samples,pidSamples,plans}=run,plan=plans[k],t=samples[k].t;
+  const k=num('time'),{samples,plans}=run,plan=plans[k],t=samples[k].t;
   const ts=samples[1].t-samples[0].t,tf=t+ts*plan.u.length,maxTime=Math.max(samples.at(-1).t,Math.ceil(tf/5)*5);
-  const showPID=$('compare-pid').checked;
-  for(const el of document.querySelectorAll('[data-pid]'))el.hidden=!showPID;
   function lines(key){
-    const points=source=>source.map(s=>({t:s.t,v:s[key]}));
-    const series=[{name:key,points:points(samples)}];
-    if(showPID)series.push({name:'pid',points:points(pidSamples)});
     const pred=plan[key].map((v,j)=>({t:t+j*ts,v}));
     if(key==='u')pred.push({t:tf,v:pred.at(-1).v});
-    series.push({name:'prediction',points:pred});return series;
+    return [{name:key,points:samples.map(s=>({t:s.t,v:s[key]}))},{name:'prediction',points:pred}];
   }
   chart('output',false,lines('y'),[1],maxTime,t);
   chart('input',true,lines('u'),[-num('limit'),num('limit')],maxTime,t);
@@ -75,18 +70,18 @@ function simulate(){
   $('mpc-peak-u').textContent=Math.max(...run.samples.map(s=>Math.abs(s.u))).toFixed(2);
   const required=1/plant.gain,need=Number(required.toFixed(3));
   $('mpc-limit-hint').textContent=num('limit')*plant.gain<1-1e-12
-    ?tr(`목표 유지 불가: 출력 1을 유지하는 데 필요한 입력(1/K ≈ ${need})이 입력 한계보다 큽니다.`,`The controllers cannot hold the target: the required input (1/K ≈ ${need}) exceeds the limit.`)
+    ?tr(`목표 유지 불가: 출력 1을 유지하는 데 필요한 입력(1/K ≈ ${need})이 입력 한계보다 큽니다.`,`MPC cannot hold the target: the required input (1/K ≈ ${need}) exceeds the limit.`)
     :tr(`출력 1을 유지하는 데 필요한 입력(1/K ≈ ${need})은 입력 한계 안에 있습니다.`,`The input required to hold the target (1/K ≈ ${need}) is within the selected limit.`);
   draw();
 }
 function localize(){
   for(const [el,ko] of textBindings)el.textContent=tr(ko,el.dataset.en);
-  document.querySelector('meta[name=description]').content=tr('같은 2차 시스템과 입력 제한에서 모델 예측 제어와 PID의 계단응답을 비교합니다.','Compare the MPC and PID step responses on the same second-order plant under identical input limits.');
+  document.querySelector('meta[name=description]').content=tr('2차 시스템에서 MPC의 예측 구간과 입력 한계를 바꾸며 계단응답과 예측 궤적을 살펴봅니다.','Explore the MPC step response and predicted trajectory of a second-order system by varying the prediction horizon and input limit.');
   simulate();
 }
 for(const key of optionKeys)input(key).addEventListener('input',simulate);
-input('time').addEventListener('input',draw);$('compare-pid').addEventListener('change',draw);
-$('mpc-reset').addEventListener('click',()=>{for(const key of [...optionKeys,'time'])input(key).value=input(key).defaultValue;plantUI.reset();$('compare-pid').checked=true;simulate();});
+input('time').addEventListener('input',draw);
+$('mpc-reset').addEventListener('click',()=>{for(const key of [...optionKeys,'time'])input(key).value=input(key).defaultValue;plantUI.reset();simulate();});
 document.addEventListener('icar:lang',localize);setupLanguage();
 for(const button of document.querySelectorAll('.language-switch button'))button.disabled=false;
 const resize=new ResizeObserver(draw);for(const id of ['mpc-output-plot','mpc-input-plot'])resize.observe($(id));

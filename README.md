@@ -38,9 +38,9 @@
 - 항공기 피치: 받음각·피치율·피치각 상태 공간, 승강타 PID·입력 제한
 - 로켓 수직 착륙: 평면 강체·두 엔진 추력 배분, 위치·하강·자세 피드백, 연착륙 판정. [조사 자료와 모델 범위](docs/rocket-landing-sources.md)
 - [2차 LTI 시스템의 PID 제어](pid-lti/): 단위 계단응답과 P·I·D 항별 제어입력을 비교합니다. 현재 응답을 고정한 뒤 제어기 또는 플랜트 설정을 바꾸면 같은 초기조건에서 응답을 다시 계산합니다. D항은 측정 출력에 적용하며, 정상상태 오차는 안정한 폐루프에 대해서만 표시합니다. [관련 자료: CTMS의 PID 제어기 설계](https://ctms.engin.umich.edu/CTMS/?example=Introduction&section=ControlPID)
-- [2차 LTI 시스템의 MPC 제어](mpc-lti/): 같은 2차 시스템에서 MPC와 PID에 동일한 샘플 주기와 입력 한계를 적용해 단위 계단응답을 비교합니다. 예측 구간과 입력 변화 가중치를 바꾸고, 선택한 시점의 예측 출력·입력과 실제 폐루프 응답을 비교할 수 있습니다. [관련 자료: MathWorks의 What Is Model Predictive Control?](https://www.mathworks.com/help/mpc/gs/what-is-mpc.html)
+- [2차 LTI 시스템의 MPC 제어](mpc-lti/): 예측 구간, 입력 변화 가중치, 입력 한계를 바꾸며 MPC의 단위 계단응답을 살펴봅니다. 계획 시점을 선택하면 그때의 예측 출력·입력과 실제 폐루프 궤적을 확인할 수 있습니다. [관련 자료: MathWorks의 What Is Model Predictive Control?](https://www.mathworks.com/help/mpc/gs/what-is-mpc.html)
 
-두 LTI 실험은 `G(s) = Kωₙ²/(s² + 2ζωₙs + ωₙ²)`를 공유합니다. 고유진동수(0.5–2 rad/s), 감쇠비(0.1–2), 정상상태 이득(0.5–2)을 바꿀 수 있습니다. 기본값은 각각 1, 0.5, 1입니다. 실험 간 비교 링크와 현재 URL에는 기본값과 다른 플랜트 설정이 반영됩니다.
+두 LTI 실험은 `G(s) = Kωₙ²/(s² + 2ζωₙs + ωₙ²)`를 공유합니다. 고유진동수(0.5–2 rad/s), 감쇠비(0.1–2), 정상상태 이득(0.5–2)을 바꿀 수 있습니다. 기본값은 각각 1, 0.5, 1입니다. 실험 간 이동 링크와 현재 URL에는 기본값과 다른 플랜트 설정이 반영됩니다.
 
 각 모델의 단위·가정·제어식·정지 조건은 해당 페이지의 접힌 모델 설명에 제공합니다.
 
@@ -85,7 +85,7 @@ ES modules를 사용하므로 파일 더블클릭 대신 HTTP 서버로 여세�
 
 카드에는 실제 실험 화면을 사용합니다. 로컬 서버를 실행한 뒤 `node scripts/capture-previews.mjs`로 20개 실험의 한국어·영어 미리보기 40개를 갱신합니다. 한 실험만 바꾼 경우 `node scripts/capture-previews.mjs mpc-lti`처럼 ID를 지정하면 해당 이미지 두 장과 매니페스트 항목만 갱신합니다.
 
-장치 실험 16개는 고정 시간 간격으로 실행한 장면을, Research 연결 2개는 해당 페이지의 장치 영역을 캡처합니다. PID 응답 분석 실험은 P 응답을 고정한 뒤 I항을 켜서 P와 PI 곡선이 함께 보이는 실제 응답 패널을 캡처합니다. MPC 실험은 초기 설정에서 MPC 응답·비교용 PID 응답·예측 출력이 모두 표시된 패널을 캡처합니다. `assets/previews/manifest.json`에는 출처, 렌더러(`three` 또는 `svg`), 이미지 해시가 기록됩니다.
+장치 실험 16개는 고정 시간 간격으로 실행한 장면을, Research 연결 2개는 해당 페이지의 장치 영역을 캡처합니다. PID 응답 분석 실험은 P 응답을 고정한 뒤 I항을 켜서 P와 PI 곡선이 함께 보이는 실제 응답 패널을 캡처합니다. MPC 실험은 초기 설정의 MPC 출력과 첫 계획의 예측 출력이 표시된 패널을 캡처합니다. `assets/previews/manifest.json`에는 출처, 렌더러(`three` 또는 `svg`), 이미지 해시가 기록됩니다.
 
 ## 검증
 
