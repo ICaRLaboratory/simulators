@@ -6,7 +6,9 @@ const keys=Object.keys(labels);
 const fmt=n=>String(Number(n.toFixed(4)));
 export const plantLabel=p=>`ωₙ=${p.wn} rad/s · ζ=${p.zeta} · K=${p.gain}`;
 export function setupPlantControls(notify,linkId,destination){
-  const field=document.getElementById('plant-controls'),link=document.getElementById(linkId);
+  const field=document.getElementById('plant-controls');
+  const links=[...document.querySelectorAll('a[data-plant-link]')].map(link=>[link,link.dataset.plantLink]);
+  if(linkId)links.push([document.getElementById(linkId),destination]);
   const controls={},query=new URLSearchParams(location.search);
   for(const key of keys){
     const [min,max,initial]=ranges[key];
@@ -23,7 +25,7 @@ export function setupPlantControls(notify,linkId,destination){
     const plant=settings(),en=document.documentElement.lang==='en';
     for(const key of keys){const {name,v,input}=controls[key];name.textContent=labels[key][Number(en)];v.textContent=`${plant[key]}${key==='wn'?' rad/s':''}`;input.setAttribute('aria-valuetext',v.textContent);}
     const {a0,a1,b}=coefficients(plant);document.getElementById('plant-equation').textContent=`G(s) = ${fmt(b)} / (s² + ${a1===1?'':fmt(a1)}s + ${fmt(a0)})`;
-    const params=new URLSearchParams(localizedHref(destination).split('?')[1]);applyParams(params);link.setAttribute('href',destination+'?'+params);
+    for(const [link,dest] of links){const params=new URLSearchParams(localizedHref(dest).split('?')[1]);applyParams(params);link.setAttribute('href',dest+'?'+params);}
     return plant;
   }
   function reset(){for(const {input} of Object.values(controls))input.value=input.defaultValue;syncAddress();}

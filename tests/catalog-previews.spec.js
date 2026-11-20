@@ -1,6 +1,10 @@
 import {test,expect} from '@playwright/test';
 import {catalog} from '../assets/catalog.js';
-import {completeManifest,prepareGraphPreview} from '../scripts/capture-previews.mjs';
+import {mkdtemp,readFile,readdir,rm,writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {capturePreviews,completeManifest,prepareGraphPreview} from '../scripts/capture-previews.mjs';
 const base=process.env.SIM_BASE||'http://127.0.0.1:8765/simulators/';
 for (const id of ['pid-lti','mpc-lti']) test(`${id}: single-ID preview updates retain the other localized records in catalog order`, () => {
  const records = catalog.flatMap(({id}) => ['ko','en'].map(lang => ({id,lang,sha256:`${id}-${lang}`})));
@@ -12,6 +16,31 @@ for (const id of ['pid-lti','mpc-lti']) test(`${id}: single-ID preview updates r
  expect(result.filter(r => r.id === id)).toEqual(updated);
  expect(() => completeManifest(kept)).toThrow(id);
  expect(() => completeManifest([...kept,...updated,...updated])).toThrow(id);
+});
+
+test('one selected-ID batch bootstraps six previews and preserves every unrelated record', async () => {
+ test.setTimeout(90_000); // Two Chromium runs capture ten localized panels.
+ const ids = ['deepc-lti','smc-lti','tdc-lti'];
+ const previous = catalog.filter(item => !ids.includes(item.id)).flatMap(({id}) =>
+  ['ko','en'].map(lang => ({id,lang,sha256:`${id}-${lang}`})));
+ const dir = await mkdtemp(join(tmpdir(),'preview-batch-'));
+ const out = pathToFileURL(dir + '/');
+ const manifest = new URL('manifest.json',out);
+ try {
+  await writeFile(manifest,JSON.stringify(previous));
+  await expect(capturePreviews([ids[0],'unknown-id'],out)).rejects.toThrow('unknown-id');
+  // Two IDs are not enough: don't write a partial manifest or any images.
+  await expect(capturePreviews(ids.slice(0,2),out)).rejects.toThrow('tdc-lti/ko');
+  expect(await readdir(dir)).toEqual(['manifest.json']);
+  expect(JSON.parse(await readFile(manifest,'utf8'))).toEqual(previous);
+  const summary = await capturePreviews(ids,out);
+  expect(summary).toMatchObject({captured:6,images:catalog.length*2});
+  const records = JSON.parse(await readFile(manifest,'utf8'));
+  expect(records.filter(r => !ids.includes(r.id))).toEqual(previous);
+  expect(records).toEqual(completeManifest(records));
+  const files = ids.flatMap(id => ['ko','en'].map(lang => `${id}-${lang}.png`));
+  expect((await readdir(dir)).sort()).toEqual(['manifest.json',...files].sort());
+ } finally { await rm(dir,{recursive:true,force:true}); }
 });
 
 // Exercise the generator's production recipe without writing a screenshot or manifest.
@@ -38,6 +67,20 @@ for (const lang of ['ko','en']) test(`MPC preview shows the response and predict
   await expect(path).toHaveAttribute('d',/\S/);
  }
 });
+
+for (const id of ['deepc-lti','smc-lti','tdc-lti']) for (const lang of ['ko','en']) {
+ test(`${id}: preview uses the localized first response panel (${lang})`, async ({page}) => {
+  await page.goto(`${base}${id}/?lang=${lang}`);
+  const panel = await prepareGraphPreview(page,id);
+  await expect(page.locator(`[data-lang="${lang}"]`)).toHaveAttribute('aria-pressed','true');
+  await expect(panel).toHaveAttribute('id','method-response-panel');
+  const series = await panel.locator('svg path[data-series]').evaluateAll(paths => paths.map(path => path.dataset.series).sort());
+  expect(series).toEqual(['output','target']); // One controller and its reference, no comparison overlay.
+  const output = panel.locator('svg path[data-series="output"]');
+  await expect(output).toBeVisible();
+  await expect(output).toHaveAttribute('d',/\S/);
+ });
+}
 
 test('every catalog experiment has its own real, loaded localized preview',async({page})=>{
  await page.goto(base+'?lang=ko');await expect(page.locator('.sim-card')).toHaveCount(catalog.length);

@@ -47,7 +47,7 @@ test('Control fundamentals opens the localized PID lab and links to the CTMS tut
  await page.goto(root+'?lang=ko');
  await page.locator('[data-category="제어 기초"]').click();
  await page.locator('#ready-only').check();
- await expect(page.locator('.sim-card')).toHaveCount(2);
+ await expect(page.locator('.sim-card')).toHaveCount(5);
  const card=page.locator('[data-id=pid-lti]');
  await expect(card.getByRole('heading')).toHaveText('2차 LTI 시스템의 PID 제어');
  await page.locator('[data-lang="en"]').click();

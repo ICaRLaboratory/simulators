@@ -6,7 +6,7 @@ test('catalog search combines category, ready and case-insensitive text', async 
   const { filterCatalog } = await import('../assets/catalog.js');
   assert.equal(typeof filterCatalog, 'function');
   assert.equal(filterCatalog({query:'  DC MOTOR  '}).length, 1);
-  assert.equal(filterCatalog({ready:true}).length, 20);
+  assert.equal(filterCatalog({ready:true}).length, 23);
   assert.equal(filterCatalog({category:'모빌리티',ready:true}).length, 4);
   assert.equal(filterCatalog({query:'존재하지않는실험'}).length, 0);
 });
@@ -31,17 +31,21 @@ test('all implemented projects have static catalog fallback links without stale 
   for(const item of catalog.filter(item=>!item.external))assert.ok(home.includes(`href="${item.id}/"`),item.id);
 });
 
-test('control fundamentals lists the PID and MPC graph labs in order with distinct references', async () => {
+test('control fundamentals lists five LTI graph labs in order with distinct references', async () => {
   const {catalog, filterCatalog} = await import('../assets/catalog.js');
   const local = catalog.filter(item => !item.external);
-  const [pid, mpc] = filterCatalog({category:'제어 기초', ready:true});
-  assert.deepEqual(local.slice(-2).map(item => item.id), ['pid-lti','mpc-lti']);
+  const graphIds = ['pid-lti','mpc-lti','deepc-lti','smc-lti','tdc-lti'];
+  const labs = filterCatalog({category:'제어 기초', ready:true});
+  const [pid, mpc] = labs;
+  assert.deepEqual(labs.map(item => item.id), graphIds);
+  assert.deepEqual(local.filter(item => item.view === 'graph').map(item => item.id), graphIds);
+  assert.deepEqual(local.slice(-5).map(item => item.id), graphIds);
   assert.equal(pid.id, 'pid-lti');
   assert.equal(pid.view, 'graph');
   assert.equal(pid.name, '2차 LTI 시스템의 PID 제어');
   assert.equal(pid.english, 'PID control of a second-order LTI system');
   assert.equal(pid.source, 'https://ctms.engin.umich.edu/CTMS/?example=Introduction&section=ControlPID');
-  assert.deepEqual(filterCatalog({category:'제어 기초', query:'LTI', ready:true}), [pid, mpc]);
+  assert.deepEqual(filterCatalog({category:'제어 기초', query:'LTI', ready:true}), labs);
   for (const query of ['정상상태 오차', 'steady-state error'])
     assert.deepEqual(filterCatalog({category:'제어 기초', query, ready:true}), [pid]);
   assert.equal(mpc.view, 'graph');
@@ -50,15 +54,25 @@ test('control fundamentals lists the PID and MPC graph labs in order with distin
   assert.equal(mpc.source, 'https://www.mathworks.com/help/mpc/gs/what-is-mpc.html');
   for (const query of ['MPC', '예측 구간', 'prediction horizon'])
     assert.deepEqual(filterCatalog({category:'제어 기초', query, ready:true}), [mpc]);
+  for (const [id,ko,en,doi] of [
+    ['deepc-lti','입출력 데이터','input-output data','10.23919/ECC.2019.8795639'],
+    ['smc-lti','위상 평면','phase plane','10.1109/TAC.1977.1101446'],
+    ['tdc-lti','지연 가속도','delayed acceleration','10.1115/1.2894130'],
+  ]) {
+    const item = labs.find(item => item.id === id);
+    assert.equal(item.source, `https://doi.org/${doi}`);
+    for (const query of [id.split('-')[0], ko, en])
+      assert.deepEqual(filterCatalog({category:'제어 기초', query, ready:true}), [item]);
+  }
   assert.equal(local.filter(item => item.view === 'apparatus').length, 16);
 });
 
-test('catalog has 20 unique experiments, eighteen local launches and two research links', async () => {
+test('catalog has 23 unique experiments, twenty-one local launches and two research links', async () => {
   const { catalog } = await import('../assets/catalog.js');
-  assert.equal(catalog.length, 20);
+  assert.equal(catalog.length, 23);
   assert.equal(new Set(catalog.map(item => item.id)).size, catalog.length);
   assert.equal(catalog.filter(item => item.status === 'ready').length, catalog.length);
-  assert.equal(catalog.filter(item => !item.external).length, 18);
+  assert.equal(catalog.filter(item => !item.external).length, 21);
   assert.equal(catalog.filter(item => item.external).length, 2);
   assert.equal(catalog.filter(item => item.status==='planned').length,0);
   for (const item of catalog) {

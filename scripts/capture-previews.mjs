@@ -5,7 +5,6 @@ import {createHash} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import {catalog} from '../assets/catalog.js';
 const base=process.env.SIM_BASE||'http://127.0.0.1:8765/simulators/';
-const out=new URL('../assets/previews/',import.meta.url);
 const locales=['ko','en'];
 
 async function preparePidPreview(page){
@@ -29,6 +28,9 @@ export async function prepareGraphPreview(page,id){
   for(const series of ['y','prediction']){
    await panel.locator(`#mpc-output-plot path[data-series="${series}"][d]`).waitFor({state:'visible'});
   }
+ }else if(['deepc-lti','smc-lti','tdc-lti'].includes(id)){
+  panel=page.locator('#method-response-panel');
+  await panel.locator('svg path[data-series="output"][d]').waitFor({state:'visible'});
  }else throw Error(`No graph preview recipe for ${id}`);
  await page.evaluate(()=>document.fonts.ready);
  return panel;
@@ -78,7 +80,7 @@ async function capture(browser,item,lang){
  }finally{await context.close();}
 }
 
-// Rebuild in catalog/locale order; a single-ID run keeps all other entries intact.
+// Validate the entire batch (including retained records) before writing any files.
 export function completeManifest(records){
  const ordered=catalog.flatMap(({id})=>locales.map(lang=>{
   const matches=records.filter(r=>r.id===id&&r.lang===lang);
@@ -90,21 +92,25 @@ export function completeManifest(records){
  return ordered;
 }
 
-async function main(args){
- const [id]=args;
- if(args.length>1 || (args.length && !catalog.some(item=>item.id===id)))throw Error('Usage: node scripts/capture-previews.mjs [catalog-id]');
+export async function capturePreviews(ids,out){
+ const selected=new Set(ids);
+ for(const id of selected)if(!catalog.some(item=>item.id===id))throw Error(`Unknown catalog ID: ${id}`);
+ const items=selected.size?catalog.filter(item=>selected.has(item.id)):catalog;
  const manifest=new URL('manifest.json',out);
- const kept=id?JSON.parse(await readFile(manifest,'utf8')).filter(r=>r.id!==id):[];
+ const kept=selected.size?JSON.parse(await readFile(manifest,'utf8')).filter(r=>!selected.has(r.id)):[];
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH,
   args:['--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
  const captures=[];
  try{
-  for(const item of catalog.filter(item=>!id||item.id===id))for(const lang of locales)captures.push(await capture(browser,item,lang));
+  for(const item of items)for(const lang of locales)captures.push(await capture(browser,item,lang));
  }finally{await browser.close();}
  const records=completeManifest([...kept,...captures.map(c=>c.record)]);
  await mkdir(out,{recursive:true});
  for(const {bytes,record} of captures)await writeFile(new URL(record.file,out),bytes);
  await writeFile(manifest,JSON.stringify(records,null,2)+'\n');
- console.log(JSON.stringify({experiments:catalog.length,images:records.length,captured:captures.length,unique:true}));
+ return {experiments:catalog.length,images:records.length,captured:captures.length,unique:true};
 }
-if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href)await main(process.argv.slice(2));
+if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href){
+ const summary=await capturePreviews(process.argv.slice(2),new URL('../assets/previews/',import.meta.url));
+ console.log(JSON.stringify(summary));
+}

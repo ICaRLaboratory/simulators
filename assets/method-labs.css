@@ -1,0 +1,20 @@
+.method-layout {align-items: start;}
+.method-diagnostic,.method-input {grid-column: 1;min-width: 0;}
+.method-layout .panel-heading {flex-wrap: wrap;}
+.method-controls {display:grid;gap:12px;padding:14px 18px;}
+.method-controls>div {display:grid;grid-template-columns:1fr auto;gap:3px 6px;align-items:baseline;}
+.method-controls output {font-weight:600;font-variant-numeric:tabular-nums;}
+.method-controls input,.method-controls select {grid-column:1/-1;width:100%;accent-color:var(--actual);}
+.method-controls select {font:inherit;color:inherit;background:var(--surface);padding:6px 8px;border:1px solid var(--line);border-radius:4px;}
+.method-controls input {height:22px;margin:0;}
+.method-caption,#method-status,.zoom {margin:0;padding:10px 16px;font-size:.94rem;}
+#method-status {color:var(--muted);padding-top:0;}
+.zoom {display:flex;align-items:center;gap:7px;min-height:42px;cursor:pointer;}
+.method-layout .legend span::before {border-top:2px solid #08796f;}
+.method-layout .legend .key-target::before,.method-layout .legend .key-surface::before {border-top:2px dashed #9c552a;}
+.method-layout .legend .key-estimate::before {border-top:2px dashed #be5d23;}
+.method-layout .legend .key-record-u::before {border-top:2px dashed #73568d;}
+.method-layout .legend .key-input::before {border-color:#244e75;}
+.method-layout .legend .key-unknown::before {border-color:#38495c;}
+.pid-model .eq {overflow-wrap:anywhere;}
+@media(max-width:780px){.method-layout .method-diagnostic,.method-layout .method-input {grid-column:1;} .method-layout .pid-guide {grid-row:auto;}}

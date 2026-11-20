@@ -288,6 +288,54 @@
     "sha256": "4bf9d7135a5e11c97ea03568adc84351c8a7c9d6c97fd9e6d6397113dfe70e33"
   },
   {
+    "id": "deepc-lti",
+    "lang": "ko",
+    "file": "deepc-lti-ko.png",
+    "source": "deepc-lti/?lang=ko",
+    "renderer": "svg",
+    "sha256": "7bdb02d331af4cca3e4bb9ae77c86d7fd2f5b4962255d7901bd1be43ac31e74d"
+  },
+  {
+    "id": "deepc-lti",
+    "lang": "en",
+    "file": "deepc-lti-en.png",
+    "source": "deepc-lti/?lang=en",
+    "renderer": "svg",
+    "sha256": "35279ecaa7f5b2101a0daafea27861b2d9c6ef1bfcc614753e636b543651e536"
+  },
+  {
+    "id": "smc-lti",
+    "lang": "ko",
+    "file": "smc-lti-ko.png",
+    "source": "smc-lti/?lang=ko",
+    "renderer": "svg",
+    "sha256": "917d34de3ed727c6b1da7af43919d5dedc385225cbbdb9fc48728168f42b2d4f"
+  },
+  {
+    "id": "smc-lti",
+    "lang": "en",
+    "file": "smc-lti-en.png",
+    "source": "smc-lti/?lang=en",
+    "renderer": "svg",
+    "sha256": "28f2089881115fea490bad27d70018cc43bdf4faa1e26c9776a78003233efd43"
+  },
+  {
+    "id": "tdc-lti",
+    "lang": "ko",
+    "file": "tdc-lti-ko.png",
+    "source": "tdc-lti/?lang=ko",
+    "renderer": "svg",
+    "sha256": "58072585bd60d6966bb5f1cccf6ce6c8da22fb7733a176bd371fda847652bfd8"
+  },
+  {
+    "id": "tdc-lti",
+    "lang": "en",
+    "file": "tdc-lti-en.png",
+    "source": "tdc-lti/?lang=en",
+    "renderer": "svg",
+    "sha256": "a2200586ffc90ecdd20ecb21561c12c9ae2524fe3999523a86dfafe3ff51e744"
+  },
+  {
     "id": "research-tracking",
     "lang": "ko",
     "file": "research-tracking-ko.png",
