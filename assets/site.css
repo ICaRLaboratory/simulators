@@ -110,14 +110,14 @@ h3 { font-size: 1.3rem; letter-spacing: -.028em; line-height: 1.4; font-weight: 
 input[type=checkbox] { accent-color: var(--ink); height: 16px; width: 16px; }
 .results-row { padding: 18px 0; font-size: 12px; color: var(--muted); }
 .results-row strong { color: var(--ink); }
-.catalog-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.catalog-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 18px; }
 .sim-card {
   position: relative; background: var(--panel); border: 1px solid var(--line-soft);
   border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column;
-  transition: transform .28s cubic-bezier(.2, .7, .3, 1), border-color .28s, background .28s;
+  transition: border-color .28s, background .28s;
 }
 .sim-card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; background: var(--ink); opacity: 0; transition: opacity .28s; z-index: 1; }
-.sim-card:hover { transform: translateY(-4px); border-color: var(--line); background: var(--panel-2); }
+.sim-card:hover { border-color: var(--line); background: var(--panel-2); }
 .sim-card:hover::before { opacity: 1; }
 .card-visual { height: 225px; padding-top: 43px; position: relative; border-bottom: 1px solid var(--line-soft); background: var(--bg-soft); }
 .card-preview { display: block; width: 100%; height: 100%; object-fit: contain; }
@@ -132,11 +132,13 @@ input[type=checkbox] { accent-color: var(--ink); height: 16px; width: 16px; }
 .card-description { color: var(--muted); font-size: 15px; line-height: 1.7; margin-top: 14px; min-height: 48px; }
 .features { display: flex; gap: 5px; flex-wrap: wrap; margin: 18px 0 22px; }
 .features span { font-size: 12px; background: var(--panel); color: var(--muted); border: 1px solid var(--line-soft); padding: 4px 9px; border-radius: 999px; }
-.card-footer { border-top: 1px solid var(--line-soft); padding-top: 14px; margin-top: auto; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end; }
-.card-footer > :last-child { grid-column: 2; justify-self: end; max-width: 100%; }
-.source-link { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.card-paper { margin-top: 8px; }
+.card-website { margin: auto 0 12px; }
+.card-footer { border-top: 1px solid var(--line-soft); padding-top: 14px; margin-top: auto; display: flex; justify-content: flex-end; }
+.card-website + .card-footer { margin-top: 0; }
+.source-link { display: inline-block; max-width: 100%; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
 .source-link:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
-.launch { display: inline-flex; align-items: center; gap: 12px; font-size: 12px; line-height: 1.5; color: var(--bg); background: var(--ink); border-radius: 999px; font-weight: 600; padding: 6px 13px; }
+.launch { display: inline-flex; align-items: center; justify-content: center; inline-size: min(13.5rem, 100%); gap: 12px; font-size: 12px; line-height: 1.5; color: var(--bg); background: var(--ink); border-radius: 999px; font-weight: 600; padding: 6px 13px; }
 .launch:hover { opacity: .86; }
 .planned-label { font-size: 12px; color: var(--faint); }
 .intro-guide { margin-top: 22px; color: var(--muted); font-size: 13px; }
@@ -248,8 +250,6 @@ canvas { display: block; width: 100%; }
   .results-row > span { display: none; }
   .catalog-grid { gap: 14px; }
   .card-body { padding: 18px; }
-  .card-footer { grid-template-columns: minmax(0, 1fr); }
-  .card-footer > :last-child { grid-column: 1; }
   .card-visual { height: 205px; }
   .site-footer { flex-direction: column; }
   .sim-heading { align-items: start; flex-direction: column; gap: 18px; }
@@ -262,8 +262,10 @@ canvas { display: block; width: 100%; }
   .sim-heading p:last-child { font-size: 14px; }
   .model-notes { padding: 20px; }
 }
-@media (max-width: 450px) {
+@media (max-width: 600px) {
   .catalog-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 450px) {
   .card-visual { height: 205px; }
   .card-body { padding: 22px; }
   .section-index { font-size: 11px; }

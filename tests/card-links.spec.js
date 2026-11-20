@@ -46,12 +46,12 @@ test('each research card has one localized launch, not a second link to the same
 });
 
 for (const lang of ['ko', 'en']) {
-  test(`${lang}: card actions stay at the bottom right as sources wrap`, async ({page}) => {
+  test(`${lang}: papers follow the description, websites follow tags and the launch has a fixed slot`, async ({page}) => {
     await page.goto(`${base}?lang=${lang}`);
     const cards = page.locator('#catalog-grid .sim-card');
     await expect(cards).toHaveCount(catalog.length);
     await page.evaluate(() => document.fonts.ready);
-    for (const width of [360, 390, 600, 780, 1024, 1280, 1440]) {
+    for (const width of [320, 360, 390, 451, 600, 720, 780, 1024, 1280, 1440]) {
       await page.setViewportSize({width, height: 900});
       const positions = await cards.evaluateAll(nodes => nodes.map(card => {
         const box = el => el.getBoundingClientRect().toJSON();
@@ -59,23 +59,31 @@ for (const lang of ['ko', 'en']) {
         const style = getComputedStyle(body);
         const source = card.querySelector('.source-link');
         return {
-          id: card.dataset.id, body: box(body), action: box(card.querySelector('[data-launch]')),
+          id: card.dataset.id, card: box(card), body: box(body), action: box(card.querySelector('[data-launch]')),
+          description: box(card.querySelector('.card-description')), tags: box(card.querySelector('.features')),
+          footer: box(card.querySelector('.card-footer')), footerLinks: card.querySelectorAll('.card-footer a').length,
+          paper: source?.hostname === 'doi.org',
           rightInset: parseFloat(style.paddingRight), bottomInset: parseFloat(style.paddingBottom),
           source: source && box(source), leftInset: parseFloat(style.paddingLeft)
         };
       }));
-      for (const {id, body, action, source, leftInset, rightInset, bottomInset} of positions) {
+      const first = positions[0];
+      for (const {id, card, body, action, source, leftInset, rightInset, bottomInset, footer, footerLinks, tags, paper, description} of positions) {
         const context = `${id} at ${width}px`;
         expect(Math.abs(body.right - rightInset - action.right), context).toBeLessThan(1);
         expect(Math.abs(body.bottom - bottomInset - action.bottom), context).toBeLessThan(1);
         expect(action.left, context).toBeGreaterThanOrEqual(body.left + leftInset - 1);
+        expect(footerLinks, context).toBe(1);
+        expect(Math.abs(action.top-card.top-(first.action.top-first.card.top)), context).toBeLessThan(1);
+        expect(Math.abs(action.width-first.action.width), context).toBeLessThan(1);
         if (!source) continue;
         expect(Math.abs(source.left - body.left - leftInset), context).toBeLessThan(1);
-        if (width <= 600) expect(source.bottom, context).toBeLessThan(action.top);
-        else {
-          expect(source.right, context).toBeLessThan(action.left);
-          expect(source.bottom, context).toBeGreaterThan(action.top);
-        }
+        expect(source.right, context).toBeLessThanOrEqual(body.right-rightInset+1);
+        expect(source.bottom, context).toBeLessThan(footer.top);
+        if (paper) {
+          expect(source.top, context).toBeGreaterThan(description.bottom);
+          expect(source.bottom, context).toBeLessThan(tags.top);
+        } else expect(source.top, context).toBeGreaterThan(tags.bottom);
       }
     }
   });
