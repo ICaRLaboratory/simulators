@@ -7,10 +7,10 @@ const aria=pair=>`aria-label="${esc(pair[0])}" data-en-aria="${esc(pair[1])}"`;
 // Omit href to link the related project already named by definition.source.
 const modelSources={
  'aircraft-pitch':[
-  {href:'https://ctms.engin.umich.edu/CTMS/?example=AircraftPitch&section=SystemModeling',
-   label:['CTMS 항공기 피치 모델 ↗','CTMS aircraft pitch model ↗'],
-   note:['피치율을 q_web = 56.7 q_CTMS로 환산하면 CTMS의 선형 상태방정식과 이 실험의 방정식이 일치합니다. q_web은 피치각의 시간 미분(rad/s)입니다.',
-         'The linear plant matches the CTMS state equations after rescaling the pitch rate: q_web = 56.7 q_CTMS. Here q_web is the time derivative of pitch angle in rad/s.']},
+  {href:'https://www.mathworks.com/help/control/ref/dynamicsystem.compreal.html#mw_e9be8f40-d51f-4bd0-89db-cf2ea697e2cf',
+   label:['MathWorks 공식 문서: 항공기 피치 상태공간 모델 ↗','MathWorks documentation: aircraft pitch state-space model ↗'],
+   note:['예제 모델(aircraftPitchSSModel.mat)의 두 번째 상태 x₂를 피치율 q_web = 56.7 x₂ (rad/s)로 환산하면 이 실험과 같은 상태방정식을 얻습니다.',
+         'Rescaling the second state x₂ of the example model (aircraftPitchSSModel.mat) to pitch rate q_web = 56.7 x₂ (rad/s) gives the state equations used in this experiment.']},
   {label:['관련 MATLAB 프로젝트: Rick Hill의 피치 제어 앱 ↗','Related MATLAB project: Rick Hill’s pitch control app ↗'],
    note:['File Exchange 앱은 같은 모델에 LQR 상태 피드백을 적용합니다. 이 실험은 승강타 각도를 제한한 PID 제어를 사용합니다.',
          'The File Exchange app applies LQR state feedback to the same plant. This experiment uses PID control with a limit on elevator deflection.']}

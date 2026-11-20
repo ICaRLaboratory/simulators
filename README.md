@@ -18,7 +18,7 @@
 
 이 저장소의 실험은 원본 MATLAB/Simulink 파일을 변환하거나 실행하는 것이 아닙니다. 해당 교육 주제에서 핵심 원리를 경험하도록 독립 구현한 단순화 모델입니다. 원본과 결과가 동일하다고 보장하지 않으며, 실제 장비 설계나 안전성 판단에 사용하지 마세요.
 
-카드와 실험 페이지의 출처 링크는 해당 제어 원리를 다룬 논문, MathWorks 자료 또는 CTMS 튜토리얼로 연결합니다. 논문 링크는 개념 참고 문헌이며 코드 라이선스를 뜻하지 않습니다. 각 실험 페이지에는 모델의 한계를 설명합니다. 입력 제한·미분 구현·마찰 등은 학습용 선택이며 원본 장치의 식별된 파라미터가 아닙니다.
+카드와 실험 페이지에서는 해당 제어 원리를 다룬 논문과 MathWorks 자료 등을 참고할 수 있습니다. 논문 링크는 개념 참고 문헌이며 코드 라이선스를 뜻하지 않습니다. 각 실험 페이지에는 모델의 한계를 설명합니다. 입력 제한·미분 구현·마찰 등은 학습용 선택이며 원본 장치의 식별된 파라미터가 아닙니다.
 
 [실험별 출처와 재사용 조건](docs/simulator-sources.md)에서 수치 모델의 대응 관계, 주제만 참고한 자료, 실제로 포함된 형상을 구분합니다.
 
@@ -39,7 +39,7 @@
 - CSTR: 농도·온도 비선형 수지, Arrhenius 반응·냉각 재킷 PI
 - 항공기 피치: 받음각·피치율·피치각 상태 공간, 승강타 PID·입력 제한
 - 로켓 수직 착륙: 평면 강체·두 엔진 추력 배분, 위치·하강·자세 피드백, 연착륙 판정. [조사 자료와 모델 범위](docs/rocket-landing-sources.md)
-- [2차 LTI 시스템의 PID 제어](pid-lti/): 단위 계단응답과 P·I·D 항별 제어입력을 비교합니다. 현재 응답을 고정한 뒤 제어기 또는 플랜트 설정을 바꾸면 같은 초기조건에서 응답을 다시 계산합니다. D항은 측정 출력에 적용하며, 정상상태 오차는 안정한 폐루프에 대해서만 표시합니다. [관련 자료: CTMS의 PID 제어기 설계](https://ctms.engin.umich.edu/CTMS/?example=Introduction&section=ControlPID)
+- [2차 LTI 시스템의 PID 제어](pid-lti/): 단위 계단응답과 P·I·D 항별 제어입력을 비교합니다. 현재 응답을 고정한 뒤 제어기 또는 플랜트 설정을 바꾸면 같은 초기조건에서 응답을 다시 계산합니다. D항은 측정 출력에 적용하며, 정상상태 오차는 안정한 폐루프에 대해서만 표시합니다. [MathWorks 공식 문서: 명령줄에서 PID 제어기 설계](https://www.mathworks.com/help/control/ug/pid-controller-design-at-the-command-line.html)
 - [2차 LTI 시스템의 MPC 제어](mpc-lti/): 예측 구간, 입력 변화 가중치, 입력 한계를 바꾸며 MPC의 단위 계단응답을 살펴봅니다. 계획 시점을 선택하면 그때의 예측 출력·입력과 실제 폐루프 궤적을 확인할 수 있습니다. [관련 자료: MathWorks의 What Is Model Predictive Control?](https://www.mathworks.com/help/mpc/gs/what-is-mpc.html)
 - [데이터 기반 예측 제어(DeePC)](deepc-lti/): 결정론적 2차 시스템에서 잡음 없이 측정한 입출력 데이터로 미래 출력을 예측합니다. 기록할 때 입력을 일정하게 유지하면 어떤 정보가 부족해지는지 확인합니다. [Coulson, Lygeros & Dörfler, *Data-Enabled Predictive Control: In the Shallows of the DeePC* (2019)](https://doi.org/10.23919/ECC.2019.8795639)
 - [슬라이딩 모드 제어(SMC)](smc-lti/): 오차와 오차 변화율의 위상 평면에서 궤적과 슬라이딩 면을 관찰하고 경계층 폭에 따른 스위칭 입력의 변화를 확인합니다. [Utkin, *Variable Structure Systems with Sliding Modes* (1977)](https://doi.org/10.1109/TAC.1977.1101446)

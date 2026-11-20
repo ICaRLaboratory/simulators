@@ -43,7 +43,7 @@ test('mobile catalog and experiments do not overflow viewport',async({page})=>{
  }
 });
 
-test('Control fundamentals opens the localized PID lab and links to the CTMS tutorial',async({page})=>{
+test('Control fundamentals opens the localized PID lab and links to MathWorks documentation',async({page})=>{
  await page.goto(root+'?lang=ko');
  await page.locator('[data-category="제어 기초"]').click();
  await page.locator('#ready-only').check();
@@ -53,10 +53,16 @@ test('Control fundamentals opens the localized PID lab and links to the CTMS tut
  await page.locator('[data-lang="en"]').click();
  await expect(page.locator('[data-category="제어 기초"]')).toContainText('Control fundamentals');
  await expect(card.getByRole('heading')).toHaveText('PID control of a second-order LTI system');
- await expect(card.locator('.source-link')).toHaveAttribute('href','https://ctms.engin.umich.edu/CTMS/?example=Introduction&section=ControlPID');
+ const official='https://www.mathworks.com/help/control/ug/pid-controller-design-at-the-command-line.html';
+ await expect(card.locator('.source-link')).toHaveAttribute('href',official);
  await expect(card.locator('[data-launch]')).toHaveAttribute('href','pid-lti/?lang=en');
  await card.locator('[data-launch]').click();
  await expect(page.getByRole('heading',{level:1})).toHaveText('PID control of a second-order LTI system');
+ for(const lang of ['en','ko']){
+  await page.locator(`[data-lang="${lang}"]`).click();
+  const label=lang==='ko'?/공식 문서: MathWorks/:/Official documentation: MathWorks/;
+  await expect(page.getByRole('link',{name:label})).toHaveAttribute('href',official);
+ }
 });
 
 test('MPC is searchable under Control fundamentals, with localized launch and preview links',async({page})=>{

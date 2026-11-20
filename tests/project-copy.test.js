@@ -11,7 +11,7 @@ test('pages present experiments with the associated project, tutorial or concept
     const sourceLink = [...html.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)]
       .find(([, href]) => href.replaceAll('&amp;', '&') === item.source);
     assert.ok(sourceLink, `${item.id}: missing reference`);
-    if (item.id === 'pid-lti') assert.match(sourceLink[2], /CTMS/);
+    if (item.id === 'pid-lti') assert.match(sourceLink[2], /MathWorks/);
     else if (item.id === 'mpc-lti') assert.match(sourceLink[2], /What Is Model Predictive Control\?/);
     else if (item.view === 'graph') {
       assert.ok(sourceLink[2].replaceAll('&amp;', '&').includes(item.sourceName), `${item.id}: missing citation label`);

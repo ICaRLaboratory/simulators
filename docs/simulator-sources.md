@@ -4,8 +4,8 @@
 
 ## 수치 모델과 제어 예제를 구별해야 하는 실험
 
-- `aircraft-pitch` — [CTMS: Aircraft Pitch, System Modeling](https://ctms.engin.umich.edu/CTMS/?example=AircraftPitch&section=SystemModeling)이 수치 모델의 대응 자료다. `q_web = 56.7 q_CTMS`로 놓으면 `dθ/dt = q_web`이며 나머지 상태방정식과 승강타 입력 계수도 [웹 모델](../assets/models/aircraft-pitch.js)과 일치한다. [Rick Hill의 File Exchange 앱 40798](https://www.mathworks.com/matlabcentral/fileexchange/40798-aircraft-pitch-control)은 같은 플랜트에 LQR을 적용한 별도 예제다. 웹 실험의 제어기는 승강타 제한이 있는 PID다.
-  - [CTMS](https://ctms.engin.umich.edu/CTMS)의 튜토리얼 본문·그림에는 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)이 표시되어 있다. 번역·각색물을 배포하려면 출처와 라이선스를 밝히고 변경 사항을 표시하며 동일조건변경허락을 지킨다. 수치 모델의 일치만으로 웹 실험 전체에 이 조건을 적용하지 않는다.
+- `aircraft-pitch` — [MathWorks의 항공기 피치 상태공간 예제](https://www.mathworks.com/help/control/ref/dynamicsystem.compreal.html#mw_e9be8f40-d51f-4bd0-89db-cf2ea697e2cf)에서 `aircraftPitchSSModel.mat`의 두 번째 상태 `x₂`를 `q_web = 56.7 x₂`로 환산하면 `dθ/dt = q_web`이며 나머지 상태방정식과 승강타 입력 계수도 [웹 모델](../assets/models/aircraft-pitch.js)과 일치한다. [Rick Hill의 File Exchange 앱 40798](https://www.mathworks.com/matlabcentral/fileexchange/40798-aircraft-pitch-control)은 같은 플랜트에 LQR을 적용한 별도 예제다. 웹 실험의 제어기는 승강타 제한이 있는 PID다.
+  - 별도로 대조한 CTMS 튜토리얼의 본문·그림에는 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)이 표시되어 있다. 번역·각색물을 배포하려면 출처와 라이선스를 밝히고 변경 사항을 표시하며 동일조건변경허락을 지킨다. 수치 모델의 일치만으로 웹 실험 전체에 이 조건을 적용하지 않는다.
   - 앱 v1.0.0의 [배포 조건](https://addons.mathworks.com/downloads/e5/e597c245-4a80-11e4-9553-005056977bd0/1.0.0/license.txt)은 © 2013 Rick Hill의 두 조건(소스에는 고지·조건·면책 유지, 바이너리는 동봉 자료에 재현)이다. `pitchgui.m`에는 © 1997 Regents of the University of Michigan 및 Rick Hill·Li Guan의 수정 표기도 있다. 앱 파일을 가져올 계획이라면 패키지와 파일 고지를 모두 확인한다. CTMS 본문의 조건을 앱 라이선스와 혼동하지 않는다.
 - `cstr` — [Amir Amini의 File Exchange 예제 103695](https://www.mathworks.com/matlabcentral/fileexchange/103695-continuously-stirred-tank-reactor-cstr-pid-control) v1.0.1의 `cstr1.m`은 농도·반응 온도·냉각수 온도를 적분한다. [웹 모델](../assets/models/cstr.js)은 농도와 반응 온도만 적분하고 재킷 온도는 제한된 PI 출력으로 둔다. [APMonitor가 Henson–Seborg에 귀속한 벤치마크](https://apmonitor.com/wiki/index.php/Apps/StirredReactor)와 두 수지식의 구조, 공급 온도 350 K, E/R = 8750 K가 일치한다. 웹 모델은 100 L, 100 L/min 조건에서 `k(350 K) = 1/60 s⁻¹`로 반응 속도를 보정한다. 이는 식·수치의 비교이며 APMonitor 코드에서 유래했다는 증거가 아니다.
   - File Exchange가 가리키는 [Amini의 v1.0.1 트리](https://github.com/aminiam90/CSTR/tree/2f1367044064eb7311f896098624f8d45f755001)와 배포 압축파일에서 명시적 재사용 허락을 찾지 못했다. MATLAB 코드·GUI·그림은 별도 허락 없이 포함하지 않는다. APMonitor 링크도 벤치마크 확인용이다.
@@ -47,7 +47,7 @@ MathWorks **Virtual Controls Laboratory v3.0.0** (`fcb48179caf2762c906ddf5248471
 
 | ID | 개념 자료 |
 |---|---|
-| `pid-lti` | [CTMS, PID Controller Design](https://ctms.engin.umich.edu/CTMS/?example=Introduction&section=ControlPID) — PID 항의 역할. 위 CTMS 콘텐츠 조건 참조. |
+| `pid-lti` | [MathWorks, PID Controller Design at the Command Line](https://www.mathworks.com/help/control/ug/pid-controller-design-at-the-command-line.html) — PI·PID 설계 및 폐루프 계단응답 예제. |
 | `mpc-lti` | [MathWorks, What Is Model Predictive Control?](https://www.mathworks.com/help/mpc/gs/what-is-mpc.html) — 예측·제약 개념. Toolbox 구현을 사용하는 것은 아니다. |
 | `deepc-lti` | [Coulson, Lygeros & Dörfler (2019)](https://doi.org/10.23919/ECC.2019.8795639) — 측정 데이터에 의한 예측 제어. |
 | `smc-lti` | [Utkin (1977)](https://doi.org/10.1109/TAC.1977.1101446) — 슬라이딩 모드 제어. |

@@ -44,7 +44,7 @@ test('control fundamentals lists five LTI graph labs in order with distinct refe
   assert.equal(pid.view, 'graph');
   assert.equal(pid.name, '2차 LTI 시스템의 PID 제어');
   assert.equal(pid.english, 'PID control of a second-order LTI system');
-  assert.equal(pid.source, 'https://ctms.engin.umich.edu/CTMS/?example=Introduction&section=ControlPID');
+  assert.equal(pid.source, 'https://www.mathworks.com/help/control/ug/pid-controller-design-at-the-command-line.html');
   assert.deepEqual(filterCatalog({category:'제어 기초', query:'LTI', ready:true}), labs);
   for (const query of ['정상상태 오차', 'steady-state error'])
     assert.deepEqual(filterCatalog({category:'제어 기초', query, ready:true}), [pid]);
