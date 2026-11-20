@@ -1,62 +1,110 @@
-// Capture the actual apparatus renderers; never substitute category icons.
-// Run after renderer edits with the repository served at /simulators/.
+// Capture the real device viewport or response graph, never a category icon.
 import {chromium} from 'playwright';
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import {pathToFileURL} from 'node:url';
 import {catalog} from '../assets/catalog.js';
 const base=process.env.SIM_BASE||'http://127.0.0.1:8765/simulators/';
 const out=new URL('../assets/previews/',import.meta.url);
-await mkdir(out,{recursive:true});
-const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH,
- args:['--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-const records=[];
-try{
- for(const item of catalog){
-  for(const lang of ['ko','en']){
-   const context=await browser.newContext({viewport:{width:1280,height:900},deviceScaleFactor:1,reducedMotion:'reduce'});
-   const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
-   if(!item.external)await page.addInitScript(()=>{
-    const nativeRequest=window.requestAnimationFrame.bind(window);
-    let callbacks=[],now=0;window.requestAnimationFrame=fn=>{callbacks.push(fn);return callbacks.length;};
-    window.previewFrames=async count=>{
-     for(let i=0;i<count;i++){
-      now+=20;const current=callbacks;callbacks=[];for(const fn of current)fn(now);
-      if((i+1)%8===0&&callbacks.length)await new Promise(resolve=>nativeRequest(resolve));
-     }
-     await new Promise(resolve=>nativeRequest(resolve));
-    };
-   });
-   const canonical=item.external?new URL(item.href):null;
-   if(canonical)canonical.searchParams.set('lang',lang);
-   const url=item.external?(process.env.RESEARCH_BASE?new URL(`research.html${canonical.search}${canonical.hash}`,process.env.RESEARCH_BASE).href:canonical.href):`${base}${item.id}/?lang=${lang}`;
-   await page.goto(url);let canvas;
-   if(item.external){
-    canvas=page.locator('.sim__fig canvas[data-renderer="three"]:visible');await canvas.waitFor({state:'visible'});
-    await page.evaluate(()=>document.fonts.ready);
-    // Research has its own renderer/aspect ratio; retain the real apparatus view.
-    await canvas.scrollIntoViewIfNeeded();await page.waitForTimeout(250);
-   }else{
-    await page.locator('#start-pause:not([disabled])').waitFor();
-    await page.locator('#apparatus[data-renderer="three"]').waitFor({state:'visible'});
-    await page.addStyleTag({content:'.three-apparatus { width:640px!important; height:430px!important; max-width:none!important; }'});
-    await page.evaluate(()=>document.fonts.ready);
-    await page.locator('#start-pause').click();
-    // The Gen3 target finishes its approach at 2 s; capture the subsequent wall press.
-    await page.evaluate(n=>window.previewFrames(n),item.id==='impedance-robot'?201:101);
-    await page.locator('#start-pause').click();canvas=page.locator('#apparatus');
-   }
-   if(errors.length)throw Error(`${item.id}: ${errors.join('; ')}`);
-   const name=`${item.id}-${lang}.png`,path=new URL(name,out);
-   // The 3D viewport already isolates the apparatus; old pixel crops would cut it.
-   await canvas.scrollIntoViewIfNeeded();
-   await canvas.screenshot({path:path.pathname});
-   const bytes=await readFile(path);
-   records.push({id:item.id,lang,file:name,source:item.external?canonical.href:`${item.id}/?lang=${lang}`,renderer:'three',sha256:createHash('sha256').update(bytes).digest('hex')});
-   await writeFile(new URL('manifest.json',out),JSON.stringify(records,null,2)+'\n');
-   await context.close();
+const locales=['ko','en'];
+
+async function preparePidPreview(page){
+ const panel=page.locator('#pid-response-panel');
+ await panel.locator('#pid-output-plot path[data-series="y"][d]').waitFor({state:'visible'});
+ await page.locator('#pin-response').click();
+ await page.locator('#enable-i').check();
+ await page.waitForFunction(()=>{
+  const plot=document.getElementById('pid-output-plot');
+  const curve=key=>plot.querySelector(`path[data-series="${key}"]`)?.getAttribute('d');
+  return curve('saved') && curve('y') && curve('saved')!==curve('y');
+ });
+ return panel;
+}
+
+export async function prepareGraphPreview(page,id){
+ let panel;
+ if(id==='pid-lti')panel=await preparePidPreview(page);
+ else if(id==='mpc-lti'){
+  panel=page.locator('#mpc-response-panel');
+  for(const series of ['y','pid','prediction']){
+   await panel.locator(`#mpc-output-plot path[data-series="${series}"][d]`).waitFor({state:'visible'});
   }
- }
- if(records.length!==catalog.length*2)throw Error('Incomplete preview set');
- for(const lang of ['ko','en'])if(new Set(records.filter(x=>x.lang===lang).map(x=>x.sha256)).size!==catalog.length)throw Error(`Duplicate ${lang} apparatus previews`);
- console.log(JSON.stringify({experiments:catalog.length,images:records.length,unique:true}));
-}finally{await browser.close();}
+ }else throw Error(`No graph preview recipe for ${id}`);
+ await page.evaluate(()=>document.fonts.ready);
+ return panel;
+}
+
+async function capture(browser,item,lang){
+ const context=await browser.newContext({viewport:{width:1280,height:900},deviceScaleFactor:1,reducedMotion:'reduce'});
+ try{
+  const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  if(item.view==='apparatus')await page.addInitScript(()=>{
+   const nativeRequest=window.requestAnimationFrame.bind(window);
+   let callbacks=[],now=0;window.requestAnimationFrame=fn=>{callbacks.push(fn);return callbacks.length;};
+   window.previewFrames=async count=>{
+    for(let i=0;i<count;i++){
+     now+=20;const current=callbacks;callbacks=[];for(const fn of current)fn(now);
+     if((i+1)%8===0&&callbacks.length)await new Promise(resolve=>nativeRequest(resolve));
+    }
+    await new Promise(resolve=>nativeRequest(resolve));
+   };
+  });
+  const canonical=item.external?new URL(item.href):null;
+  if(canonical)canonical.searchParams.set('lang',lang);
+  const source=item.external?canonical.href:`${item.id}/?lang=${lang}`;
+  const url=item.external?(process.env.RESEARCH_BASE?new URL(`research.html${canonical.search}${canonical.hash}`,process.env.RESEARCH_BASE).href:source):new URL(source,base).href;
+  await page.goto(url);let view,renderer='three';
+  if(item.external){
+   view=page.locator('.sim__fig canvas[data-renderer="three"]:visible');await view.waitFor({state:'visible'});
+   await page.evaluate(()=>document.fonts.ready);
+   await view.scrollIntoViewIfNeeded();await page.waitForTimeout(250);
+  }else if(item.view==='graph'){
+   view=await prepareGraphPreview(page,item.id);renderer='svg';
+  }else{
+   await page.locator('#start-pause:not([disabled])').waitFor();
+   await page.locator('#apparatus[data-renderer="three"]').waitFor({state:'visible'});
+   await page.addStyleTag({content:'.three-apparatus { width:640px!important; height:430px!important; max-width:none!important; }'});
+   await page.evaluate(()=>document.fonts.ready);
+   await page.locator('#start-pause').click();
+   // The Gen3 target finishes its approach at 2 s; capture the subsequent wall press.
+   await page.evaluate(n=>window.previewFrames(n),item.id==='impedance-robot'?201:101);
+   await page.locator('#start-pause').click();view=page.locator('#apparatus');
+  }
+  await view.scrollIntoViewIfNeeded();
+  const bytes=await view.screenshot();
+  if(errors.length)throw Error(`${item.id}: ${errors.join('; ')}`);
+  const file=`${item.id}-${lang}.png`,sha256=createHash('sha256').update(bytes).digest('hex');
+  return {bytes,record:{id:item.id,lang,file,source,renderer,sha256}};
+ }finally{await context.close();}
+}
+
+// Rebuild in catalog/locale order; a single-ID run keeps all other entries intact.
+export function completeManifest(records){
+ const ordered=catalog.flatMap(({id})=>locales.map(lang=>{
+  const matches=records.filter(r=>r.id===id&&r.lang===lang);
+  if(matches.length!==1)throw Error(`Expected one preview for ${id}/${lang}, found ${matches.length}`);
+  return matches[0];
+ }));
+ if(ordered.length!==records.length)throw Error('Unexpected preview entry');
+ for(const lang of locales)if(new Set(ordered.filter(x=>x.lang===lang).map(x=>x.sha256)).size!==catalog.length)throw Error(`Duplicate ${lang} previews`);
+ return ordered;
+}
+
+async function main(args){
+ const [id]=args;
+ if(args.length>1 || (args.length && !catalog.some(item=>item.id===id)))throw Error('Usage: node scripts/capture-previews.mjs [catalog-id]');
+ const manifest=new URL('manifest.json',out);
+ const kept=id?JSON.parse(await readFile(manifest,'utf8')).filter(r=>r.id!==id):[];
+ const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH,
+  args:['--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ const captures=[];
+ try{
+  for(const item of catalog.filter(item=>!id||item.id===id))for(const lang of locales)captures.push(await capture(browser,item,lang));
+ }finally{await browser.close();}
+ const records=completeManifest([...kept,...captures.map(c=>c.record)]);
+ await mkdir(out,{recursive:true});
+ for(const {bytes,record} of captures)await writeFile(new URL(record.file,out),bytes);
+ await writeFile(manifest,JSON.stringify(records,null,2)+'\n');
+ console.log(JSON.stringify({experiments:catalog.length,images:records.length,captured:captures.length,unique:true}));
+}
+if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href)await main(process.argv.slice(2));

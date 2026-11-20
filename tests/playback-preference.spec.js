@@ -1,13 +1,13 @@
 import {test,expect} from '@playwright/test';
 import {catalog} from '../assets/catalog.js';
 const base=process.env.SIM_BASE||'http://127.0.0.1:8765/simulators/';
-const local=catalog.filter(item=>item.status==='ready'&&!item.external);
-expect(local).toHaveLength(16);
+const apparatus=catalog.filter(item=>item.status==='ready' && item.view==='apparatus');
+expect(apparatus).toHaveLength(16);
 const click=(page,selector)=>page.locator(selector).evaluate(node=>node.click());
 const snapshot=page=>page.evaluate(()=>window.playbackSnapshot());
 const plots=page=>page.locator('canvas:not(#apparatus)').evaluateAll(nodes=>nodes.map(n=>n.toDataURL()));
 const preference='.playback-preference, #playback-preference-help, input[type=checkbox]';
-for(const {id} of local){
+for(const {id} of apparatus){
   test(`${id}: Start is the only playback intent, without checkbox or help`,async({page})=>{
     await page.emulateMedia({reducedMotion:'reduce'});
     await page.setViewportSize({width:320,height:900});
@@ -21,6 +21,20 @@ for(const {id} of local){
     }
   });
 }
+test('the PID graph lab has term switches rather than playback or camera controls',async({page})=>{
+ await page.goto(base+'pid-lti/');
+ await expect(page.locator('#enable-p')).toBeChecked();
+ await expect(page.locator('#enable-i')).not.toBeChecked();
+ await expect(page.locator('#enable-d')).not.toBeChecked();
+ await expect(page.locator('#start-pause, #apparatus, .playback-preference')).toHaveCount(0);
+ await expect(page.locator('#pid-output-plot path[data-series="y"]')).toBeVisible();
+});
+test('the MPC graph lab compares PID without playback, camera or pin controls',async({page})=>{
+ await page.goto(base+'mpc-lti/');
+ await expect(page.locator('#compare-pid')).toBeChecked();
+ await expect(page.locator('#mpc-output-plot path[data-series="pid"]')).toBeVisible();
+ await expect(page.locator('#start-pause, #apparatus, .three-reset, .playback-preference, #pin-response')).toHaveCount(0);
+});
 test('dashboard does not get a simulation playback control',async({page})=>{
   await page.goto(base);await expect(page.locator('.sim-card').first()).toBeVisible();
   await expect(page.locator('.playback-preference')).toHaveCount(0);

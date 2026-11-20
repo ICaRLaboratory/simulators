@@ -1,10 +1,11 @@
 import {test, expect} from '@playwright/test';
+import {catalog} from '../assets/catalog.js';
 const root=process.env.SIM_BASE || 'http://127.0.0.1:8765/simulators/';
 const kinds=['cruise-control','dc-motor','ball-and-beam'];
 test('locale toggle translates catalog, persists only language and synchronizes research URLs',async({page})=>{
  await page.goto(root);
  await expect(page.locator('html')).toHaveAttribute('lang','ko');
- await expect(page.locator('.sim-card')).toHaveCount(18);
+ await expect(page.locator('.sim-card')).toHaveCount(catalog.length);
  await page.evaluate(()=>{document.addEventListener('icar:lang',()=>{window.languageEventSeen=true;});});
  await page.locator('[data-lang="en"]').click();
  expect(await page.evaluate(()=>window.languageEventSeen)).toBe(true);

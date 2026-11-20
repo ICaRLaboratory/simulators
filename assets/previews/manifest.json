@@ -256,6 +256,38 @@
     "sha256": "414ceb5554eb197083e06c1288350aa21dd651bf0f3356d4cea7782bd1dd77cc"
   },
   {
+    "id": "pid-lti",
+    "lang": "ko",
+    "file": "pid-lti-ko.png",
+    "source": "pid-lti/?lang=ko",
+    "renderer": "svg",
+    "sha256": "1245f62911d85c0c13c49d9664b115d648ded018502e7d80b5a6fbfec2c26303"
+  },
+  {
+    "id": "pid-lti",
+    "lang": "en",
+    "file": "pid-lti-en.png",
+    "source": "pid-lti/?lang=en",
+    "renderer": "svg",
+    "sha256": "6d3b801bff4f64048e3914ccf3b8e873b686925d518e99d48858e9611a922cf3"
+  },
+  {
+    "id": "mpc-lti",
+    "lang": "ko",
+    "file": "mpc-lti-ko.png",
+    "source": "mpc-lti/?lang=ko",
+    "renderer": "svg",
+    "sha256": "206cec067b58d292ac34c22b3483eb8a595f01d9799aed7e63553996f66184d0"
+  },
+  {
+    "id": "mpc-lti",
+    "lang": "en",
+    "file": "mpc-lti-en.png",
+    "source": "mpc-lti/?lang=en",
+    "renderer": "svg",
+    "sha256": "3f3654ec59e0fb77ad021a7eb84e28849fc08df4a6a1dcd1771c9e4c8dba67f8"
+  },
+  {
     "id": "research-tracking",
     "lang": "ko",
     "file": "research-tracking-ko.png",

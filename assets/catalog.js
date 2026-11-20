@@ -21,10 +21,12 @@ const entries = [
   ['suspension','능동 서스펜션','Quarter-car suspension','모빌리티','노면 충격에 대한 차체 진동과 승차감의 관계를 탐색합니다.',['감쇠 계수','제어 이득'],'https://www.mathworks.com/matlabcentral/fileexchange/95308-quarter-car-suspension-active-control-demo-app-simulink','MATLAB File Exchange'],
   ['cstr','연속 교반 탱크 반응기','CSTR','공정·열','반응과 열전달이 결합된 공정의 온도 제어를 살펴봅니다.',['온도 설정값','PI 이득'],'https://www.mathworks.com/matlabcentral/fileexchange/103695-continuously-stirred-tank-reactor-cstr-pid-control','MATLAB File Exchange'],
   ['rocket-landing','로켓 수직 착륙','Rocket landing','항공','두 엔진의 추력으로 자세와 하강 속도를 조절해 착륙합니다.',['착륙 위치','하강 속도','속도 외란'],'https://www.mathworks.com/help/mpc/ug/landing-rocket-with-mpc-example.html','MathWorks 공식 예제'],
-  ['aircraft-pitch','항공기 피치 제어','Aircraft pitch','항공','승강타 입력으로 항공기 피치각을 조절하는 실험입니다.',['목표 피치각','제어 이득'],'https://www.mathworks.com/matlabcentral/fileexchange/40798-aircraft-pitch-control','MATLAB File Exchange']
+  ['aircraft-pitch','항공기 피치 제어','Aircraft pitch','항공','승강타 입력으로 항공기 피치각을 조절하는 실험입니다.',['목표 피치각','제어 이득'],'https://www.mathworks.com/matlabcentral/fileexchange/40798-aircraft-pitch-control','MATLAB File Exchange'],
+  ['pid-lti','2차 LTI 시스템의 PID 제어','PID control of a second-order LTI system','제어 기초','같은 2차 선형 시불변(LTI) 시스템에서 P·I·D 항을 하나씩 바꾸며 단위 계단 응답과 정상상태 오차를 비교합니다.',['P·I·D 항 선택','PID 이득','기준 응답 고정'],'https://ctms.engin.umich.edu/CTMS/?example=Introduction&section=ControlPID','CTMS','graph'],
+  ['mpc-lti','2차 LTI 시스템의 MPC 제어','MPC control of a second-order LTI system','제어 기초','모델 예측 제어(MPC)의 예측 구간과 입력 제한을 바꾸며 같은 2차 LTI 시스템에서 MPC와 PID의 목표 추종 응답을 비교합니다.',['예측 구간','입력 변화 가중치','입력 제한','PID 응답 비교'],'https://www.mathworks.com/help/mpc/gs/what-is-mpc.html','MathWorks','graph']
 ];
 const research = (id, name, english, sim, description, features) => ({id,name,english,category:'로보틱스',description,features,sourceName:'연구 시뮬레이션',status:'ready',external:true,href:`https://icarlaboratory.github.io/research.html?sim=${sim}&lang=ko#interactive`,source:`https://icarlaboratory.github.io/research.html?sim=${sim}&lang=ko#interactive`});
-export const catalog = entries.map(([id,name,english,category,description,features,source,sourceName]) => ({id,name,english,category,description,features,source,sourceName,status:'ready',external:false,href:`${id}/`})).concat([
+export const catalog = entries.map(([id,name,english,category,description,features,source,sourceName,view='apparatus']) => ({id,name,english,category,description,features,source,sourceName,view,status:'ready',external:false,href:`${id}/`})).concat([
   research('research-tracking','로봇 궤적 추종','Robot trajectory tracking','track','제어 이득을 바꾸며 로봇의 목표 궤적과 추종 오차를 비교합니다.',['목표 궤적','제어 이득']),
   research('research-contact','로봇 접촉 제어','Robot contact control','contact','강성과 감쇠를 바꾸며 접촉 힘과 움직임을 관찰합니다.',['가상 강성','감쇠 계수','접촉 힘'])
 ]).sort((a,b) => Number(b.status==='ready') - Number(a.status==='ready'));

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title data-en="MPC control of a second-order LTI system · Control Simulators">2차 LTI 시스템의 MPC 제어 · Control Simulators</title>
+  <meta name="description" content="같은 2차 시스템과 입력 제한에서 모델 예측 제어와 PID의 계단응답을 비교합니다.">
+  <link rel="stylesheet" href="../assets/site.css"><link rel="stylesheet" href="../assets/pid-lti.css"><link rel="stylesheet" href="../assets/mpc-lti.css">
+  <script type="module" src="../assets/mpc-lti.js"></script>
+</head>
+<body>
+<a class="skip" href="#main" data-en="Skip to content">본문으로 건너뛰기</a>
+<header class="site-header"><a class="brand" href="../" aria-label="Control Simulators 홈"><span class="brand-mark" aria-hidden="true"><img src="../assets/lab-logo.png" alt=""></span><span class="brand-label">CONTROL<br>SIMULATORS</span></a><div class="language-switch" role="group" aria-label="언어 선택"><button type="button" data-lang="ko" aria-pressed="true" lang="ko">한국어</button><button type="button" data-lang="en" aria-pressed="false" lang="en">EN</button></div></header>
+<main id="main" class="container pid-lab">
+  <a class="back-link" href="../" data-en="← All experiments">← 모든 실험</a>
+  <div class="sim-heading"><div><h1 data-en="MPC control of a second-order LTI system">2차 LTI 시스템의 MPC 제어</h1><p data-en="How far ahead should the controller look? Change the prediction horizon and compare MPC and PID under the same input limit.">얼마나 먼 미래까지 예측해야 할까요? 예측 구간을 바꾸고, 같은 입력 한계에서 MPC와 PID의 응답을 비교하세요.</p></div></div>
+  <noscript>실험을 조작하려면 JavaScript를 켜세요. 모델과 제어식은 아래에서 확인할 수 있습니다.</noscript>
+  <section class="panel plant-panel" aria-labelledby="plant-title"><div class="panel-heading"><h2 id="plant-title" data-en="Second-order plant">2차 시스템 설정</h2><span id="plant-equation">G(s) = 1 / (s² + s + 1)</span></div><div id="plant-controls"></div></section>
+  <div class="pid-layout">
+    <section class="panel pid-output" id="mpc-response-panel" aria-labelledby="response-title">
+      <div class="panel-heading"><h2 id="response-title" data-en="Unit-step response">단위 계단응답</h2><span class="mono">r = 1</span></div>
+      <div class="legend pid-legend mpc-legend"><span class="mpc-key">MPC</span><span class="pid-key" data-pid>PID</span><span class="plan-key" data-en="Prediction">예측 출력</span><span class="ref-key" data-en="Target">목표값</span></div>
+      <svg id="mpc-output-plot" role="img" aria-labelledby="response-title"></svg>
+    </section>
+    <section class="panel pid-settings" aria-labelledby="settings-title">
+      <div class="panel-heading"><h2 id="settings-title" data-en="Controller settings">제어기 설정</h2><span class="mono">Tₛ = 0.2 s</span></div>
+      <div class="mpc-settings">
+        <div><label for="mpc-horizon" data-en="Prediction horizon N">예측 구간 N</label><output for="mpc-horizon" id="mpc-horizon-value">12</output><input type="range" id="mpc-horizon" min="2" max="30" step="1" value="12"></div>
+        <div><label for="mpc-weight" data-en="Move penalty λ">입력 변화 가중치 λ</label><output for="mpc-weight" id="mpc-weight-value">0.25</output><input type="range" id="mpc-weight" min="0.01" max="2" step="0.01" value="0.25"></div>
+        <div><label for="mpc-limit" data-en="Input limit |u| ≤">입력 한계 |u| ≤</label><output for="mpc-limit" id="mpc-limit-value">2.00</output><input type="range" id="mpc-limit" min="0.5" max="4" step="0.1" value="2"></div>
+        <label class="mpc-compare"><input type="checkbox" id="compare-pid" checked><span data-en="Overlay PID (same limit)">PID 겹쳐 보기 (같은 입력 한계)</span></label>
+        <button id="mpc-reset" class="primary" data-en="Reset">초기화</button>
+      </div>
+    </section>
+    <section class="panel mpc-scrubber" aria-labelledby="plan-title">
+      <div><h2 id="plan-title" data-en="Inspect an MPC plan">MPC 예측 계획 살펴보기</h2><label for="mpc-time" data-en="Planning instant">계획 시점</label> <output for="mpc-time" id="mpc-time-value">0.0 s</output></div>
+      <input type="range" id="mpc-time" min="0" max="99" step="1" value="0">
+      <p data-en="The dotted plan starts at the selected instant. MPC applies only its first input, then replans 0.2 s later.">점선은 선택한 시점의 예측입니다. MPC는 첫 입력만 적용하고 0.2초 뒤에 다시 계획합니다.</p>
+    </section>
+    <section class="panel pid-terms" aria-labelledby="input-title">
+      <div class="panel-heading"><h2 id="input-title" data-en="Applied and planned inputs">적용 입력과 예측 입력</h2><span class="mono">u</span></div>
+      <div class="legend pid-legend mpc-legend"><span class="mpc-key">MPC</span><span class="pid-key" data-pid>PID</span><span class="plan-key" data-en="Planned input">예측 입력</span><span class="ref-key" data-en="Input limits">입력 한계</span></div>
+      <svg id="mpc-input-plot" role="img" aria-labelledby="input-title"></svg>
+    </section>
+    <aside class="panel pid-guide"><div class="panel-heading"><h2 data-en="What to compare">비교해 보기</h2></div><ol>
+      <li data-en="Shorten the horizon. Compare the first MPC input and how fast the output approaches 1.">예측 구간을 줄여 첫 MPC 입력과 출력이 목표값 1에 접근하는 속도를 비교하세요.</li>
+      <li data-en="Increase λ. How does penalizing changes affect the input steps?">가중치 λ를 높여 보세요. 입력 변화를 더 억제하면 계단 모양의 입력은 어떻게 바뀌나요?</li>
+      <li data-en="Set the input limit to 0.5. Can either controller hold the output at 1?">입력 한계를 0.5로 낮춰 보세요. 두 제어기 중 어느 쪽이 출력 1을 유지할 수 있을까요?</li>
+    </ol></aside>
+    <div class="pid-metrics"><div><span data-en="MPC output at 20 s">20초 시점 MPC 출력</span><strong id="mpc-final-y">—</strong></div><div><span data-en="Maximum applied |u| · MPC">MPC 최대 적용 |u|</span><strong id="mpc-peak-u">—</strong></div><div><span data-en="First input of selected plan">선택한 계획의 첫 입력</span><strong id="mpc-first-u">—</strong></div></div>
+    <p class="pid-note" id="mpc-limit-hint" role="status"></p>
+  </div>
+  <details class="panel pid-model"><summary data-en="Plant, objective and comparison conditions">모델·목적함수·비교 조건</summary><div>
+    <p class="eq">G(s) = Kωₙ² / (s² + 2ζωₙs + ωₙ²)</p><p class="eq">J = Σⱼ₌₁ᴺ (ŷⱼ − 1)² + λ [(u₀ − u₋₁)² + (u₁ − u₀)²]</p>
+    <p data-en="Both controllers start at rest, track the same unit step for 20 s, and use the exact zero-order-hold plant model at a 0.2 s sample period. Position and velocity are known; noise, disturbances and model mismatch are omitted.">두 제어기는 정지 상태에서 같은 단위 계단 입력을 20초간 추종합니다. 샘플 주기는 0.2초이며, 구간마다 입력을 일정하게 유지한 정확 이산 모델을 사용합니다. 위치와 속도를 안다고 가정하고 잡음·외란·모델 오차는 제외했습니다.</p>
+    <p data-en="At each instant MPC chooses two inputs within the bounds: one for the next interval and a second held for the rest of the prediction horizon. It minimizes the objective above, applies the first input only, and repeats. The last applied input is u₋₁ (initially zero). There is no terminal penalty or terminal constraint.">MPC는 매 시점에서 입력 한계를 만족하는 두 값, 즉 다음 한 구간의 입력과 그 뒤 예측 구간 끝까지 유지할 입력을 선택합니다. 위 목적함수를 최소화한 뒤 첫 입력만 적용합니다. u₋₁은 직전에 적용한 입력이며 초깃값은 0입니다. 종단 비용과 종단 제약은 없습니다.</p>
+    <p data-en="The PID comparison uses Kp = 4, Ki = 2, Kd = 2, derivative on measured velocity and conditional integration to limit windup. Unlike the continuous PID lab, this comparison uses sampled control and the same actuator limit as MPC.">비교용 PID는 Kp = 4, Ki = 2, Kd = 2이며, 측정 속도에 미분항을 적용하고 조건부 적분으로 포화 시 적분 누적을 제한합니다. 연속시간 PID 단독 실험과 달리 여기서는 MPC와 같은 샘플 주기와 입력 한계를 적용합니다.</p>
+  </div></details>
+  <p class="pid-source"><a href="../pid-lti/" id="pid-lab-link" data-en="Explore the P, I and D terms →">P·I·D 항별 효과 실험 →</a></p>
+  <p class="pid-source"><a href="https://www.mathworks.com/help/mpc/gs/what-is-mpc.html" rel="noopener noreferrer" target="_blank" data-en="Related MATLAB tutorial: What Is Model Predictive Control? ↗">관련 MATLAB 자료: What Is Model Predictive Control? ↗</a></p>
+</main>
+<footer class="site-footer"><span><strong>Control Simulators</strong><span class="footer-tag">Interactive Control Lab</span></span><a href="../" data-en="Back to experiments ↑">실험 목록으로 돌아가기 ↑</a></footer>
+</body></html>

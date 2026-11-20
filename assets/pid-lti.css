@@ -1,0 +1,60 @@
+.pid-lab { padding-bottom: 30px; }
+.plant-panel { margin-bottom: 16px; }
+.plant-panel .panel-heading { flex-wrap: wrap; }
+#plant-equation { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#plant-controls { display: grid; gap: 7px 24px; grid-template-columns: repeat(auto-fit,minmax(min(100%,200px),1fr)); padding: 12px 18px; }
+#plant-controls label { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+#plant-controls output { font-weight: 600; font-variant-numeric: tabular-nums; }
+#plant-controls input { display: block; width: 100%; margin: 0; height: 24px; accent-color: var(--actual); }
+.pid-layout { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(278px, 1fr); gap: 16px; align-items: start; }
+.pid-settings { grid-column: 2; grid-row: 1; }
+.pid-output { grid-column: 1; grid-row: 1; }
+.pid-terms { grid-column: 1; }
+.pid-guide { grid-column: 2; }
+.pid-layout svg { display: block; width: 100%; height: 220px; background: var(--bg-soft); }
+.pid-layout svg text { font: 12px var(--sans); fill: #45454c; }
+.pid-legend { padding: 10px 16px; flex-wrap: wrap; column-gap: 14px; row-gap: 2px; font-size: 13px; }
+.pid-legend .saved-key::before { border-top: 2px dashed #5d5389; }
+.pid-legend .p-key::before { border-color: #087f74; }
+.pid-legend .i-key::before { border-color: #b45923; border-top-style: dashed; }
+.pid-legend .d-key::before { border-color: #4b5aa1; border-top-style: dashed; }
+.pid-legend .sum-key::before { border-color: #25252a; }
+.pid-legend span { overflow-wrap: anywhere; }
+.gain-list { padding: 0 18px; }
+.gain-row { padding: 5px 0 6px; border-bottom: 1px solid var(--line-soft); }
+.gain-row > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.gain-row label { display: inline-flex; align-items: center; min-height: 38px; gap: 8px; cursor: pointer; }
+.gain-row input[type=checkbox] { width: 18px; height: 18px; margin: 0; accent-color: var(--ink); }
+.gain-row input[type=range] { display: block; width: 100%; height: 19px; margin: 0; accent-color: var(--actual); cursor: pointer; }
+.gain-row input:disabled { cursor: default; }
+.gain-row output { font-variant-numeric: tabular-nums; font-weight: 600; }
+.gain-row:has(input:disabled) output { color: var(--muted); font-weight: 400; }
+.pid-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 13px 16px 4px; }
+.pid-actions button { padding: 5px 10px; min-height: 38px; font-size: 14px; }
+.pid-hint, .pid-note { color: var(--muted); font-size: 14px; }
+.pid-hint { padding: 3px 18px 13px; }
+.pid-metrics { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 1px; background: var(--line-soft); border: 1px solid var(--line-soft); border-radius: var(--radius); overflow: hidden; }
+.pid-metrics div { flex: 1 1 135px; background: var(--surface); padding: 10px 16px; }
+.pid-metrics span, .pid-metrics strong { display: block; }
+.pid-metrics span { color: var(--muted); font-size: 14px; }
+.pid-metrics strong { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.pid-metrics [data-stability=unstable], .pid-metrics [data-stability=marginal] { color: #9d3a25; }
+.pid-note { grid-column: 1 / -1; margin: -8px 4px 3px; }
+.pid-guide ol { padding: 13px 18px 16px 36px; margin: 0; font-size: 15px; }
+.pid-guide li + li { margin-top: 9px; }
+.pid-model { margin-top: 18px; }
+.pid-model summary { cursor: pointer; padding: 13px 18px; font-weight: 600; }
+.pid-model div { padding: 0 18px 14px; }
+.pid-model p { margin: 6px 0; }
+.pid-model .eq { font-family: var(--mono); font-size: .92rem; }
+.pid-source { margin-top: 12px; font-size: 14px; }
+.pid-source a { text-decoration: underline; text-underline-offset: 3px; }
+@media(max-width: 780px) {
+  .pid-layout { grid-template-columns: minmax(0,1fr); gap: 12px; }
+  .pid-output, .pid-settings, .pid-terms, .pid-guide { grid-column: 1; grid-row: auto; }
+  .pid-output { grid-row: 1; }
+  .gain-row { display: grid; grid-template-columns: minmax(122px, .9fr) minmax(64px,1fr); align-items: center; column-gap: 12px; }
+  .pid-hint { padding-bottom: 10px; }
+  .pid-layout svg { height: 194px; }
+  .pid-note { margin-top: -3px; }
+}

@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
+import {catalog} from '../assets/catalog.js';
 const root = process.env.SIM_BASE || 'http://127.0.0.1:8765/simulators/';
-test('catalog offers sixteen local and two research experiments and searchable source entries', async ({page}) => {
+test('catalog offers all local and Research launches with searchable source entries', async ({page}) => {
  const errors=[]; page.on('pageerror',e=>errors.push(e.message));
  await page.goto(root);
- await expect(page.locator('.sim-card')).toHaveCount(18);
- await expect(page.locator('a[data-launch]')).toHaveCount(18);
+ await expect(page.locator('.sim-card')).toHaveCount(catalog.length);
+ await expect(page.locator('a[data-launch]')).toHaveCount(catalog.length);
  await page.locator('#search').fill('크루즈');
  await expect(page.locator('.sim-card:visible')).toHaveCount(1);
  await expect(page.locator('a[data-launch]:visible')).toHaveCount(1);
@@ -42,10 +43,44 @@ test('mobile catalog and experiments do not overflow viewport',async({page})=>{
  }
 });
 
+test('Control fundamentals opens the localized PID lab and links to the CTMS tutorial',async({page})=>{
+ await page.goto(root+'?lang=ko');
+ await page.locator('[data-category="제어 기초"]').click();
+ await page.locator('#ready-only').check();
+ await expect(page.locator('.sim-card')).toHaveCount(2);
+ const card=page.locator('[data-id=pid-lti]');
+ await expect(card.getByRole('heading')).toHaveText('2차 LTI 시스템의 PID 제어');
+ await page.locator('[data-lang="en"]').click();
+ await expect(page.locator('[data-category="제어 기초"]')).toContainText('Control fundamentals');
+ await expect(card.getByRole('heading')).toHaveText('PID control of a second-order LTI system');
+ await expect(card.locator('.source-link')).toHaveAttribute('href','https://ctms.engin.umich.edu/CTMS/?example=Introduction&section=ControlPID');
+ await expect(card.locator('[data-launch]')).toHaveAttribute('href','pid-lti/?lang=en');
+ await card.locator('[data-launch]').click();
+ await expect(page.getByRole('heading',{level:1})).toHaveText('PID control of a second-order LTI system');
+});
+
+test('MPC is searchable under Control fundamentals, with localized launch and preview links',async({page})=>{
+ await page.goto(root+'?lang=ko');
+ await page.locator('[data-category="제어 기초"]').click();
+ await page.locator('#ready-only').check();
+ for(const [lang,query,title] of [['ko','예측 구간','2차 LTI 시스템의 MPC 제어'],['en','prediction horizon','MPC control of a second-order LTI system']]){
+  await page.locator(`[data-lang=${lang}]`).click();
+  await page.locator('#search').fill(query);
+  const card=page.locator('.sim-card');
+  await expect(card).toHaveCount(1);
+  await expect(card.getByRole('heading')).toHaveText(title);
+  await expect(card.locator('.source-link')).toHaveAttribute('href','https://www.mathworks.com/help/mpc/gs/what-is-mpc.html');
+  await expect(card.locator('[data-launch]')).toHaveAttribute('href',`mpc-lti/?lang=${lang}`);
+  await expect(card.locator('.card-preview')).toHaveAttribute('src',`assets/previews/mpc-lti-${lang}.png`);
+ }
+ await page.locator('.sim-card [data-launch]').click();
+ await expect(page.getByRole('heading',{level:1})).toHaveText('MPC control of a second-order LTI system');
+});
+
 test('category and ready-only filters compose',async({page})=>{
  await page.goto(root);
  await page.locator('#ready-only').check();
- await expect(page.locator('.sim-card')).toHaveCount(18);
+ await expect(page.locator('.sim-card')).toHaveCount(catalog.length);
  await page.locator('[data-category="균형·진자"]').click();
  await expect(page.locator('.sim-card')).toHaveCount(4);
  expect(await page.locator('a[data-launch]').evaluateAll(links=>links.map(a=>a.getAttribute('href')))).toEqual(['ball-and-beam/?lang=ko','inverted-pendulum/?lang=ko','rotary-pendulum/?lang=ko','ball-and-plate/?lang=ko']);

@@ -1,5 +1,12 @@
 // Korean source strings remain readable without JavaScript; English equivalents are shared by DOM and canvas.
 export const english = {
+ '제어 기초':'Control fundamentals',
+ '2차 LTI 시스템의 MPC 제어':'MPC control of a second-order LTI system',
+ '모델 예측 제어(MPC)의 예측 구간과 입력 제한을 바꾸며 같은 2차 LTI 시스템에서 MPC와 PID의 목표 추종 응답을 비교합니다.':'Adjust the prediction horizon and input limit in model predictive control (MPC), and compare MPC and PID tracking responses for the same second-order LTI system.',
+ '예측 구간':'Prediction horizon','입력 변화 가중치':'Input move weight','PID 응답 비교':'Compare PID response',
+ '2차 LTI 시스템의 PID 제어':'PID control of a second-order LTI system',
+ '같은 2차 선형 시불변(LTI) 시스템에서 P·I·D 항을 하나씩 바꾸며 단위 계단 응답과 정상상태 오차를 비교합니다.':'Change the P, I and D terms one at a time to compare unit-step responses and steady-state error for the same second-order linear time-invariant (LTI) system.',
+ 'P·I·D 항 선택':'P/I/D term selection','기준 응답 고정':'Pin baseline response',
  '로켓 수직 착륙':'Rocket landing',
  '두 엔진의 추력으로 자세와 하강 속도를 조절해 착륙합니다.':'Control attitude and descent with two engines to land softly.',
  '착륙 위치':'Landing position',

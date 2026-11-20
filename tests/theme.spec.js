@@ -17,7 +17,9 @@ test('schematic surfaces use neutral paper while signal colors remain distinct',
 });
 
 import {catalog} from '../assets/catalog.js';
-for (const path of ['',...catalog.filter(item=>!item.external).map(item=>`${item.id}/`)]) {
+for (const item of [null, ...catalog.filter(item=>!item.external)]) {
+  const path = item ? item.href : '';
+  const graph = item?.view === 'graph';
   test(`${path || 'catalog'} shares the homepage visual language`, async ({ page }) => {
     await page.goto(root + path);
     await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
@@ -28,8 +30,8 @@ for (const path of ['',...catalog.filter(item=>!item.external).map(item=>`${item
       await expect(page.locator(band)).toHaveCSS('color', 'rgb(250, 250, 250)');
     }
     await expect(page.locator(path ? '.panel' : '.sim-card').first()).toHaveCSS('border-radius', '16px');
-    await expect(page.locator(path ? '#apparatus' : '.card-visual').first()).toHaveCSS('background-color', 'rgb(245, 245, 243)');
-    const action = page.locator(path ? '#start-pause' : '.launch').first();
+    await expect(page.locator(graph ? '[id$="-response-panel"] svg[role="img"]' : path ? '#apparatus' : '.card-visual').first()).toHaveCSS('background-color', 'rgb(245, 245, 243)');
+    const action = page.locator(graph ? 'button.primary' : path ? '#start-pause' : '.launch').first();
     await expect(action).toHaveCSS('background-color', 'rgb(10, 10, 10)');
     await expect(action).toHaveCSS('border-radius', '999px');
     await expect(page.locator(path ? '.mono' : '.english-name').first()).toHaveCSS('font-family', /JetBrains Mono/);
@@ -39,11 +41,14 @@ for (const path of ['',...catalog.filter(item=>!item.external).map(item=>`${item
     if (path) {
       const lines = await page.locator('.legend span').evaluateAll(nodes => nodes.map(node => {
         const style = getComputedStyle(node, '::before');
-        return { color: style.borderTopColor, type: style.borderTopStyle };
+        return { color: style.borderTopColor, type: style.borderTopStyle, plan: node.matches('.plan-key'), reference: node.matches('.ref-key') };
       }));
       expect(lines.length).toBeGreaterThan(0);
-      for(const line of lines)expect(['solid','dashed']).toContain(line.type);
-      const reference=lines.find(line=>line.type==='dashed');
+      for(const line of lines){
+        if(item.id==='mpc-lti' && line.plan)expect(line.type).toBe('dotted');
+        else expect(['solid','dashed']).toContain(line.type);
+      }
+      const reference=lines.find(line=>line.reference) ?? lines.find(line=>line.type==='dashed');
       const measured=lines.find(line=>line.type==='solid');
       expect(measured).toBeTruthy();
       if(reference)expect(reference.color).not.toBe(measured.color);
