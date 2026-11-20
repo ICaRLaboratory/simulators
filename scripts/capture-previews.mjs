@@ -40,7 +40,9 @@ try{
     await page.locator('#apparatus[data-renderer="three"]').waitFor({state:'visible'});
     await page.addStyleTag({content:'.three-apparatus { width:640px!important; height:430px!important; max-width:none!important; }'});
     await page.evaluate(()=>document.fonts.ready);
-    await page.locator('#start-pause').click();await page.evaluate(()=>window.previewFrames(101));
+    await page.locator('#start-pause').click();
+    // The Gen3 target finishes its approach at 2 s; capture the subsequent wall press.
+    await page.evaluate(n=>window.previewFrames(n),item.id==='impedance-robot'?201:101);
     await page.locator('#start-pause').click();canvas=page.locator('#apparatus');
    }
    if(errors.length)throw Error(`${item.id}: ${errors.join('; ')}`);

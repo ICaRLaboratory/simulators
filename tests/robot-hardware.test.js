@@ -5,13 +5,13 @@ let parts = {};
 try { parts = await import('../assets/three/robot-hardware.js'); }
 catch (error) { if (error.code !== 'ERR_MODULE_NOT_FOUND') throw error; }
 
-// Actual callers: robot-scenes.js (servo/impedance) and research-three.js
-// (tracking/contact), plus two short stress cases. Lengths include round trips.
+// Start with servo-arm and Research tracking/contact casings, then exercise
+// shorter/longer inputs and round trips. Gen3 uses URDF link meshes instead.
 const casingCases = [
   ['default regression', .18, .12, .22, [.6, 1.1, .6]],
-  ['servo/impedance pedestal', .32, .205, .48, [1.6 + .27 - .46, .55 + .5 + .27 - .46]],
-  ['servo/impedance upper', .205, .135, .28, [.8, .55]],
-  ['servo/impedance forearm', .15, .09, .22, [.8, .5]],
+  ['servo pedestal', .32, .205, .48, [1.6 + .27 - .46, .86]],
+  ['servo upper', .205, .135, .28, [.8, .55]],
+  ['servo forearm', .15, .09, .22, [.8, .5]],
   ['tracking upper', .21, .15, .24, [1, .6, 1.1]],
   ['tracking forearm', .18, .105, .20, [.85, .6, 1.1]],
   ['contact proximal support', .18, .145, .30, [Math.hypot(-.88 + 1.16, .91 - .33), .3]],
@@ -193,7 +193,7 @@ test('length updates retain the housing radii and all GPU buffer identities', ()
   for (const state of initial) assert.deepEqual(state.attribute.array, state.values, `${state.name}: byte-identical round trip`);
 });
 
-test('all four scenes retain measured Y/Z joint radii and transverse bounds through length round trips', () => {
+test('sculpted link casings retain measured Y/Z joint radii and transverse bounds through length round trips', () => {
   for (const [name, rootRadius, tipRadius, depth, lengths] of casingCases) {
     const body = parts.sculptedLink(new T.Group(), name, lengths[0], { rootRadius, tipRadius, depth });
     const p = body.geometry.attributes.position, initial = p.array.slice();

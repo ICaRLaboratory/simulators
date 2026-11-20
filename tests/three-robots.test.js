@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from '../assets/vendor/three.js';
 import { Simulation as Arm } from '../assets/models/robot-arm.js';
-import { Simulation as Impedance, kinematics, mechanics } from '../assets/models/impedance-robot.js';
+import { Simulation as Impedance } from '../assets/models/impedance-robot.js';
+import { createImpedanceScene } from '../assets/three/gen3-scene.js';
 import { Simulation as Parking, footprint } from '../assets/models/parking.js';
 import { Simulation as Tracking } from '../assets/models/path-tracking.js';
 import { createRobotScene } from '../assets/three/robot-scenes.js';
@@ -25,7 +26,7 @@ function world(scene, name) {
 }
 function make(id) {
   assert.equal(typeof createRobotScene, 'function', 'robot scene factory must be implemented');
-  const result = createRobotScene(id);
+  const result = id === 'impedance-robot' ? createImpedanceScene() : createRobotScene(id);
   assert.ok(result?.root?.isGroup, `${id} must return a Three.js Group`);
   return result;
 }
@@ -44,7 +45,7 @@ function updatePure(scene, simulation) {
 }
 
 test('arms have smooth closed volumetric casings and an integrated cast neck', () => {
-  for (const [id, l1, l2] of [['robot-arm', .8, .8], ['impedance-robot', .55, .5]]) {
+  for (const [id, l1, l2] of [['robot-arm', .8, .8]]) {
     const scene = make(id);
     scene.root.updateMatrixWorld(true);
     for (const [name, length] of [['upper-link', l1], ['forearm-link', l2]]) {
@@ -53,9 +54,7 @@ test('arms have smooth closed volumetric casings and an integrated cast neck', (
       assert.equal(mesh.material.userData.finish, 'paint');
       g.computeBoundingBox();
       const size = g.boundingBox.getSize(new T.Vector3());
-      assert.ok(id==='impedance-robot'
-        ? size.y >= (name === 'upper-link' ? .12 : .09) && size.z >= .049
-        : size.y >= (name === 'upper-link' ? .32 : .25) && size.z >= .21,
+      assert.ok(size.y >= (name === 'upper-link' ? .32 : .25) && size.z >= .21,
         `${id}/${name}: readable volumetric section, not a thin plate`);
       const normals = g.attributes.normal, p = g.attributes.position;
       const near = [], far = [];
@@ -72,14 +71,9 @@ test('arms have smooth closed volumetric casings and an integrated cast neck', (
       }
     }
     const neck = node(scene, 'fixed-pedestal');
-    if(id==='robot-arm')assert.ok(neck.geometry.index, 'smooth shaped neck, not a rectangular welded post');
-    else assert.equal(neck.geometry.type,'ExtrudeGeometry','compact fixed aluminium extrusion');
+    assert.ok(neck.geometry.index, 'smooth shaped neck, not a rectangular welded post');
     const b = new T.Box3().setFromObject(neck);
-    if (id === 'robot-arm') {
-      assert.ok(b.max.x-b.min.x >= .55 && b.max.z-b.min.z >= .4, 'the larger servo retains its substantial cast neck');
-    } else {
-      vector([b.max.x-b.min.x, b.max.z-b.min.z], [.12, .12], 1e-7);
-    }
+    assert.ok(b.max.x-b.min.x >= .55 && b.max.z-b.min.z >= .4, 'the servo retains its substantial cast neck');
     for (const joint of ['shoulder', 'elbow']) {
       const bearing = node(scene, `${joint}-output-flange`);
       assert.ok(bearing.geometry.parameters.shapes.holes.length > 0, 'machined bored bearing');
@@ -113,31 +107,6 @@ test('robot-arm articulates both 0.8 m links about a fixed shoulder and renders 
     assert.equal(node(scene, 'target-links').material.color.getHex(), 0xc56b31);
     assert.equal(JSON.stringify(scene.camera), camera, 'camera must not follow or auto-zoom');
   }
-});
-
-test('impedance arm uses model kinematics, a fixed base and the physical 0.8 m contact wall', () => {
-  const simulation = new Impedance(), scene = make('impedance-robot');
-  for (const phase of ['initial', 'transient', 'extended', 'folded']) {
-    if (phase === 'transient') for (let i = 0; i < 50; i++) simulation.step(.005);
-    if (phase === 'extended') Object.assign(simulation.state, { q1: 0, q2: 0 });
-    if (phase === 'folded') Object.assign(simulation.state, { q1: Math.PI / 2, q2: -Math.PI / 2 });
-    const q = [simulation.state.q1, simulation.state.q2], k = kinematics(q);
-    updatePure(scene, simulation);
-    vector(world(scene, 'shoulder'), [0, 0, 0]);
-    vector(world(scene, 'elbow'), [...k.elbow, 0]);
-    vector(world(scene, 'tool-center'), [k.x, k.y, 0]);
-    vector(world(scene, 'contact-probe'), [k.x, k.y, 0]);
-    close(new T.Vector3(...world(scene, 'elbow')).length(), mechanics.l1);
-    close(new T.Vector3(...world(scene, 'tool-center')).distanceTo(new T.Vector3(...world(scene, 'elbow'))), mechanics.l2);
-    vector(world(scene, 'target-tool'), [simulation.params.target, mechanics.targetY, 0]);
-    const wallBounds = new T.Box3().setFromObject(node(scene, 'contact-wall'));
-    close(wallBounds.min.x, .8, 1e-7);
-    assert.ok(node(scene, 'contact-probe').isMesh);
-    assert.equal(node(scene, 'elbow').parent, node(scene, 'shoulder'));
-  }
-  simulation.params.target = .35;
-  updatePure(scene, simulation);
-  vector(world(scene, 'target-tool'), [.35, .15, 0]);
 });
 
 function linePoints(scene, name) {
@@ -325,7 +294,11 @@ test('updates reuse all geometry, materials and GPU attributes through motion an
   }
 });
 
-test('factory supports exactly four robot/vehicle IDs with static cameras and bilingual legends', () => {
+test('Gen3 mesh data is not part of the shared robot/vehicle factory', () => {
+  assert.equal(createRobotScene('impedance-robot') === null, true, 'the catalog must lazy-load the dedicated Gen3 scene');
+});
+
+test('robot/vehicle scenes have static cameras and bilingual legends', () => {
   const cases = [['robot-arm', Arm], ['impedance-robot', Impedance], ['parking', Parking], ['path-tracking', Tracking]];
   assert.equal(createRobotScene('not-a-robot'), null);
   for (const [id, Model] of cases) {
@@ -351,118 +324,18 @@ test('factory supports exactly four robot/vehicle IDs with static cameras and bi
   }
 });
 
-test('end tooling is metal/rubber and the framed contact panel preserves compliant force semantics', () => {
+test('servo end tooling is metal/rubber', () => {
   const servo = make('robot-arm');
   assert.equal(node(servo, 'gripper-palm').material.userData.finish, 'aluminium');
   assert.equal(node(servo, 'gripper-left-pad').material.userData.finish, 'rubber');
   assert.equal(node(servo, 'gripper-right-pad').material.userData.finish, 'rubber');
-  const simulation = new Impedance(), scene = make('impedance-robot');
-  assert.equal(node(scene, 'contact-wall').material.userData.finish, 'glass');
-  assert.equal(node(scene, 'wall-upright-front').material.userData.finish, 'aluminium');
-  assert.ok(node(scene, 'wall-mounting-foot').isMesh);
-  for (const [q1, q2, dq1, dq2] of [[0, 0, 0, 0], [Math.PI, 0, 0, 0], [.2, -.3, 2, -1]]) {
-    Object.assign(simulation.state, { q1, q2, dq1, dq2 });
-    updatePure(scene, simulation);
-    const k = kinematics([q1, q2], [dq1, dq2]), expected = simulation.observe().force;
-    vector(world(scene, 'contact-probe'), [k.x, k.y, 0]);
-    close(new T.Box3().setFromObject(node(scene, 'contact-wall')).min.x, .8, 1e-7);
-    assert.equal(node(scene, 'contact-force').visible, expected > 0);
-    assert.equal(scene.readouts()[1].value, `${expected.toFixed(2)} N`);
-    if (expected > 0) assert.ok(world(scene, 'reaction-arrow')[0] < k.x, 'reaction opposes penetration');
-  }
 });
 
-function opaqueSceneHits(scene, ray) {
-  return ray.intersectObject(scene.root, true).filter(hit => {
-    if (!hit.object.isMesh) return false;
-    for (let parent = hit.object; parent; parent = parent.parent) {
-      if (!parent.visible || parent.userData.environment) return false;
-    }
-    const material = Array.isArray(hit.object.material)
-      ? hit.object.material[hit.face.materialIndex] : hit.object.material;
-    // A transparent flag alone must not exempt an opaque support or wrist cap.
-    return material.visible && !(material.transparent && material.opacity < .5);
-  });
-}
-
-function probeVisibility(scene, camera) {
-  scene.root.updateMatrixWorld(true);
-  const probe = node(scene, 'contact-probe'), ray = new T.Raycaster();
-  const centre = probe.getWorldPosition(new T.Vector3()).project(camera);
-  ray.setFromCamera(centre, camera);
-  const first = opaqueSceneHits(scene, ray)[0]?.object.name;
-  const bounds = projectedBounds(scene, camera, probe);
-  let samples = 0, visible = 0;
-  const blockers = new Set();
-  // Sample the projected ball silhouette, not the enclosing rectangle or just its centre.
-  for (let i = 0; i < 17; i++) for (let j = 0; j < 17; j++) {
-    ray.setFromCamera(new T.Vector2(
-      bounds.min.x + (bounds.max.x - bounds.min.x) * (i + .5) / 17,
-      bounds.min.y + (bounds.max.y - bounds.min.y) * (j + .5) / 17,
-    ), camera);
-    if (!ray.intersectObject(probe, false).length) continue;
-    samples++;
-    const hit = opaqueSceneHits(scene, ray)[0]?.object;
-    if (hit === probe) visible++;
-    else blockers.add(hit?.name || '(unnamed mesh)');
-  }
-  assert.ok(samples >= 200, 'sample the actual sphere surface densely');
-  return { first, fraction: visible / samples, blockers: [...blockers] };
-}
-
-test('the physical impedance probe remains visible in the whole scene before and during compliant contact', () => {
-  const scene = make('impedance-robot'), cameraSpec = JSON.stringify(scene.camera), occluded = [];
-  for (const [description, params] of [
-    ['default', {}],
-    ['maximum target', { target: 1, stiffness: 300, damping: 20, wallStiffness: 500 }],
-    ['soft wall', { target: 1, stiffness: 300, wallStiffness: 100 }],
-    ['stiff wall', { target: 1, stiffness: 300, wallStiffness: 1500 }],
-    ['moderate penetration', { target: .95, stiffness: 300, wallStiffness: 100 }],
-    ['undamped soft wall', { target: 1, stiffness: 300, damping: 0, wallStiffness: 100 }],
-    ['undamped stiff wall', { target: 1, stiffness: 300, damping: 0, wallStiffness: 1500 }],
-  ]) {
-    const simulation = new Impedance(), snapshots = [];
-    Object.assign(simulation.params, params);
-    for (let step = 0; step <= 120; step++) {
-      if (step) simulation.step(.01);
-      assert.equal(simulation.state.failed, false, `${description}: use valid real model states`);
-      snapshots.push({ state: structuredClone(simulation.state), observed: simulation.observe() });
-    }
-    const contact = snapshots.findIndex(snapshot => snapshot.observed.force > 0);
-    assert.ok(contact > 0, 'trajectory must include free motion and first contact');
-    const peak = snapshots.reduce((best, sample, i) => sample.observed.x > snapshots[best].observed.x ? i : best, 0);
-    if (description === 'maximum target') {
-      assert.ok(snapshots[45].observed.x>.8, 'the critical sample penetrates the new physical rest plane');
-      assert.ok(snapshots[45].observed.force>0);
-    }
-    for (const aspect of [1.6, 358 / 390, .73]) {
-      const camera = createApparatusCamera(scene.camera, aspect);
-      for (const step of new Set([0, contact - 1, contact, 45, peak, 120])) {
-        const { state, observed } = snapshots[step];
-        updatePure(scene, { state, params: simulation.params, observe: () => observed });
-        vector(world(scene, 'contact-probe'), [observed.x, observed.y, 0]);
-        close(new T.Box3().setFromObject(node(scene, 'contact-wall')).min.x, .8, 1e-7);
-        assert.equal(node(scene, 'contact-force').visible, observed.force > 0);
-        assert.equal(scene.readouts()[1].value, `${observed.force.toFixed(2)} N`);
-        const visibility = probeVisibility(scene, camera);
-        if (visibility.first !== 'contact-probe' || visibility.fraction < 1) {
-          occluded.push({ description, aspect, step, x: observed.x, ...visibility });
-        }
-      }
-    }
-  }
-  assert.equal(JSON.stringify(scene.camera), cameraSpec, 'updates must not move the default camera');
-  assert.deepEqual(occluded, [], 'whole-scene opaque geometry must expose the probe centre and 100% of its sampled silhouette');
-});
-
-test('robot reference reticles face the vertical motion plane rather than the laboratory floor', () => {
-  for (const [id, Model] of [['robot-arm', Arm], ['impedance-robot', Impedance]]) {
-    const scene = make(id), simulation = new Model();
-    updatePure(scene, simulation);
-    const bounds = new T.Box3().setFromObject(node(scene, 'target-tool'));
-    const size = bounds.getSize(new T.Vector3());
-    assert.ok(size.y > size.z * 4, `${id}: target ring must lie in the XY plane`);
-  }
+test('servo reference reticle faces the vertical motion plane rather than the laboratory floor', () => {
+  const scene = make('robot-arm');
+  updatePure(scene, new Arm());
+  const size = new T.Box3().setFromObject(node(scene, 'target-tool')).getSize(new T.Vector3());
+  assert.ok(size.y > size.z * 4, 'target ring must lie in the XY plane');
 });
 
 function projectedBounds(scene, camera, subtree = scene.root) {
@@ -491,7 +364,7 @@ function fits(scene, camera, description) {
 }
 
 test('perspective arm cameras enlarge the apparatus and retain every articulated endpoint', () => {
-  for (const [id, Model] of [['robot-arm', Arm], ['impedance-robot', Impedance]]) {
+  for (const [id, Model] of [['robot-arm', Arm]]) {
     const scene = make(id);
     for (const aspect of [.4, .73, 358 / 390, 1.3, 1.6, 2.4]) {
       const simulation = new Model(), camera = createApparatusCamera(scene.camera, aspect);
@@ -512,8 +385,7 @@ test('perspective arm cameras enlarge the apparatus and retain every articulated
       for (let i = 0; i < 40; i++) {
         if (i === 8 || i === 25) simulation.disturb();
         if (i === 16) {
-          if (id === 'robot-arm') Object.assign(simulation.params, { target1: -1.5, target2: 1.5 });
-          else simulation.params.target = 1;
+          Object.assign(simulation.params, { target1: -1.5, target2: 1.5 });
         }
         simulation.step(.04); updatePure(scene, simulation); fits(scene, camera, `real transient ${i}`);
       }
@@ -522,7 +394,7 @@ test('perspective arm cameras enlarge the apparatus and retain every articulated
 });
 
 test('continuous arm sweeps fit the frustum using an exact cylindrical workspace bound', () => {
-  for (const [id, Model, l1] of [['robot-arm', Arm, .8], ['impedance-robot', Impedance, mechanics.l1]]) {
+  for (const [id, Model, l1] of [['robot-arm', Arm, .8]]) {
     const scene = make(id), simulation = new Model();
     Object.assign(simulation.state, { q1: 0, q2: 0 }); updatePure(scene, simulation);
     scene.root.updateMatrixWorld(true);

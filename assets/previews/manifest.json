@@ -165,7 +165,7 @@
     "file": "impedance-robot-ko.png",
     "source": "impedance-robot/?lang=ko",
     "renderer": "three",
-    "sha256": "4a52d568f08e269259c8fd9dfcc55fff0b41e67aa24540cf38d6e33711148ee1"
+    "sha256": "f2d7b8724bfc83d6e7691d5795ed99d196559911199349cc374f4c50f49ed9ab"
   },
   {
     "id": "impedance-robot",
@@ -173,7 +173,7 @@
     "file": "impedance-robot-en.png",
     "source": "impedance-robot/?lang=en",
     "renderer": "three",
-    "sha256": "25cb438fa8b29e4a6f082e46a6b27c78cdfbfe10d5f3163e62c38f17a9a43421"
+    "sha256": "eb7775e815fd04e6c88e3ccabfa7aec358fe1b51baa224978c92fb7413cb00f8"
   },
   {
     "id": "path-tracking",

@@ -36,6 +36,7 @@ test('disturbance copy quantities agree with immediate and repeated model action
     'impedance-robot':['0.3 N·s'], 'path-tracking':['+0.25 rad'],
     suspension:['2 m','0.05'], cstr:['0.2 mol/L'], 'aircraft-pitch':['+5 °/s'],
   };
+  const {gen3Pose} = await import('../assets/models/gen3.js');
   const near = (actual, expected) => assert.ok(Math.abs(actual-expected)<1e-10, `${actual} != ${expected}`);
   for (const id of ids) {
     const module = await import(new URL(`assets/models/${id}.js`, root));
@@ -57,10 +58,13 @@ test('disturbance copy quantities agree with immediate and repeated model action
         assert.equal(sim.observe().road, 0);
       }
       if (id==='impedance-robot') {
-        const {M}=module.dynamics([before.q1,before.q2],[0,0]);
-        const J=module.kinematics([before.q1,before.q2]).J;
-        const delta=[sim.state.dq1-before.dq1,sim.state.dq2-before.dq2];
-        for(let i=0;i<2;i++) near(M[i][0]*delta[0]+M[i][1]*delta[1], n*J[0][i]*0.3);
+        // A normal impulse changes joint momentum, not pose, time or target.
+        assert.equal(before.q.length, 3, 'Gen3 active axes 2, 4, 6');
+        assert.equal(sim.state.dq.length, 3);
+        assert.deepEqual(sim.state.q, before.q);
+        const {M} = module.dynamics(before.q, before.dq), normal = gen3Pose(before.q).J[0];
+        const delta = sim.state.dq.map((v,i) => v-before.dq[i]);
+        for (let i=0; i<3; i++) near(M[i].reduce((sum,m,j) => sum+m*delta[j],0), n*normal[i]*0.3);
       }
     }
     sim.reset(); assert.deepEqual(sim.state, before, `${id}: reset clears disturbance`);

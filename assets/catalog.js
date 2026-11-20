@@ -16,7 +16,7 @@ const entries = [
   ['parking','자동 주차','Automated parking','모빌리티','주차 경로와 차량 조향을 연결하는 경로 추종 예제입니다.',['주차 목표','차량 속도'],'https://www.mathworks.com/help/driving/ug/automated-parking-valet-in-simulink.html','MathWorks 공식 예제'],
   ['heat-exchanger','열교환기 온도 제어','Heat exchanger','공정·열','느린 열 응답과 유량 변화가 온도 제어에 미치는 영향을 탐색합니다.',['목표 온도','PI 이득'],'https://www.mathworks.com/help/control/ug/temperature-control-in-a-heat-exchanger.html','MathWorks 공식 예제'],
   ['drone','쿼드콥터 드론','Quadcopter drone','로보틱스','회전익의 추력으로 자세와 고도를 제어하는 모델입니다.',['목표 고도','자세 이득'],'https://github.com/mathworks/Quadcopter-Drone-Model-Simscape','MathWorks GitHub'],
-  ['impedance-robot','로봇 임피던스 제어','Robot impedance','로보틱스','접촉 힘과 움직임의 관계를 강성과 감쇠로 조절합니다.',['가상 강성','감쇠 계수'],'https://github.com/mathworks/Robotic-Arm-Impedance-Control','MathWorks GitHub'],
+  ['impedance-robot','로봇 임피던스 제어','Robot impedance','로보틱스','Kinova Gen3가 수직 벽을 누를 때, 가상 강성과 감쇠에 따른 끝점 변위와 접촉력을 비교합니다.',['가상 강성','감쇠 계수'],'https://github.com/mathworks/Robotic-Arm-Impedance-Control','MathWorks GitHub'],
   ['path-tracking','차량 경로 추종','Pure pursuit','모빌리티','전방 주시점을 바꾸며 차량의 경로 추종 특성을 비교합니다.',['전방 주시 거리','차량 속도'],'https://github.com/mathworks/vehicle-pure-pursuit','MathWorks GitHub'],
   ['suspension','능동 서스펜션','Quarter-car suspension','모빌리티','노면 충격에 대한 차체 진동과 승차감의 관계를 탐색합니다.',['감쇠 계수','제어 이득'],'https://www.mathworks.com/matlabcentral/fileexchange/95308-quarter-car-suspension-active-control-demo-app-simulink','MATLAB File Exchange'],
   ['cstr','연속 교반 탱크 반응기','CSTR','공정·열','반응과 열전달이 결합된 공정의 온도 제어를 살펴봅니다.',['온도 설정값','PI 이득'],'https://www.mathworks.com/matlabcentral/fileexchange/103695-continuously-stirred-tank-reactor-cstr-pid-control','MATLAB File Exchange'],

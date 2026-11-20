@@ -5,7 +5,6 @@ import {Simulation as Arm} from '../assets/models/robot-arm.js';
 import {Simulation as Impedance} from '../assets/models/impedance-robot.js';
 import {createRobotScene} from '../assets/three/robot-scenes.js';
 
-const cases = [['robot-arm', Arm], ['impedance-robot', Impedance]];
 const node = (scene, name) => {
   const object = scene.root.getObjectByName(name);
   assert.ok(object, `missing assembled part: ${name}`);
@@ -29,44 +28,39 @@ function overlap(a, b) {
 }
 
 test('reset: the actual moving upper casing is outside the fixed shoulder gearcase', () => {
-  for (const [id, Model] of cases) {
-    const scene = createRobotScene(id), simulation = new Model();
-    scene.update(Object.freeze({...simulation.state}), Object.freeze({...simulation.params}));
-    scene.root.updateMatrixWorld(true);
-    // The smaller EXP11 uses a witness inside its new casing; servo witness unchanged.
-    const point = new T.Vector3(...(id==='impedance-robot'?[.04,.04,0]:[.08,.08,0])).applyMatrix4(node(scene, 'shoulder').matrixWorld);
-    const fixed = solidIntervals(node(scene, 'shoulder-gearcase'), point.x, point.y);
-    const moving = solidIntervals(node(scene, 'upper-link'), point.x, point.y);
-    assert.ok(fixed.length && moving.length, `${id}: witness must pass through both real XY solids`);
-    assert.equal(overlap(fixed, moving), false, `${id}: moving solid is buried inside fixed housing: ${JSON.stringify({fixed,moving})}`);
-    assert.ok(moving[0][0] - fixed.at(-1)[1] >= .012, `${id}: intentional axial clearance, not coincident faces`);
-  }
+  const scene = createRobotScene('robot-arm'), simulation = new Arm();
+  scene.update(Object.freeze({...simulation.state}), Object.freeze({...simulation.params}));
+  scene.root.updateMatrixWorld(true);
+  const point = new T.Vector3(.08,.08,0).applyMatrix4(node(scene, 'shoulder').matrixWorld);
+  const fixed = solidIntervals(node(scene, 'shoulder-gearcase'), point.x, point.y);
+  const moving = solidIntervals(node(scene, 'upper-link'), point.x, point.y);
+  assert.ok(fixed.length && moving.length, `robot-arm: witness must pass through both real XY solids`);
+  assert.equal(overlap(fixed, moving), false, `robot-arm: moving solid is buried inside fixed housing: ${JSON.stringify({fixed,moving})}`);
+  assert.ok(moving[0][0] - fixed.at(-1)[1] >= .012, `robot-arm: intentional axial clearance, not coincident faces`);
 });
 
 test('bearing outputs bridge separated rigid layers through shafts in real bored housings', () => {
-  for(const [id,Model] of cases) {
-    const scene=createRobotScene(id),sim=new Model();
-    for(const [q1,q2] of [[sim.state.q1,sim.state.q2],[0,2.7],[-1.2,-2.7]]) {
-      scene.update(Object.freeze({...sim.state,q1,q2}),Object.freeze({...sim.params}));
-      scene.root.updateMatrixWorld(true);
-      for(const [joint,body] of [['shoulder','upper-link'],['elbow','forearm-link']]) {
-        const gear=node(scene,`${joint}-gearcase`),shaft=node(scene,`${joint}-output-shaft`);
-        const fixedBounds=new T.Box3().setFromObject(gear),linkBounds=new T.Box3().setFromObject(node(scene,body));
-        assert.ok(linkBounds.min.z-fixedBounds.max.z>=.012,'moving casing is wholly outside the stator housing');
-        // Avoid casting exactly through the shared centre vertex of a cylinder cap.
-        const centre=node(scene,joint).getWorldPosition(new T.Vector3()).add(new T.Vector3(.0017,.0031,0));
-        const shaftSolid=solidIntervals(shaft,centre.x,centre.y);
-        assert.equal(shaftSolid.length,1,'continuous metal output shaft');
-        assert.ok(shaftSolid[0][0]<fixedBounds.max.z && shaftSolid[0][1]>linkBounds.max.z,
-          'shaft really reaches through the housing bearing into its driven casing');
-        assert.equal(solidIntervals(gear,centre.x,centre.y).length,0,'the drive has a real axial bore rather than burying the shaft in solid casing');
-        const flange=node(scene,`${joint}-output-flange`);
-        assert.equal(solidIntervals(flange,centre.x,centre.y).length,0,'matching bored output bearing');
-      }
-      const upper=new T.Box3().setFromObject(node(scene,'upper-link'));
-      const lower=new T.Box3().setFromObject(node(scene,'forearm-link'));
-      assert.ok(lower.min.z-upper.max.z>=.012,'global axial separation bounds every intermediate joint angle');
+  const scene=createRobotScene('robot-arm'),sim=new Arm();
+  for(const [q1,q2] of [[sim.state.q1,sim.state.q2],[0,2.7],[-1.2,-2.7]]) {
+    scene.update(Object.freeze({...sim.state,q1,q2}),Object.freeze({...sim.params}));
+    scene.root.updateMatrixWorld(true);
+    for(const [joint,body] of [['shoulder','upper-link'],['elbow','forearm-link']]) {
+      const gear=node(scene,`${joint}-gearcase`),shaft=node(scene,`${joint}-output-shaft`);
+      const fixedBounds=new T.Box3().setFromObject(gear),linkBounds=new T.Box3().setFromObject(node(scene,body));
+      assert.ok(linkBounds.min.z-fixedBounds.max.z>=.012,'moving casing is wholly outside the stator housing');
+      // Avoid casting exactly through the shared centre vertex of a cylinder cap.
+      const centre=node(scene,joint).getWorldPosition(new T.Vector3()).add(new T.Vector3(.0017,.0031,0));
+      const shaftSolid=solidIntervals(shaft,centre.x,centre.y);
+      assert.equal(shaftSolid.length,1,'continuous metal output shaft');
+      assert.ok(shaftSolid[0][0]<fixedBounds.max.z && shaftSolid[0][1]>linkBounds.max.z,
+        'shaft really reaches through the housing bearing into its driven casing');
+      assert.equal(solidIntervals(gear,centre.x,centre.y).length,0,'the drive has a real axial bore rather than burying the shaft in solid casing');
+      const flange=node(scene,`${joint}-output-flange`);
+      assert.equal(solidIntervals(flange,centre.x,centre.y).length,0,'matching bored output bearing');
     }
+    const upper=new T.Box3().setFromObject(node(scene,'upper-link'));
+    const lower=new T.Box3().setFromObject(node(scene,'forearm-link'));
+    assert.ok(lower.min.z-upper.max.z>=.012,'global axial separation bounds every intermediate joint angle');
   }
 });
 
@@ -135,35 +129,44 @@ test('joint annotation leaders terminate on the visible rotor faces', () => {
   }
 });
 
-test('wall support stays behind the contact task plane with no foreground foot or upright', () => {
-  const scene = createRobotScene('impedance-robot');
-  scene.root.updateMatrixWorld(true);
-  const parts=[];
-  scene.root.traverse(o=>{if(o.isMesh&&/^wall-/.test(o.name))parts.push(o);});
-  assert.ok(parts.length>=3, 'a supported panel, not a floating translucent plane');
-  for(const part of parts) {
-    const b=new T.Box3().setFromObject(part);
-    assert.ok(b.min.x>=.8-1e-7, `${part.name}: support is behind the physical x=.8 contact face`);
-    assert.ok(b.max.z<=-.10, `${part.name}: no opaque support in front of the probe plane`);
-    assert.equal(Boolean(part.userData.environment),false,'structural support remains in camera-fit tests');
+test('Gen3 joint housings occupy the source shoulder, elbow and wrist stations', async () => {
+  // Base-frame metres from the reference URDF at home and at a second pose.
+  // Cast through both adjacent CAD solids instead of checking marker positions.
+  const poses = [
+    [[15,-130,55], [[.000062,-.005374,.284810],[.108963,-.005372,.691233],[.289272,.001175,.433724]]],
+    [[30,-100,70], [[.000062,-.005374,.284810],[.210442,-.005372,.649199],[.451256,.001177,.447132]]],
+  ];
+  const {createImpedanceScene} = await import('../assets/three/gen3-scene.js');
+  const scene = createImpedanceScene(), sim = new Impedance();
+  const adjacentLinks = [
+    ['Shoulder_Link','HalfArm1_Link'], ['HalfArm2_Link','ForeArm_Link'],
+    ['SphericalWrist1_Link','SphericalWrist2_Link'],
+  ];
+  for (const [degrees, stations] of poses) {
+    const q = Object.freeze(degrees.map(v => v*Math.PI/180));
+    scene.update(Object.freeze({...sim.state, q}), Object.freeze({...sim.params}));
+    scene.root.updateMatrixWorld(true);
+    for (const [i, [x,y,z]] of stations.entries()) {
+      // URDF (x,y,z) → Three (x,z,−y). Offset slightly from the joint axis
+      // to avoid seams; limit the ray so the background cannot pass the test.
+      const ray = new T.Raycaster(new T.Vector3(x+.009,z+.004,-y+.07), new T.Vector3(0,0,-1), 0, .14);
+      for (const link of adjacentLinks[i]) {
+        const mesh = node(scene, link);
+        assert.ok(mesh.isMesh && mesh.visible);
+        assert.ok(ray.intersectObject(mesh, false).length, `${link} misses actuator ${2*i+2} at ${degrees}°`);
+      }
+    }
   }
 });
 
 test('the physical TCP is mounted to its wrist through actual continuous solids, not a floating probe or palm', () => {
-  for (const [id, Model] of cases) {
-    const scene = createRobotScene(id), sim = new Model();
-    for (const [q1,q2] of [[sim.state.q1,sim.state.q2],[0,0],[0,2.7],[.5,.7]]) {
-      scene.update(Object.freeze({...sim.state,q1,q2}), Object.freeze({...sim.params}));
-      scene.root.updateMatrixWorld(true);
-      const tool = node(scene,'tool-center'), p = tool.getWorldPosition(new T.Vector3());
-      const intervals = [];
-      node(scene,'elbow').traverse(mesh => {if(mesh.isMesh) intervals.push(...solidIntervals(mesh,p.x,p.y));});
-      connectedInterval(intervals,id==='impedance-robot'?-.08:-.24,0,`${id}: wrist-to-TCP at ${q1}/${q2}`);
-      if(id==='impedance-robot') {
-        const probe = node(scene,'contact-probe');
-        assert.ok(probe.getWorldPosition(new T.Vector3()).distanceTo(p)<1e-8);
-        assert.equal(node(scene,'force-sensor').parent,tool, 'sensor follows the true tool, not a detached display replica');
-      }
-    }
+  const scene = createRobotScene('robot-arm'), sim = new Arm();
+  for (const [q1,q2] of [[sim.state.q1,sim.state.q2],[0,0],[0,2.7],[.5,.7]]) {
+    scene.update(Object.freeze({...sim.state,q1,q2}), Object.freeze({...sim.params}));
+    scene.root.updateMatrixWorld(true);
+    const tool = node(scene,'tool-center'), p = tool.getWorldPosition(new T.Vector3());
+    const intervals = [];
+    node(scene,'elbow').traverse(mesh => {if(mesh.isMesh) intervals.push(...solidIntervals(mesh,p.x,p.y));});
+    connectedInterval(intervals,-.24,0,`robot-arm: wrist-to-TCP at ${q1}/${q2}`);
   }
 });

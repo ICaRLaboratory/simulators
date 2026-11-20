@@ -37,7 +37,7 @@ export const english = {
  '주차 경로와 차량 조향을 연결하는 경로 추종 예제입니다.':'Explore path tracking that connects a parking route to vehicle steering.',
  '느린 열 응답과 유량 변화가 온도 제어에 미치는 영향을 탐색합니다.':'Explore how slow thermal responses and flow changes affect temperature control.',
  '회전익의 추력으로 자세와 고도를 제어하는 모델입니다.':'Control attitude and altitude with rotor thrust.',
- '접촉 힘과 움직임의 관계를 강성과 감쇠로 조절합니다.':'Adjust stiffness and damping to shape the relationship between contact force and motion.',
+ 'Kinova Gen3가 수직 벽을 누를 때, 가상 강성과 감쇠에 따른 끝점 변위와 접촉력을 비교합니다.':'Compare endpoint displacement and contact force as a Kinova Gen3 presses a vertical wall under different stiffness and damping settings.',
  '전방 주시점을 바꾸며 차량의 경로 추종 특성을 비교합니다.':'Change the look-ahead point to compare vehicle path tracking.',
  '노면 충격에 대한 차체 진동과 승차감의 관계를 탐색합니다.':'Explore body vibration and ride comfort under road disturbances.',
  '반응과 열전달이 결합된 공정의 온도 제어를 살펴봅니다.':'Explore temperature control in a process coupling chemical reaction and heat transfer.',
