@@ -1,0 +1,13 @@
+/* Loaded only by the four handwritten apparatus pages. Keep the figure's
+   original coordinate system and center the HTML labels on the SVG wires. */
+.loop-diagram foreignObject > div {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: .3em;
+  white-space: nowrap;
+}
+.loop-diagram foreignObject math { flex: none; }
+html[lang="ko"] .hw-copy[lang="en"],
+html[lang="en"] .hw-copy[lang="ko"] { display: none; }

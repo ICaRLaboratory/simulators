@@ -18,21 +18,20 @@ const localized=pair=>pair[document.documentElement.lang==='en'?1:0];
 const copy={ready:['시작을 누른 뒤 설정을 하나씩 바꾸며 응답을 관찰하세요.','Press Start, then change one setting at a time and observe the response.'],start:['시작','Start'],pause:['일시정지','Pause'],paused:['일시정지','Paused'],running:['실행 중','Running'],failed:['실험이 정지했습니다. 초기화하세요.','Experiment stopped. Reset to try again.'],complete:['목표에 도달하여 정지했습니다. 초기화하여 다시 실행하세요.','Goal reached. Paused; reset to run again.'],completed:['완료','Complete'],hidden:['탭이 숨겨져 일시정지했습니다. 시작을 눌러 재개하세요.','Paused because this tab was hidden. Press Start to resume.'],unavailable:['모델을 불러올 수 없습니다. 페이지를 새로고침하세요.','Model unavailable. Reload this page to try again.']};
 // Capture original Korean before shared i18n sees any text. Never replace containers.
 const bindings=[...document.querySelectorAll('[data-en],[data-en-aria],[data-en-content],[data-en-title]')].map(node=>({node,text:node.hasAttribute('data-en')?node.textContent:null,aria:node.getAttribute('aria-label'),content:node.getAttribute('content'),title:node.getAttribute('title')}));
+// Capture pristine fragments before shared translation runs. Only the selected
+// language enters the live copy; templates are inert without JavaScript.
+const copyChildren=node=>Array.from(node.childNodes,n=>n.cloneNode(true));
+const richBindings=[...document.querySelectorAll('template[data-copy-en]')].map(template=>{
+ const node=template.parentElement, en=template.content;template.remove();
+ const ko=document.createDocumentFragment();ko.append(...copyChildren(node));
+ return {node,ko,en};
+});
 let updateLocale=()=>{};
 function localize(){
  translateDOM();const english=document.documentElement.lang==='en';
  for(const b of bindings){if(b.text!==null)b.node.textContent=english?b.node.dataset.en:b.text;for(const [attr,key] of [['aria-label','aria'],['content','content'],['title','title']]){const data=key==='aria'?'enAria':key==='content'?'enContent':'enTitle';if(b.node.dataset[data]!==undefined)b.node.setAttribute(attr,english?b.node.dataset[data]:b[key]);}}
- updateLocale();recenterLoop();
-}
-// Bilingual loop labels: KO and EN wrap to different line counts, so after a
-// language swap the visible lines are recentered on the label's anchor row
-// instead of padding the shorter language with blank filler lines.
-function recenterLoop(){
- for(const t of document.querySelectorAll('.loop-diagram text[data-loop-label]')){
-  const base=Number(t.dataset.y);if(!Number.isFinite(base))continue;
-  const visible=[...t.querySelectorAll('tspan')].filter(s=>s.textContent.trim());
-  visible.forEach((s,i)=>s.setAttribute('y',String(base+(i-(visible.length-1)/2)*21)));
- }
+ for(const {node,ko,en} of richBindings)node.replaceChildren((english?en:ko).cloneNode(true));
+ updateLocale();
 }
 document.addEventListener('icar:lang',localize);setupLanguage();
 try{
@@ -50,7 +49,7 @@ function boot({definition:d,Simulation,draw:drawModel}){
  for(const p of d.parameters){
   const container=document.createElement('div');container.className='parameter';
   const label=document.createElement('label');label.htmlFor=p.key;
-  const span=document.createElement('span');parameterLabels.push([span,p.label.map(s=>`${s} · ${p.unit}`)]);
+  const span=document.createElement('span');parameterLabels.push([span,document.querySelector(`[data-parameter-label="${p.key}"]`),p.unit]);
   const output=document.createElement('output');output.id=`${p.key}-value`;output.htmlFor=p.key;output.textContent=String(simulation.params[p.key]);
   label.append(span,output);
   const input=document.createElement('input');Object.assign(input,{id:p.key,type:'range',min:p.min,max:p.max,step:p.step,value:simulation.params[p.key]});
@@ -64,9 +63,15 @@ function boot({definition:d,Simulation,draw:drawModel}){
   $('start-pause').textContent=localized(copy[running?'pause':'start']);
   $('start-pause').disabled=Boolean(blocked);$('disturb').disabled=Boolean(blocked);$('reset').disabled=false;
   const message=s.failed?(d.failureMessages?.[s.failure]||copy.failed):s.complete?(d.completionMessage||copy.complete):notice==='impulse'?d.disturbance:copy[notice];
-  $('simulation-message').textContent=localized(message);$('simulation-message').classList.toggle('error',Boolean(s.failed));
+  const messageNode=$('simulation-message');
+  if(message===d.disturbance)messageNode.replaceChildren(...copyChildren($('disturb')));
+  else messageNode.textContent=localized(message);
+  messageNode.classList.toggle('error',Boolean(s.failed));
  }
- updateLocale=()=>{for(const [node,pair] of parameterLabels)node.textContent=localized(pair);$('apparatus').textContent=localized(d.description);$('reset').title=localized(['초기화','Reset']);status();apparatus();};
+ updateLocale=()=>{
+  for(const [node,source,unit] of parameterLabels)node.replaceChildren(...copyChildren(source),` · ${unit}`);
+  $('apparatus').textContent=localized(d.description);$('reset').title=localized(['초기화','Reset']);status();apparatus();
+ };
  function sample(){history.push({...simulation.observe()});while(history.length>1&&history[1].t<simulation.state.t-15)history.shift();}
  function context(id){const canvas=$(id),box=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);const width=Math.round(box.width*dpr),height=Math.round(box.height*dpr);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,box.width,box.height);return {ctx,w:box.width,h:box.height};}
  function apparatus(){if(apparatus3D?.update(simulation.state,simulation.params))return;const {ctx,w,h}=context('apparatus');ctx.save();drawModel(ctx,simulation.state,simulation.params,w,h,document.documentElement.lang);ctx.restore();}

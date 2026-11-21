@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {measureApparatusCopy} from './apparatus-geometry.js';
 import {catalog} from '../assets/catalog.js';
 const ids=['rotary-pendulum','ball-and-plate','robot-arm','parking','heat-exchanger','drone','impedance-robot','path-tracking','suspension','cstr','aircraft-pitch','rocket-landing'];
 const base=process.env.SIM_BASE||'http://127.0.0.1:8765/simulators/';
@@ -37,14 +38,17 @@ for(const id of ids){
  });
  test(`${id}: 320, 390 and 1280px layout and diagram bounds`,async({page})=>{
   await page.goto(`${base}${id}/?lang=en`);await expect(page.locator('#start-pause')).toBeEnabled();
+  await page.locator('.loop-notes summary').click();
   for(const width of [320,390,1280]){
-   await page.setViewportSize({width,height:900});await page.waitForTimeout(40);
-   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-   expect(await page.locator('.parameter label').evaluateAll(nodes=>nodes.every(n=>{const a=n.firstElementChild.getBoundingClientRect(),b=n.lastElementChild.getBoundingClientRect();return a.right<=b.left+1||a.bottom<=b.top+1;}))).toBe(true);
-  }
-  for(const lang of ['ko','en']){
-   await page.locator(`[data-lang=${lang}]`).click();
-   expect(await page.locator('.loop-diagram').evaluate(svg=>[...svg.querySelectorAll('text')].every(n=>{const b=n.getBBox();const x=Number(n.getAttribute('x'));const box=x===90?[10,205]:x===340?[205,475]:x===615?[505,725]:x===880?[755,1005]:[400,1005];return b.x>=box[0]&&b.x+b.width<=box[1]&&b.y>=0&&b.y+b.height<=300;}))).toBe(true);
+   await page.setViewportSize({width,height:900});
+   for(const lang of ['ko','en']){
+    await page.locator(`[data-lang=${lang}]`).click();
+    await page.evaluate(()=>document.fonts.ready);
+    const geometry=await page.evaluate(measureApparatusCopy);
+    expect(geometry.regions).toBe(6);
+    expect(geometry.issues,`${id} ${width}px ${lang}`).toEqual([]);
+    expect(await page.locator('.parameter label').evaluateAll(nodes=>nodes.every(n=>{const a=n.firstElementChild.getBoundingClientRect(),b=n.lastElementChild.getBoundingClientRect();return a.right<=b.left+1||a.bottom<=b.top+1;}))).toBe(true);
+   }
   }
   await page.setViewportSize({width:320,height:900});const region=page.locator('.loop-viewport');await region.focus();await page.keyboard.press('ArrowRight');await expect.poll(()=>region.evaluate(n=>n.scrollLeft)).toBeGreaterThan(0);
  });

@@ -59,7 +59,16 @@ for(const kind of kinds) test(`${kind}: language changes preserve running state,
  const snapshot=await page.locator('.metrics').innerText();
  const graph=await page.locator('#response').evaluate(canvas=>canvas.toDataURL());
  await page.locator('summary').click();
- const untranslated=await page.evaluate(()=>{const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const a=[];while(w.nextNode()){const n=w.currentNode;if(!n.parentElement.closest('script,noscript,.language-switch')&&/[가-힣]/.test(n.nodeValue))a.push(n.nodeValue);}return a;});
+ const untranslated=await page.evaluate(()=>{
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT), hits=[];
+  for(let n; (n=walker.nextNode());){
+   if(n.parentElement.closest('script,noscript,.language-switch'))continue;
+   const ko=n.parentElement.closest('.hw-copy[lang="ko"]');
+   if(ko&&getComputedStyle(ko).display==='none')continue;
+   if(/[가-힣]/.test(n.nodeValue))hits.push(n.nodeValue);
+  }
+  return hits;
+ });
  expect(untranslated).toEqual([]);
  expect(await page.locator('#apparatus').getAttribute('aria-label')).not.toMatch(/[가-힣]/);
  expect(await page.title()).not.toMatch(/[가-힣]/);

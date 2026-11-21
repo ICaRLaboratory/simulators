@@ -16,7 +16,7 @@ for (const kind of ['cruise-control', 'dc-motor', 'ball-and-beam']) {
       await expect(panel.locator('.loop-details')).toBeVisible();
       await panel.getByText('모델·제어식', { exact: true }).click();
       await expect(panel.getByRole('img')).toHaveAccessibleName(/음의 피드백 제어/);
-      const law = panel.locator('.loop-labels foreignObject math').first();
+      const law = panel.locator('[data-signal="controller"] math');
       await expect(law).toBeVisible();
       await expect(law).toHaveText('Kpe+I−Kdy˙');
       await expect(law.locator('msub')).toHaveCount(2);

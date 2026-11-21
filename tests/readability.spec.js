@@ -67,7 +67,7 @@ for (const width of [390, 320]) {
         }
         const loop = page.locator('.loop-viewport');
         expect(await loop.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
-        await minimumType(page, '.loop-diagram text', 14);
+        await minimumType(page, '.loop-diagram text, .loop-diagram foreignObject > div', 14);
       }
     }
   });

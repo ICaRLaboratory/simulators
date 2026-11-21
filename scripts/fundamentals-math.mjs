@@ -36,15 +36,15 @@ export function plantNote(lab) {
   const en=clock?`Controller: sampled, $T_s=${clock}\\,\\mathrm{s}$.`:'Controller: continuous PID (RK4 step 0.01 s).';
   return copy('p',[
     `공통 조건: $y(0)=v(0)=0$, $r=1$, ${DURATION}초, 측정 잡음 없음. 구동기 입력 $u$의 한계는 $\\pm${INPUT_LIMIT}$입니다. 플랜트 입력은 $u+d$이며, 입력 외란 $d$는 ${DISTURBANCE_START}초부터 @value@입니다. ${ko}`,
-    `Shared plant: $y(0)=v(0)=0$, $r=1$, ${DURATION} s, no measurement noise. The actuator limits $u$ to $\\pm${INPUT_LIMIT}$. Plant input = $u+d$; the input disturbance steps from 0 to @value@ at ${DISTURBANCE_START} s. ${en}`,
+    `Shared plant: $y(0)=v(0)=0$, $r=1$, ${DURATION} s, no measurement noise. The actuator limits $u$ to $\\pm${INPUT_LIMIT}$. The plant receives $u+d$; the input disturbance steps from 0 to @value@ at ${DISTURBANCE_START} s. ${en}`,
   ],' id="plant-conditions" class="method-caption" hidden').replaceAll('@value@','<span data-disturbance-value>0</span>');
 }
 
 export const classicalNotes={
   pid:[
     copy('p',[
-      tex`모든 초기 상태는 0이며 목표값은 0에서 1로 바뀝니다. K는 제어기 비례 이득 $K_p$와 구별되는 플랜트의 정상상태 이득입니다.`,
-      tex`All initial states are zero. The reference steps from 0 to 1. K is the plant DC gain, distinct from the controller gain $K_p$.`,
+      tex`모든 초기 상태는 0이며 목표값은 0에서 1로 바뀝니다. $K$는 제어기 비례 이득 $K_p$와 구별되는 플랜트의 정상상태 이득입니다.`,
+      tex`All initial states are zero. The reference steps from 0 to 1. $K$ is the plant DC gain, distinct from the controller gain $K_p$.`,
     ]),
     copy('p',[
       tex`D항은 측정 출력의 미분에 작용하므로 목표 변경 순간의 미분 킥은 없습니다. 구동기는 요구 입력의 합을 $\pm4$로 제한하며, 입력 외란은 그 뒤에 더해집니다. 포화 중에도 오차를 적분합니다(안티와인드업 미적용).`,
@@ -69,11 +69,19 @@ export const classicalNotes={
 
 export const panelMath={
   pid:{
+    output:copy('span',['출력 $y$','Output $y$'],' class="actual-line"'),
+    applied:copy('span',['적용 입력 $u$','Applied $u$'],' class="sum-key"'),
+    error:copy('span',[tex`공칭 정상상태 오차 $e_\infty$`,tex`Nominal steady-state error $e_\infty$`]),
+    compareGain:copy('li',['P만 켠 채 $K_p$를 높여 상승 속도와 20초 시점 출력을 비교하세요.','With P alone, increase $K_p$ and compare the rise speed and the output at 20 s.']),
     effort:math(tex`u_{\mathrm{req}}=P+I+D`),
     target:copy('span',['목표 $r=1$','Reference $r=1$'],' class="target-line"'),
   },
   mpc:{
+    horizon:copy('label',['예측 구간 $N$','Prediction horizon $N$'],' for="mpc-horizon"'),
+    weight:copy('label',['입력 변화 가중치 $λ$','Move penalty $λ$'],' for="mpc-weight"'),
+    compareWeight:copy('li',['가중치 $λ$를 높여 보세요. 입력 변화를 더 억제하면 계단 모양의 입력은 어떻게 바뀌나요?','Increase $λ$. How does penalizing changes affect the input steps?']),
+    peak:copy('span',[tex`MPC 최대 적용 $\lvert u\rvert$`,tex`Maximum applied $\lvert u\rvert$ · MPC`]),
     target:math('r=1'), clock:math(tex`T_s=0.2\,\mathrm{s}`), input:math('u'),
-    bound:copy('label',[tex`MPC 계획 입력 한계 $|u|\le$`,tex`MPC planning bound $|u|\le$`],' for="mpc-limit"'),
+    bound:copy('label',[tex`MPC 계획 입력 한계 $\lvert u\rvert\le$`,tex`MPC planning bound $\lvert u\rvert\le$`],' for="mpc-limit"'),
   },
 };

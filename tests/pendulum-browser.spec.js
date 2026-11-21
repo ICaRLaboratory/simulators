@@ -87,7 +87,7 @@ test('pendulum starts paused and has accessible static model and state feedback'
  await page.waitForTimeout(150);
  await expect(page.locator('#sim-time')).toHaveText('0.00');
  await expect(page.locator('#parameter-controls input')).toHaveCount(5);
- const law = page.locator('.loop-diagram foreignObject math').first();
+ const law = page.locator('[data-signal="controller"] math');
  await expect(law).toBeVisible();
  await expect(law).toHaveText('kx(x−r)+kvv+kθθ+kωω');
  await expect(law.locator('msub')).toHaveCount(4);

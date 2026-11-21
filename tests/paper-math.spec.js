@@ -33,6 +33,22 @@ for (const item of local) {
         return failures;
       });
       expect(problems).toEqual([]);
+      // Inspect the copy visitors read, not just the dedicated equation rows. A
+      // translated SVG label or explanatory sentence can still contain a raw law.
+      const section = page.locator('.control-loop, .pid-model').first();
+      const untypeset = await section.evaluate(el => {
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        const legacy = /[α-ωA-Za-z](?:[_^][α-ωA-Za-z0-9]|[₀-₉ᵣₐₑₙ]|[\u0307\u0308])|[\wα-ω)*|]\s*[=≤≥]\s*(?:[+−(\[\wα-ω]|\.)|\[A B; B C\]|\bK[pid]\b/u;
+        const hits = [];
+        for (let n; (n = walker.nextNode());) {
+          const p = n.parentElement;
+          if (p.closest('math, title, desc, script, style') || !legacy.test(n.data)) continue;
+          const range = document.createRange(); range.selectNodeContents(n);
+          if (range.getBoundingClientRect().width > 0 && getComputedStyle(p).visibility !== 'hidden') hits.push(n.data.trim());
+        }
+        return hits;
+      });
+      expect(untypeset, `${item.id}/${lang}: untypeset diagram or prose`).toEqual([]);
     }
   });
 }

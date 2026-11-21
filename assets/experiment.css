@@ -44,6 +44,9 @@ body[data-experiment="impedance-robot"] #apparatus { height: 420px; }
 .disturbance-controls .parameter { padding: 0 19px 14px; }
 .disturbance-controls .parameter label { flex-direction: row; align-items: center; }
 .loop-diagram { min-width: 1040px; }
+.loop-label { height: 100%; display: grid; place-items: center; text-align: center; font: 15px/1.35 var(--sans); }
+.loop-label math { font-size: 17px; }
+:where(.loop-details,.model-notes,.control-help,.parameter,.sim-heading) math { color: var(--ink); }
 .loop-scroll-help { display: block; }
 .loop-details ul { padding-left: 18px; font-size: 13px; }
 .loop-details li { margin-bottom: 5px; overflow-wrap: anywhere; }

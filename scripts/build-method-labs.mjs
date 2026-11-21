@@ -5,7 +5,7 @@ import {classicalNotes,classicalRows,copy,defaultPlant,eq,escape,panelMath,plant
 import {catalog} from '../assets/catalog.js';
 const bi=([ko,en])=>`data-en="${escape(en)}">${escape(ko)}`;
 const legend=keys=>`<div class="legend pid-legend">${keys.map(k=>copy('span',labels[k],` class="key-${k}"`)).join('')}</div>`;
-const plot=(key,section,title,keys,tail='')=>`<section class="panel ${section}" id="method-${key}-panel"><div class="panel-heading"><h2 id="${key}-title" ${bi(title)}</h2></div>${legend(keys)}<svg id="${key}-plot" role="img" aria-labelledby="${key}-title"></svg>${tail}</section>`;
+const plot=(key,section,title,keys,tail='')=>`<section class="panel ${section}" id="method-${key}-panel"><div class="panel-heading">${copy('h2',title,` id="${key}-title"`)}</div>${legend(keys)}<svg id="${key}-plot" role="img" aria-labelledby="${key}-title"></svg>${tail}</section>`;
 function control({key,label,range,choices}){
  const id=`method-${key}`,forLabel=copy('label',label,` for="${id}"`);
  if(choices)return `<div>${forLabel}<select id="${id}">${choices.map(([k,ko,en])=>`<option value="${k}" ${bi([ko,en])}</option>`).join('')}</select></div>`;
@@ -27,21 +27,21 @@ for(const [id,lab] of Object.entries(labs)){
  const ddc=id==='ddc-lti',smc=id==='smc-lti';
  const related=['pid-lti','mpc-lti',...Object.keys(labs)].filter(k=>k!==id).map(k=>`<a data-plant-link="../${k}/" href="../${k}/">${({'pid-lti':'PID','mpc-lti':'MPC','ddc-lti':'DDC','smc-lti':'SMC','tdc-lti':'TDC'})[k]} →</a>`).join(' · ');
  const title=[item.name,item.english], stat=(id,title)=>`<div>${copy('span',title)}<strong id="${id}">—</strong></div>`;
- const tech=ddc?[String.raw`데이터 행렬 $\begin{bmatrix}U_0\\X_0\end{bmatrix}$ 랭크 / 필요 랭크`,String.raw`Data rank / required rank $\begin{bmatrix}U_0\\X_0\end{bmatrix}$`]:smc?['종료 시 슬라이딩 변수 s','Final sliding variable s']:['추정 지연 시간','Estimation lag'];
- const gainStats=ddc?stat('method-gain',['상태 피드백 이득 K','State-feedback gain K'])+stat('method-rho',['폐루프 스펙트럼 반지름 ρ','Closed-loop spectral radius ρ']):'';
+ const tech=ddc?[String.raw`데이터 행렬 $\begin{bmatrix}U_0\\X_0\end{bmatrix}$ 랭크 / 필요 랭크`,String.raw`Data rank / required rank $\begin{bmatrix}U_0\\X_0\end{bmatrix}$`]:smc?['종료 시 슬라이딩 변수 $s$','Final sliding variable $s$']:['추정 지연 시간','Estimation lag'];
+ const gainStats=ddc?stat('method-gain',['상태 피드백 이득 $K$','State-feedback gain $K$'])+stat('method-rho',['폐루프 스펙트럼 반지름 $ρ$','Closed-loop spectral radius $ρ$']):'';
  const html=`<!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title ${bi(title.map(x=>x+' · Control Simulators'))}</title><meta name="description" content="${escape(lab.intro[0])}">
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title ${bi(title.map(x=>x+' · Control Simulators'))}</title><meta name="description" content="${escape(lab.intro[0].replaceAll('$',''))}">
 <link rel="stylesheet" href="../assets/site.css"><link rel="stylesheet" href="../assets/pid-lti.css"><link rel="stylesheet" href="../assets/method-labs.css"><script type="module" src="../assets/method-labs.js"></script></head>
 <body data-method="${id}"><a class="skip" href="#main" data-en="Skip to content">본문으로 건너뛰기</a>
 <header class="site-header"><a class="brand" href="../" aria-label="Control Simulators 홈"><span class="brand-mark" aria-hidden="true"><img src="../assets/lab-logo.png" alt=""></span><span class="brand-label">CONTROL<br>SIMULATORS</span></a><div class="language-switch" role="group" aria-label="언어 선택"><button type="button" data-lang="ko" aria-pressed="true" lang="ko" disabled>한국어</button><button type="button" data-lang="en" aria-pressed="false" lang="en" disabled>EN</button></div></header>
-<main id="main" class="container pid-lab"><a class="back-link" href="../" data-en="← All experiments">← 모든 실험</a><div class="sim-heading"><div><h1 ${bi(title)}</h1><p ${bi(lab.intro)}</p></div></div>
+<main id="main" class="container pid-lab"><a class="back-link" href="../" data-en="← All experiments">← 모든 실험</a><div class="sim-heading"><div><h1 ${bi(title)}</h1>${copy('p',lab.intro)}</div></div>
 <noscript>실험을 조작하려면 JavaScript를 켜세요.</noscript><section class="panel plant-panel"><div class="panel-heading"><h2 data-en="Second-order plant">2차 시스템 설정</h2><span id="plant-equation">${defaultPlant}</span></div><div id="plant-controls"></div>${plantNote(id.split('-')[0])}</section>
 <div class="pid-layout method-layout">${plot('response','pid-output',lab.response,['output','target'])}
 <section class="panel pid-settings"><div class="panel-heading"><h2 data-en="Controller settings">제어기 설정</h2></div><div class="method-controls">${lab.settings.map(control).join('')}<button type="button" id="method-reset" class="primary" data-en="Reset">초기화</button></div></section>
 ${plot('diag','method-diagnostic',lab.diag,diagnostics[id],copy('p',lab.diagnosticNote,' class="method-caption"'))}
 <aside class="panel pid-guide"><div class="panel-heading"><h2 data-en="Try this">실험해 보기</h2></div>${copy('p',lab.task,' class="method-caption"')}<p id="method-status" role="status"></p></aside>
 ${plot('input','method-input',['적용 제어입력','Applied control input'],['input'],smc?'<label class="zoom"><input type="checkbox" id="input-zoom"><span data-en="Zoom to 4–4.4 s">4–4.4초 확대</span></label>':'')}
-<div class="pid-metrics">${stat('method-final',['종료 시 출력 y','Final output y'])}${stat('method-peak',['최대 적용 |u|','Peak applied |u|'])}${stat('method-stat',tech)}${gainStats}</div></div>
+<div class="pid-metrics">${stat('method-final',['종료 시 출력 $y$','Final output $y$'])}${stat('method-peak',[String.raw`최대 적용 $\lvert u\rvert$`,String.raw`Peak applied $\lvert u\rvert$`])}${stat('method-stat',tech)}${gainStats}</div></div>
 <details class="panel pid-model"><summary data-en="Model, control law and assumptions">모델·제어식·가정</summary><div>${plantRow(ddc)}${lab.equations.map(row=>eq(...row)).join('')}${copy('p',lab.assumptions)}${lab.tracking?copy('p',lab.tracking):''}</div></details>
 <p class="pid-source"><span data-en="Other labs with this plant">같은 시스템으로 다른 제어 실험</span>: ${related}</p>
 <p class="pid-source"><span ${bi(ddc?['안정화 정리 출처','Stabilization paper']:['원리 참고 문헌','Concept reference'])}</span>: <a href="${escape(item.source)}" target="_blank" rel="noopener noreferrer">${escape(item.sourceName)} ↗</a></p></main>

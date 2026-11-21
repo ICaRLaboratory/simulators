@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const models = {
-  'cruise-control': ['1000v˙=F−50v−d', 'd∈{0,600}N', '8000 N', '가속도'],
-  'dc-motor': ['x¨+10x˙=10(u−d)', 'd∈{0,2}', '100', '입력 단위', '각속도'],
-  'ball-and-beam': ['x¨=5g7sinθ−0.15x˙', 'x˙←x˙+0.6m/s', '0.25 rad', '+0.6 m/s', '순간']
+  'cruise-control': ['1000v˙=F−50v−d', 'd∈{0,600}N', '±8000N', '가속도'],
+  'dc-motor': ['x¨+10x˙=10(u−d)', 'd∈{0,2}', '±100', '입력 단위', '각속도'],
+  'ball-and-beam': ['x¨=5g7sinθ−0.15x˙', 'x˙←x˙+0.6m/s', '±0.25rad', '순간']
 };
 test('each live page explains its actual feedback loop without JavaScript', () => {
-  for (const [kind, [plant, disturbance, ...terms]] of Object.entries(models)) {
+  for (const [kind, [plant, disturbance, saturation, ...terms]] of Object.entries(models)) {
     const html = readFileSync(new URL(`../${kind}/index.html`, import.meta.url), 'utf8');
     const panel = html.match(/<section class="control-loop panel"[\s\S]*?<\/section>/)?.[0];
     assert.ok(panel, `${kind}: control structure panel missing`);
@@ -17,6 +17,7 @@ test('each live page explains its actual feedback loop without JavaScript', () =
       .replace(/<[^>]*>|\s|\u2061/g, '').replaceAll('&lt;', '<');
     assert.equal(symbols('plant'), plant);
     assert.equal(symbols('disturbance'), disturbance);
+    assert.equal(symbols('saturation'), saturation);
     assert.equal(symbols('law'), 'Kpe+I−Kdy˙');
     assert.equal(symbols('controller'), 'e=r−yq=Kpe+I−Kdy˙u=clip(q,−L,L)');
     assert.equal(symbols('candidate'), 'Δt=0.005sΔI=KieΔtq∗=Kpe−Kdy˙+I+ΔI');

@@ -35,9 +35,9 @@ function update(){
  if(ddc){
   const {ready,rank,requiredRank,K,rho}=result;
   $('method-stat').textContent=`${rank} / ${requiredRank}`;
-  $('method-gain').textContent=ready?`[${K.map(k=>k.toFixed(3)).join(', ')}]`:'—';
+  $('method-gain').innerHTML=ready?`<math><mo>[</mo>${K.map(k=>`<mn>${k.toFixed(3)}</mn>`).join('<mo>, </mo>')}<mo>]</mo></math>`:'—';
   $('method-rho').textContent=ready?rho.toFixed(3):'—';
-  $('method-status').textContent=ready?tr('기록에서 구한 이득 K를 목표 평형점에 대한 상태 편차에 적용합니다.','The gain K from the record acts on state deviations from the target equilibrium.'):
+  $('method-status').innerHTML=ready?tr('기록에서 구한 이득 <math><mi>K</mi></math>를 목표 평형점에 대한 상태 편차에 적용합니다.','The gain <math><mi>K</mi></math> from the record acts on state deviations from the target equilibrium.'):
    rank<requiredRank?tr('데이터 행렬의 랭크가 부족하여 피드백 이득을 구하지 않았습니다. 수집 입력을 바꾸면 폐루프 실험을 실행할 수 있습니다.','Insufficient data rank: no gain was designed and no closed-loop run was made. Select varying input to run the experiment.'):
    tr('안정화 조건을 확인할 수 없어 폐루프 실험을 실행하지 않았습니다.','The stabilization condition could not be verified; no closed-loop run was made.');
  }else{
@@ -46,7 +46,7 @@ function update(){
  }
  draw();
 }
-function localize(){for(const [el,ko] of bindings)el.textContent=tr(ko,el.dataset.en);document.querySelector('meta[name=description]').content=tr(...config.intro);update();}
+function localize(){for(const [el,ko] of bindings)el.textContent=tr(ko,el.dataset.en);document.querySelector('meta[name=description]').content=document.querySelector('.sim-heading p').textContent;update();}
 for(const {key} of config.settings)field(key).addEventListener('input',update);
 $('input-zoom')?.addEventListener('change',draw);
 $('method-reset').addEventListener('click',()=>{for(const {key,range} of config.settings){const el=field(key);if(range)el.value=el.defaultValue;else el.selectedIndex=0;}if(smc)$('input-zoom').checked=false;plantUI.reset();update();});

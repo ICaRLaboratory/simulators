@@ -103,9 +103,10 @@ test('all eleven generated pages explain disturbances visibly beside their butto
     assert.ok(match, `${id}: persistent help must immediately follow the button`);
     assert.match(match[0], /aria-describedby="disturbance-help"/);
     assert.match(match[1], /class="control-help"/);
-    assert.ok(match[1].includes(esc(d.disturbanceHelp[0])), id);
-    assert.ok(match[1].includes(esc(d.disturbanceHelp[1])), id);
-    assert.match(match[1], /data-en="/);
+    // Reconstruct the two copies when an axis symbol interrupts a sentence.
+    const plain=match[1].replace(/<math\b[^>]*>([\s\S]*?)<\/math>/g,(_,inner)=>inner.replace(/<[^>]+>/g,''));
+    for(const copy of d.disturbanceHelp)assert.ok(plain.includes(esc(copy)),id);
+    assert.match(match[1], /data-en="|<template data-copy-en>/);
     assert.match(match[1], /일시정지 중에는 시작을 눌러 이후 응답을 관찰하세요\./);
     assert.match(match[1], /When paused, press Start to observe the subsequent response\./);
     assert.match(match[1], /복귀가 보장되지는 않습니다/);
