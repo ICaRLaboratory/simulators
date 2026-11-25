@@ -41,13 +41,13 @@ function setupCatalog() {
   let category = '';
   const categories = [...new Set(catalog.map(item => item.category))];
   $('#total-count').textContent = catalog.length;
-  $('#ready-count').textContent = catalog.filter(item => item.status === 'ready').length;
+
   $('#category-filters').innerHTML = ['',...categories].map(name => `<button type="button" data-category="${name}" aria-pressed="${name === ''}">${name || '전체'}<span>${name ? catalog.filter(item => item.category === name).length : catalog.length}</span></button>`).join('');
   function render() {
     const filtered = filterCatalog({query:$('#search').value,category,ready:$('#ready-only').checked});
     $('#catalog-grid').innerHTML = filtered.map(item => {
       const {paper, website} = sourceSlots(item);
-      return `<article class="sim-card" data-id="${item.id}"><div class="card-visual"><span class="card-number">EXP. ${String(catalog.indexOf(item) + 1).padStart(2,'0')}</span><span class="card-status ${item.status}">${item.status === 'ready' ? '실행 가능' : '준비 중'}</span>${schematic(item)}</div>
+      return `<article class="sim-card" data-id="${item.id}"><div class="card-visual"><span class="card-number">EXP. ${String(catalog.indexOf(item) + 1).padStart(2,'0')}</span>${item.status === 'ready' ? '' : '<span class="card-status">준비 중</span>'}${schematic(item)}</div>
         <div class="card-body"><p class="card-category">${item.category}</p><h3>${item.name}</h3><p class="english-name">${item.english}</p><p class="card-description">${item.description}</p>${paper}
           <div class="features" aria-label="${item.status === 'ready' ? '조절 가능한 항목' : '구현 예정 항목'}">${item.features.map(feature => `<span>${feature}</span>`).join('')}</div>${website}
           <div class="card-footer">${item.href ? `<a class="launch" data-launch href="${localizedHref(item.href)}" ${item.external ? `aria-label="${item.name} · 연구 실험 열기 · 외부 사이트"` : ''}>${item.external ? '연구 실험 열기' : '실험 시작'} <span aria-hidden="true">${item.external ? '↗' : '→'}</span></a>` : '<span class="planned-label">브라우저 실험 준비 중</span>'}</div>

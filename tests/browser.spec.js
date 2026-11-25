@@ -1,6 +1,18 @@
 import { test, expect } from '@playwright/test';
 import {catalog} from '../assets/catalog.js';
 const root = process.env.SIM_BASE || 'http://127.0.0.1:8765/simulators/';
+test('catalog shows the total without repeating readiness above each launch',async({page})=>{
+ await page.goto(root+'?lang=ko');
+ for(const [lang,width] of [['ko',1280],['en',320],['ko',320]]){
+  await page.setViewportSize({width,height:860});
+  await page.locator(`[data-lang=${lang}]`).click();
+  const summary=page.locator('.catalog-stats');
+  await expect(summary.locator('span')).toHaveText([lang==='ko'?'전체 실험':'Experiments']);
+  await expect(summary.locator('strong')).toHaveText([String(catalog.length)]);
+  await expect(page.locator('.card-visual').getByText(/^(실행 가능|Ready)$/)).toHaveCount(0);
+  await expect(page.locator('.sim-card [data-launch]')).toHaveCount(catalog.filter(item=>item.href).length);
+ }
+});
 test('catalog offers all local and Research launches with searchable source entries', async ({page}) => {
  const errors=[]; page.on('pageerror',e=>errors.push(e.message));
  await page.goto(root);
