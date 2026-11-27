@@ -3,10 +3,13 @@ import {createView} from './view.js';
 // Keep the original canvas and its 2D context intact for unavailable/lost WebGL.
 export function upgradeApparatus(canvas, model, options = {}) {
   canvas.dataset.renderer = 'canvas2d';
-  const host = document.createElement('div'); host.className = 'three-apparatus';
-  if (canvas.getBoundingClientRect().height >= 400) host.dataset.large = 'true';
+  const host = options.host || document.createElement('div');
+  if (!options.host) {
+    host.className = 'three-apparatus';
+    if (canvas.getBoundingClientRect().height >= 400) host.dataset.large = 'true';
+    canvas.before(host);
+  }
   const id = canvas.id, originalDisplay = canvas.style.display;
-  canvas.before(host);
   let view;
   function fallback() {
     const old = view; view = null;

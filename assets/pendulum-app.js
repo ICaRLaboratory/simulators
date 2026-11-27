@@ -1,12 +1,13 @@
 import {setupLanguage, t, translateDOM} from './i18n.js';
 import {PendulumSimulation} from './pendulum-physics.js';
+import {startApparatus} from './apparatus-start.js';
 
 const $ = id => document.getElementById(id);
 const simulation = new PendulumSimulation();
 const STEP = 0.005;
 let running = false, accumulator = 0, previous = null;
 let notice = 'ready';
-let apparatus3D = null;
+const apparatus3D = startApparatus($('apparatus'), 'inverted-pendulum', draw);
 const history = [];
 const copy = {
   ready: ['시작을 누르고 목표 또는 이득을 조절하세요.', 'Press Start, then adjust the target or gains.'],
@@ -183,5 +184,3 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 sample();draw();requestAnimationFrame(frame);
-import('./three/catalog.js').then(({attachApparatus}) => attachApparatus($('apparatus'), 'inverted-pendulum', {onFallback:draw}))
-  .then(view => { apparatus3D=view; draw(); }).catch(error => console.warn('3D view unavailable; keeping the 2D apparatus.',error));

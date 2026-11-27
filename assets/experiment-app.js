@@ -1,4 +1,5 @@
 import {setupLanguage,translateDOM} from './i18n.js';
+import {startApparatus} from './apparatus-start.js';
 const loaders={
  'rotary-pendulum':()=>import('./models/rotary-pendulum.js'),
  'ball-and-plate':()=>import('./models/ball-and-plate.js'),
@@ -43,7 +44,7 @@ try{
 }
 function boot({definition:d,Simulation,draw:drawModel}){
  const simulation=new Simulation(),history=[],STEP=.005;
- let apparatus3D=null;
+ const apparatus3D=startApparatus($('apparatus'),d.id,render);
  let running=false,accumulator=0,previous=null,notice='ready';
  const parameterLabels=[];
  for(const p of d.parameters){
@@ -97,6 +98,4 @@ function boot({definition:d,Simulation,draw:drawModel}){
  observer.observe($('apparatus'));d.plots.forEach((_,i)=>observer.observe($(`plot-${i}`)));
  function frame(now){if(running&&!document.hidden){if(previous!==null)accumulator=Math.min(.1,accumulator+Math.max(0,(now-previous)/1000));previous=now;while(accumulator>=STEP&&running){simulation.step(STEP);accumulator-=STEP;sample();if(simulation.state.failed||simulation.state.complete)pause();}render();}else previous=null;requestAnimationFrame(frame);}
  sample();localize();render();requestAnimationFrame(frame);
- import('./three/catalog.js').then(({attachApparatus})=>attachApparatus($('apparatus'),d.id,{onFallback:render}))
-  .then(view=>{apparatus3D=view;render();}).catch(error=>console.warn('3D view unavailable; keeping the 2D apparatus.',error));
 }

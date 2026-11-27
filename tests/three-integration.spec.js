@@ -6,9 +6,33 @@ test.use({launchOptions:{executablePath:process.env.CHROMIUM_PATH,
 for (const id of ids) {
   test(`${id}: real Three.js apparatus, unchanged playback and camera-only interaction`, async ({page}) => {
     const errors=[];page.on('pageerror',error=>errors.push(error.message));
-    await page.goto(root+id+'/?lang=ko');
+    await page.addInitScript(()=>{
+      window.device2dRequests=0;
+      const get=HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext=function(type,...args){
+        if(type==='2d' && /^apparatus(?:-fallback)?$/.test(this.id))window.device2dRequests++;
+        return get.call(this,type,...args);
+      };
+    });
+    let release,requested=false;
+    const gate=new Promise(resolve=>{release=resolve;});
+    await page.route('**/assets/three/catalog.js',async route=>{requested=true;await gate;await route.continue();});
+    const loading=page.locator('.apparatus-loading');
+    try {
+      await page.goto(root+id+'/?lang=ko',{waitUntil:'domcontentloaded'});
+      await expect.poll(()=>requested).toBe(true);
+      await expect(loading).toBeVisible();await expect(loading).toHaveText('3D 장면 준비 중…');
+      await expect(page.locator('#apparatus')).toBeHidden();
+      await page.locator('[data-lang="en"]').click();await expect(loading).toHaveText('Preparing 3D view…');
+      await page.locator('[data-lang="ko"]').click();await expect(loading).toHaveText('3D 장면 준비 중…');
+      await expect(page.locator('#sim-time')).toHaveText('0.00');
+    } finally {release();}
     const canvas=page.locator('#apparatus');
     await expect(canvas).toHaveAttribute('data-renderer','three');
+    await expect(loading).toHaveCount(0);await expect(page.locator('#apparatus-fallback')).toBeHidden();
+    expect(await canvas.evaluate(n=>!!n.getContext('webgl2')&&!n.getContext('webgl2').isContextLost())).toBe(true);
+    expect(await page.evaluate(()=>window.device2dRequests)).toBe(0);
+    await expect(page.locator('#sim-time')).toHaveText('0.00');
     const initial=await page.locator('#sim-time').textContent();
     const before=await canvas.evaluate(n=>n.toDataURL());
     await canvas.focus();await page.keyboard.press('ArrowRight');
@@ -37,6 +61,18 @@ for (const id of ids) {
     expect(geometry.every(Boolean)).toBe(true);
   });
 }
+test('context loss after startup restores a painted 2D device without resetting playback',async({page})=>{
+  await page.goto(root+'cruise-control/?lang=en');
+  const device=page.locator('#apparatus'), time=page.locator('#sim-time');
+  await expect(device).toHaveAttribute('data-renderer','three');
+  await page.locator('#start-pause').click();await expect.poll(async()=>Number(await time.textContent())).toBeGreaterThan(0);
+  await page.locator('#start-pause').click();const paused=await time.textContent();
+  await device.evaluate(n=>n.getContext('webgl2').getExtension('WEBGL_lose_context').loseContext());
+  await expect(device).toHaveAttribute('data-renderer','canvas2d');await expect(device).toBeVisible();
+  await expect(page.locator('.three-apparatus,.apparatus-loading')).toHaveCount(0);
+  expect(await device.evaluate(n=>n.getContext('2d').getImageData(0,0,n.width,n.height).data.some((v,i)=>i%4===3&&v>0))).toBe(true);
+  await expect(time).toHaveText(paused);
+});
 for (const dpr of [1, 2]) {
   test.describe(`inverted-pendulum at DPR ${dpr}`, () => {
     test.use({deviceScaleFactor:dpr});
@@ -134,7 +170,8 @@ for (const id of ids) for (const delayed of [false,true]) {
       if (delayed) {
         await expect.poll(()=>responseReady).toBe(true);
         expect(await page.evaluate(()=>window.__webglAttempts)).toBe(0);
-        await expect(page.locator('#apparatus')).toBeVisible();
+        await expect(page.locator('#apparatus')).toBeHidden();
+        await expect(page.getByRole('status').filter({hasText:'Preparing 3D view'})).toBeVisible();
         await playAndPause();
         expect(await page.evaluate(()=>window.__webglAttempts)).toBe(0);
       }

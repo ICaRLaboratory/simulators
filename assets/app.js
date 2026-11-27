@@ -1,5 +1,6 @@
 import { catalog, filterCatalog } from './catalog.js';
 import { motionDistance } from './motion.js';
+import {startApparatus} from './apparatus-start.js';
 import {setupLanguage, translateDOM, t, getLanguage, localizedHref} from './i18n.js';
 setupLanguage();
 
@@ -211,7 +212,7 @@ async function setupSimulation(kind) {
   document.querySelectorAll('.unit').forEach(node=>node.textContent=sim.config.unit);
   $('#model-limits').textContent=kind==='cruise-control' ? '단순 질량·선형 저항 모델입니다. 기어, 엔진 지연, 공기저항의 비선형성은 제외합니다. 외란 버튼은 일정한 부하를 켜고 끕니다.' : kind==='dc-motor' ? '단순화한 2차 위치 모델입니다. 전기 회로, 마찰 비선형성 및 기어 백래시는 제외합니다. 외란 버튼은 일정한 부하를 켜고 끕니다.' : '공은 미끄러짐 없이 구르는 구로 근사합니다. 빔 구동기 지연은 제외하며, ±1 m 레일 끝에 도달하면 실험을 정지합니다. 외란 버튼으로 공의 움직임을 교란합니다.';
   let running=false,lastFrame=0,accumulator=0,raf=0,lastSample=0,sceneDistance=0;
-  let apparatus3D=null;
+  const apparatus3D=startApparatus($('#apparatus'),kind,render);
   const STEP=.005, MAX_ACCUMULATOR=.1;
   let history=[{t:0,y:sim.state.y,target:sim.params.target}];
   const message=$('#simulation-message');
@@ -281,8 +282,6 @@ async function setupSimulation(kind) {
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&running)setRunning(false,'탭이 숨겨져 자동 일시정지했습니다. 시작을 누르면 재개됩니다.');});
   new ResizeObserver(render).observe($('.experiment'));
   setRunning(false,'준비되었습니다. 시작을 눌러 실험을 실행하세요.');
-  import('./three/catalog.js').then(({attachApparatus})=>attachApparatus($('#apparatus'),kind,{onFallback:render}))
-    .then(view=>{apparatus3D=view;render();}).catch(error=>console.warn('3D view unavailable; keeping the 2D apparatus.',error));
 }
 
 if(document.body.dataset.page==='catalog')setupCatalog();

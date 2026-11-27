@@ -165,6 +165,8 @@ input[type=checkbox] { accent-color: var(--ink); height: 16px; width: 16px; }
 .mono { font: 500 11px/1.5 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
 canvas { display: block; width: 100%; }
 #apparatus { height: 245px; background: var(--bg-soft); }
+.apparatus-standby { display: none; }
+.apparatus-loading { display: grid; place-items: center; height: 100%; min-height: 12rem; margin: 0; background: var(--bg-soft); color: var(--muted); font-size: .9375rem; }
 #response { height: 205px; }
 .canvas-caption { font-size: 12px; color: var(--muted); padding: 12px 20px; }
 .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 16px 0; border: 1px solid var(--line-soft); background: var(--bg-soft); border-radius: var(--radius); overflow: hidden; }
