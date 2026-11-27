@@ -1,5 +1,6 @@
 import {mkdir,writeFile,access} from 'node:fs/promises';
 import {apparatusEquations} from './apparatus-equations.mjs';
+import {apparatusPidPair} from './apparatus-pid-pair.mjs';
 import {math} from './paper-math.mjs';
 import {apparatusCopy,escapeHTML as esc} from './apparatus-copy.mjs';
 const root=new URL('../',import.meta.url);
@@ -40,6 +41,8 @@ function sourceNotes(d){
   `<p>${link(label,href??d.source)}<br>${richText(d.id,'span',note)}</p>`).join('');
 }
 function loop(d){
+ const pair=apparatusPidPair(d,richText,aria);
+ if(pair)return pair;
  // Compact 1040-wide loop that fits the desktop container without scrolling,
  // shaped like the hand-made diagrams: the reference is a dashed labelled
  // wire (not a box), and the plant output bends straight into the feedback

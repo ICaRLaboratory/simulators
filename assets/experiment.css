@@ -46,6 +46,24 @@ body[data-experiment="impedance-robot"] #apparatus { height: 420px; }
 .loop-diagram { min-width: 1040px; }
 .loop-label { height: 100%; display: grid; place-items: center; text-align: center; font: 15px/1.35 var(--sans); }
 .loop-label math { font-size: 17px; }
+.pid-pair { container-type: inline-size; }
+.pid-pair figure { margin: 0; min-width: 1040px; }
+.pid-pair :is(figcaption,.pid-controller,.pid-key) { width: 100cqi; }
+.pid-pair figure + figure { border-top: 1px solid var(--line); }
+.pid-pair figcaption, .pid-pair .pid-controller { position: sticky; left: 0; padding: 14px 20px; }
+.pid-pair figcaption { font-size: 1rem; font-weight: 650; color: var(--ink); }
+.pid-pair .pid-key { position: sticky; left: 0; padding: 0 20px 8px; font-size: .94rem; }
+.pid-pair .pid-label { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; font: 15px/1.35 var(--sans); }
+.pid-pair .pid-label math { font-size: 17px; }
+.pid-pair .pid-row-title .pid-label { align-items: flex-start; font-weight: 600; }
+.pid-pair .pid-tap { fill: var(--ink); }
+.pid-pair .pid-controller { background: var(--surface); line-height: 1.55; }
+.pid-pair .pid-controller h3 { font-size: 1rem; }
+.pid-pair .pid-controller h4 { margin: 12px 0 0; font-size: .92rem; }
+.pid-pair .pid-controller p { max-width: 85ch; margin-top: 7px; font-size: .94rem; overflow-wrap: anywhere; }
+.pid-pair .pid-relations { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; max-width: 100%; overflow-x: auto; padding-block: 8px; }
+.pid-pair .pid-relations math { flex: none; font-size: 1.1rem; }
+.pid-pair .pid-watch { padding-left: 12px; border-left: 3px solid var(--actual); }
 :where(.loop-details,.model-notes,.control-help,.parameter,.sim-heading) math { color: var(--ink); }
 .loop-scroll-help { display: block; }
 .loop-details ul { padding-left: 18px; font-size: 13px; }

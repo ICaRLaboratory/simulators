@@ -11,3 +11,18 @@
 .loop-diagram foreignObject math { flex: none; }
 html[lang="ko"] .hw-copy[lang="en"],
 html[lang="en"] .hw-copy[lang="ko"] { display: none; }
+
+/* Both figures share a horizontal scroll position and the same signal scale. */
+.pid-comparison { margin: 0; }
+.pid-comparison figcaption { padding: 12px 20px; font-weight: 650; }
+.pid-comparison + .pid-comparison { border-top: 1px solid var(--line-soft); }
+.pid-comparison .loop-wires .pid-junction { fill: var(--ink); }
+.pid-comparison foreignObject > .pid-branch { flex-direction: column; gap: 1px; font: 15px/1.3 var(--sans); }
+.pid-branch-name { padding-right: 8px; margin-right: 4px; border-right: 1px solid var(--line); }
+.pid-comparison foreignObject > .pid-explainer {
+  box-sizing: border-box; flex-direction: column; gap: 5px; text-align: center; white-space: normal;
+  font: 15px/1.3 var(--sans); padding: 6px 9px;
+}
+.pid-explainer .pid-term { align-self: stretch; display: grid; grid-template-columns: 1em 1fr; gap: 5px; text-align: start; }
+.pid-explainer .pid-law { font-size: 18px; }
+.pid-explainer > .pid-reason { border-top: 1px solid var(--line-soft); padding-top: 5px; }

@@ -15,10 +15,10 @@ for (const kind of ['cruise-control', 'dc-motor', 'ball-and-beam']) {
       await panel.getByText('모델·제어식', { exact: true }).click();
       await expect(panel.locator('.loop-details')).toBeVisible();
       await panel.getByText('모델·제어식', { exact: true }).click();
-      await expect(panel.getByRole('img')).toHaveAccessibleName(/음의 피드백 제어/);
-      const law = panel.locator('[data-signal="controller"] math');
+      await expect(panel.getByRole('img',{name:/음의 피드백 제어/})).toBeVisible();
+      const law = panel.locator('[data-pid-view=experiment] .pid-law math');
       await expect(law).toBeVisible();
-      await expect(law).toHaveText('Kpe+I−Kdy˙');
+      await expect(law).toHaveText('q=Kpe+I−Kdy˙');
       await expect(law.locator('msub')).toHaveCount(2);
       await expect(page.locator('#start-pause')).toBeEnabled();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

@@ -7,21 +7,34 @@ async function geometry(page) {
   return page.evaluate(async () => {
     await document.fonts.ready;
     const issues = [];
-    const svg = document.querySelector('.loop-diagram');
+
     const bounds = el => el.getBoundingClientRect();
     const fits = (a, b) => a.left >= b.left - 1 && a.right <= b.right + 1 &&
       a.top >= b.top - 1 && a.bottom <= b.bottom + 1;
-    const labels = [];
-    for (const el of svg.querySelectorAll('text, foreignObject > div > *')) {
-      const box = bounds(el), owner = el.closest('foreignObject');
-      if (!box.height) continue; // Inactive locale.
-      if (!fits(box, bounds(owner || svg)) || !fits(box, bounds(svg))) issues.push(`label clipped: ${el.textContent}`);
-      if (owner && !fits(bounds(owner), bounds(svg))) issues.push(`container outside diagram: ${el.textContent}`);
-      for (const [name, rect] of labels) {
-        if (Math.min(box.right, rect.right) - Math.max(box.left, rect.left) > 1 &&
-            Math.min(box.bottom, rect.bottom) - Math.max(box.top, rect.top) > 1) issues.push(`overlap: ${name} / ${el.textContent}`);
+    for (const svg of document.querySelectorAll('.loop-diagram')) {
+      const labels = [];
+      for (const el of svg.querySelectorAll('text, foreignObject > div > *')) {
+        const box = bounds(el), owner = el.closest('foreignObject');
+        if (!box.height) continue; // Inactive locale.
+        if (!fits(box, bounds(owner || svg)) || !fits(box, bounds(svg))) issues.push(`label clipped: ${el.textContent}`);
+        if (owner && !fits(bounds(owner), bounds(svg))) issues.push(`container outside diagram: ${el.textContent}`);
+        for (const [name, rect] of labels) {
+          if (Math.min(box.right, rect.right) - Math.max(box.left, rect.left) > 1 &&
+              Math.min(box.bottom, rect.bottom) - Math.max(box.top, rect.top) > 1) issues.push(`overlap: ${name} / ${el.textContent}`);
+        }
+        labels.push([el.textContent, box]);
       }
-      labels.push([el.textContent, box]);
+      // A wrapping term's grid box can fit while its words or math overflow it.
+      for (const region of svg.querySelectorAll('foreignObject')) {
+        const rects = [...region.querySelectorAll('math, math *')].map(bounds);
+        const walker = document.createTreeWalker(region, NodeFilter.SHOW_TEXT);
+        for (let node; (node = walker.nextNode());) {
+          if (!node.textContent.trim() || node.parentElement.closest('math')) continue;
+          const range = document.createRange(); range.selectNodeContents(node);
+          rects.push(...range.getClientRects());
+        }
+        if (rects.some(r => r.width && r.height && !fits(r, bounds(region)))) issues.push(`content clipped: ${region.textContent}`);
+      }
     }
     for (const el of document.querySelectorAll('.loop-notes math, .model-notes math')) {
       const parent = el.closest('p');
@@ -46,6 +59,7 @@ for (const id of ids) {
     test.use({ javaScriptEnabled: false, viewport: { width: 320, height: 800 } });
     test('Korean diagram, disclosure and inline math are readable', async ({ page }) => {
       await page.goto(`${base}${id}/`);
+      await expect(page.locator('.control-loop .loop-diagram')).toHaveCount(id === 'inverted-pendulum' ? 1 : 2);
       await page.locator('summary').click();
       await expect(page.locator('html')).toHaveAttribute('lang', 'ko');
       await expect(page.locator('.loop-notes p:not(.loop-equation) math:visible').first()).toBeVisible();

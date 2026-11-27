@@ -18,7 +18,7 @@ test('each live page explains its actual feedback loop without JavaScript', () =
     assert.equal(symbols('plant'), plant);
     assert.equal(symbols('disturbance'), disturbance);
     assert.equal(symbols('saturation'), saturation);
-    assert.equal(symbols('law'), 'Kpe+I−Kdy˙');
+    assert.equal(symbols('law'), 'q=Kpe+I−Kdy˙');
     assert.equal(symbols('controller'), 'e=r−yq=Kpe+I−Kdy˙u=clip(q,−L,L)');
     assert.equal(symbols('candidate'), 'Δt=0.005sΔI=KieΔtq∗=Kpe−Kdy˙+I+ΔI');
     assert.equal(symbols('integrate'), '|q∗|≤L∨q∗ΔI<0');

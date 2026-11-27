@@ -7,9 +7,15 @@ const root = new URL('../', import.meta.url);
 const pages = ['ball-and-beam', 'dc-motor', 'cruise-control', 'inverted-pendulum'];
 for (const id of pages) test(`${id}: ships paper equations in both the diagram and the model notes`, () => {
   const page = readFileSync(new URL(`${id}/index.html`, root), 'utf8');
-  const diagram = page.match(/<svg class="loop-diagram"[\s\S]*?<\/svg>/)[0];
+  const diagrams = [...page.matchAll(/<svg class="loop-diagram"[\s\S]*?<\/svg>/g)].map(match => match[0]);
+  assert.equal(diagrams.length, id === 'inverted-pendulum' ? 1 : 2, 'every PID page needs both diagrams');
+  if (id !== 'inverted-pendulum') {
+    assert.deepEqual([...page.matchAll(/<figure [^>]*data-pid-view="(.*?)"/g)].map(m => m[1]), ['standard', 'experiment']);
+    assert.match(diagrams[0], /data-branch="D"/);
+    assert.match(diagrams[1], /data-signal="controller"/);
+  }
   const notes = page.match(/<details class="loop-notes">[\s\S]*?<\/details>/)[0];
-  for (const section of [diagram, notes]) {
+  for (const section of [...diagrams, notes]) {
     assert.match(section, /<math\b/, 'missing static math');
     assert.match(section, /<msub>/, 'feedback gains need real subscripts');
     assert.doesNotMatch(section, /<merror\b|<annotation\b/);
@@ -23,7 +29,9 @@ for (const id of pages) test(`${id}: ships paper equations in both the diagram a
 for (const id of pages) test(`${id}: signal labels, limits and explanatory prose ship as math`, () => {
   const html = readFileSync(new URL(`${id}/index.html`, root), 'utf8');
   const panel = html.match(/<section class="control-loop panel"[\s\S]*?<\/section>/)[0];
-  const labels = panel.match(/<g class="loop-labels">[\s\S]*?<\/g>/)[0];
+  const groups = [...panel.matchAll(/<g class="(?:loop|ideal)-labels">[\s\S]*?<\/g>/g)];
+  assert.equal(groups.length, id === 'inverted-pendulum' ? 1 : 2);
+  const labels = groups.map(match => match[0]).join(' ');
   const plain = section => section.replace(/<math\b[\s\S]*?<\/math>|<[^>]*>/g, ' ');
   assert.doesNotMatch(plain(labels), /[±θω]|\b[eFqruvyx]\b|\bx − r\b/);
   const notes = panel.match(/<details[\s\S]*?<\/details>/)[0];
