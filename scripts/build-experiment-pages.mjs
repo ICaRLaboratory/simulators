@@ -1,4 +1,4 @@
-import {mkdir,writeFile,access} from 'node:fs/promises';
+import {mkdir,readFile,writeFile,access} from 'node:fs/promises';
 import {apparatusEquations} from './apparatus-equations.mjs';
 import {apparatusPidPair} from './apparatus-pid-pair.mjs';
 import {math} from './paper-math.mjs';
@@ -59,6 +59,10 @@ function equationBlocks(d){
  if(blocks?.length!==d.equations.length)throw Error(`Equation block count mismatch: ${d.id}`);
  return blocks.map(clauses=>`<p class="loop-equation">${clauses.map((tex,i)=>math(tex+(i+1<clauses.length?';':''))).join(' ')}</p>`).join('');
 }
+function posterStage(d){
+ const src=`../assets/startup-posters/${esc(d.id)}`;
+ return `<div class="apparatus-stage" data-view="poster"${d.id==='impedance-robot'?' data-large="true"':''}><picture class="apparatus-poster" role="img" ${aria([d.title[0]+' · 장치 미리보기',d.title[1]+' · Apparatus preview'])}><source media="(max-width: 600px)" srcset="${src}-narrow.webp"><img src="${src}.webp" alt="" loading="eager" fetchpriority="high"></picture><p class="apparatus-loading" role="status" data-en="Loading…">로딩 중…</p></div>`;
+}
 function page(d){
  const rich=(tag,pair,attrs='',field='')=>richText(d.id,tag,pair,attrs,field);
  const disturbanceHelp=d.disturbanceHelp.map((copy,i)=>copy+' '+[
@@ -67,10 +71,10 @@ function page(d){
  ][i]);
  const metrics=[{key:'t',label:['시간','Time'],unit:'s',digits:2},...d.metrics];
  return `<!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${esc(d.description[0])}" data-en-content="${esc(d.description[1])}">${text('title',d.title.map(s=>s+' · Control Simulators'))}<link rel="stylesheet" href="../assets/site.css"><link rel="stylesheet" href="../assets/experiment.css"><script type="module" src="../assets/experiment-app.js"></script></head>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${esc(d.description[0])}" data-en-content="${esc(d.description[1])}">${text('title',d.title.map(s=>s+' · Control Simulators'))}<link rel="stylesheet" href="../assets/site.css"><link rel="stylesheet" href="../assets/experiment.css"><link rel="stylesheet" href="../assets/three/view.css"><script type="module" src="../assets/experiment-app.js"></script></head>
 <body data-experiment="${esc(d.id)}">${text('a',['본문으로 건너뛰기','Skip to content'],'class="skip" href="#main"')}<header class="site-header"><a class="brand" href="../" ${aria(['Control Simulators 홈','Control Simulators home'])}><span class="brand-mark" aria-hidden="true"><img src="../assets/lab-logo.png" alt=""></span><span class="brand-label">CONTROL<br>SIMULATORS</span></a><div class="language-switch" role="group" ${aria(['언어 선택','Language'])}><button type="button" data-lang="ko" aria-pressed="true" lang="ko">한국어</button><button type="button" data-lang="en" aria-pressed="false" lang="en">EN</button></div></header>
 <main id="main" class="container sim-container">${text('a',['← 모든 실험','← All experiments'],'class="back-link" href="../"')}<div class="sim-heading"><div>${text('h1',d.title)}${text('p',d.description)}${d.explanation?rich('p',d.explanation,'id="concept-help" class="control-help"'):''}</div><span id="run-status" class="status" role="status">일시정지</span></div>
-<div class="sim-layout"><section class="experiment" ${aria(['실험 시각화','Experiment visualization'])}><div class="panel apparatus-panel"><div class="panel-heading">${text('h2',d.title)}<span class="mono">0.005 s</span></div><canvas id="apparatus" role="img" ${aria(d.title)} data-en="${esc(d.description[1])}">${esc(d.description[0])}</canvas></div><div class="metrics">${metrics.map(m=>`<div>${rich('span',m.label)}<strong><output id="${m.key==='t'?'sim-time':'metric-'+esc(m.key)}">—</output> <small>${esc(m.unit)}</small></strong></div>`).join('')}</div>
+<div class="sim-layout"><section class="experiment" ${aria(['실험 시각화','Experiment visualization'])}><div class="panel apparatus-panel"><div class="panel-heading">${text('h2',d.title)}<span class="mono">0.005 s</span></div>${posterStage(d)}<canvas id="apparatus" role="img" ${aria(d.title)} data-en="${esc(d.description[1])}">${esc(d.description[0])}</canvas></div><div class="metrics">${metrics.map(m=>`<div>${rich('span',m.label)}<strong><output id="${m.key==='t'?'sim-time':'metric-'+esc(m.key)}">—</output> <small>${esc(m.unit)}</small></strong></div>`).join('')}</div>
 ${d.plots.map((p,i)=>`<div class="panel graph-panel"><div class="panel-heading">${rich('h2',p.label.map(s=>s+' · '+p.unit))}<div class="legend">${p.series.map(s=>rich('span',s.label,`class="${s.dash?'target-line':'actual-line'}" style="--series:${esc(s.color)}"`)).join('')}</div></div><canvas class="response" id="plot-${i}" role="img" ${aria(p.label.map(s=>s+' · '+p.unit))}></canvas>${text('p',[`최근 15초 · 시간 (s) · 고정 범위 ${p.range.join(' … ')} ${p.unit}`,`Last 15 seconds · time (s) · fixed range ${p.range.join(' … ')} ${p.unit}`],'class="canvas-caption"')}</div>`).join('')}</section>
 <aside class="panel controls" aria-labelledby="controls-title"><div class="panel-heading">${text('h2',['실험 설정','Experiment settings'],'id="controls-title"')}</div><div class="action-buttons"><button id="start-pause" class="primary" type="button" disabled>시작</button>${text('button',['초기화','Reset'],'id="reset" type="button" disabled')}</div>${d.disturbanceParameters?.length?`<fieldset class="disturbance-controls">${text('legend',['외란','Disturbance'])}<div id="disturbance-parameters"></div>`:''}${rich('button',d.disturbance,'id="disturb" class="disturb-button" type="button" aria-describedby="disturbance-help" disabled')}${rich('p',disturbanceHelp,'id="disturbance-help" class="control-help"')}${d.disturbanceParameters?.length?'</fieldset>':''}${text('p',['초기화하면 일시정지하며 설정은 유지됩니다.','Reset pauses the experiment and keeps your settings.'],'class="control-help"')}<div id="parameter-controls"></div><p id="simulation-message" class="simulation-message" role="status" aria-live="polite">모델을 불러오는 중입니다.</p><noscript>JavaScript를 켜면 실험을 실행할 수 있습니다.</noscript></aside></div>
 <section class="control-loop panel" aria-labelledby="loop-title"><div class="panel-heading">${text('h2',['제어 구조','Control structure'],'id="loop-title"')}</div>${text('p',['그림에 초점을 맞춘 뒤 방향키로 좌우로 스크롤하세요.','Focus the diagram and use arrow keys to scroll horizontally.'],'id="loop-scroll-help" class="loop-scroll-help"')}${loop(d)}<details class="loop-notes">${text('summary',['모델·제어식·단위·실험 범위','Model, equations, units and limits'])}<div class="loop-details"><div>${text('h3',['모델과 제어식','Model and control equations'])}${equationBlocks(d)}</div><div>${text('h3',['실험 범위와 단위','Limits and units'])}${d.notes.map(n=>rich('p',n,'','notes')).join('')}${text('p',['고정 계산 간격 0.005 s. 숨겨진 탭은 일시정지합니다.','Fixed integration step: 0.005 s. Hidden tabs pause.'])}<ul>${d.parameters.map(p=>`<li>${rich('span',p.label,`data-parameter-label="${esc(p.key)}"`)}: ${esc(p.min)} … ${esc(p.max)} ${esc(p.unit)}</li>`).join('')}</ul></div></div></details></section>
@@ -80,5 +84,13 @@ ${d.plots.map((p,i)=>`<div class="panel graph-panel"><div class="panel-heading">
 const missing=[],definitions=[];
 for(const id of ids){const url=new URL(`assets/models/${id}.js`,root);try{await access(url);}catch{missing.push(id);continue;}const {definition:d}=await import(url);if(!d&&process.argv.includes('--available')){missing.push(id);continue;}if(!d)throw Error(`Incomplete definition: ${id}`);if(d.id!==id)throw Error(`Definition id mismatch: ${id}`);if(!/^https:\/\//.test(d.source))throw Error(`Invalid source: ${id}`);definitions.push(d);}
 if(missing.length&&!process.argv.includes('--available'))throw Error(`Missing model modules: ${missing.join(', ')}`);
-for(const d of definitions){await mkdir(new URL(`${d.id}/`,root),{recursive:true});await writeFile(new URL(`${d.id}/index.html`,root),page(d));}
-console.log(`Generated ${definitions.length}/${ids.length} experiment pages${missing.length?'; awaiting '+missing.join(', '):''}.`);
+const check=process.argv.includes('--check');
+for(const d of definitions){
+ const file=new URL(`${d.id}/index.html`,root), html=page(d);
+ if(check){
+  if(await readFile(file,'utf8')!==html)throw Error(`Stale ${d.id}/index.html; run node scripts/build-experiment-pages.mjs`);
+ }else{
+  await mkdir(new URL(`${d.id}/`,root),{recursive:true});await writeFile(file,html);
+ }
+}
+console.log(`${check?'Checked':'Generated'} ${definitions.length}/${ids.length} experiment pages${missing.length?'; awaiting '+missing.join(', '):''}.`);

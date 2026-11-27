@@ -1,5 +1,5 @@
 import {setupLanguage,translateDOM} from './i18n.js';
-import {startApparatus} from './apparatus-start.js';
+import {startApparatus,markPosterUnavailable} from './apparatus-start.js';
 const loaders={
  'rotary-pendulum':()=>import('./models/rotary-pendulum.js'),
  'ball-and-plate':()=>import('./models/ball-and-plate.js'),
@@ -39,10 +39,11 @@ try{
  const load=loaders[document.body.dataset.experiment];if(!load)throw Error('Unknown experiment');
  const module=await load();boot(module);
 }catch(error){
+ markPosterUnavailable();
  console.error('Experiment unavailable:',error);
  updateLocale=()=>{$('run-status').textContent=localized(['사용 불가','Unavailable']);$('simulation-message').textContent=localized(copy.unavailable);for(const id of ['start-pause','disturb','reset'])$(id).disabled=true;};updateLocale();
 }
-function boot({definition:d,Simulation,draw:drawModel}){
+function boot({definition:d,Simulation}){
  const simulation=new Simulation(),history=[],STEP=.005;
  const apparatus3D=startApparatus($('apparatus'),d.id,render);
  let running=false,accumulator=0,previous=null,notice='ready';
@@ -75,7 +76,7 @@ function boot({definition:d,Simulation,draw:drawModel}){
  };
  function sample(){history.push({...simulation.observe()});while(history.length>1&&history[1].t<simulation.state.t-15)history.shift();}
  function context(id){const canvas=$(id),box=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);const width=Math.round(box.width*dpr),height=Math.round(box.height*dpr);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,box.width,box.height);return {ctx,w:box.width,h:box.height};}
- function apparatus(){if(apparatus3D?.update(simulation.state,simulation.params))return;const {ctx,w,h}=context('apparatus');ctx.save();drawModel(ctx,simulation.state,simulation.params,w,h,document.documentElement.lang);ctx.restore();}
+ function apparatus(){apparatus3D.update(simulation.state,simulation.params);}
  function plot(p,i){
   const {ctx:c,w,h}=context(`plot-${i}`);c.font='12px "Pretendard Variable", sans-serif';
   const [min,max]=p.range,format=v=>Math.abs(v)>=1000?v.toExponential(1):Number(v.toPrecision(3)).toString();
@@ -95,7 +96,7 @@ function boot({definition:d,Simulation,draw:drawModel}){
  document.addEventListener('visibilitychange',()=>{if(document.hidden&&running){notice='hidden';pause();render();}});
  // Locale-only changes redraw the schematic, not graph pixels/history.
  const sizes=new WeakMap();const observer=new ResizeObserver(entries=>{let changed=false;for(const e of entries){const size=`${e.contentRect.width}:${e.contentRect.height}`;if(sizes.get(e.target)!==size){sizes.set(e.target,size);changed=true;}}if(changed)render();});
- observer.observe($('apparatus'));d.plots.forEach((_,i)=>observer.observe($(`plot-${i}`)));
+ observer.observe(document.querySelector('.apparatus-stage'));d.plots.forEach((_,i)=>observer.observe($(`plot-${i}`)));
  function frame(now){if(running&&!document.hidden){if(previous!==null)accumulator=Math.min(.1,accumulator+Math.max(0,(now-previous)/1000));previous=now;while(accumulator>=STEP&&running){simulation.step(STEP);accumulator-=STEP;sample();if(simulation.state.failed||simulation.state.complete)pause();}render();}else previous=null;requestAnimationFrame(frame);}
  sample();localize();render();requestAnimationFrame(frame);
 }

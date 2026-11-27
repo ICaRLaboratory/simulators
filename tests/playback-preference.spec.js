@@ -5,7 +5,10 @@ const apparatus=catalog.filter(item=>item.status==='ready' && item.view==='appar
 expect(apparatus).toHaveLength(16);
 const click=(page,selector)=>page.locator(selector).evaluate(node=>node.click());
 const snapshot=page=>page.evaluate(()=>window.playbackSnapshot());
-const plots=page=>page.locator('canvas:not(#apparatus)').evaluateAll(nodes=>nodes.map(n=>n.toDataURL()));
+const plots=async page=>{
+  const traces=page.locator('.graph-panel canvas');expect(await traces.count()).toBeGreaterThan(0);
+  return traces.evaluateAll(nodes=>nodes.map(n=>n.toDataURL()));
+};
 const preference='.playback-preference, #playback-preference-help, input[type=checkbox]';
 for(const {id} of apparatus){
   test(`${id}: Start is the only playback intent, without checkbox or help`,async({page})=>{
@@ -41,7 +44,7 @@ test('dashboard does not get a simulation playback control',async({page})=>{
 });
 const runtimes=[['cruise-control','app.js','sim'],['inverted-pendulum','pendulum-app.js','simulation'],['rotary-pendulum','experiment-app.js','simulation']];
 async function controlledPlayback(page,file,state){
-  // Count actual presentation calls in either renderer, not 2D clears alone.
+  // Count real GPU presentations; clearing a 2D canvas is not a live apparatus frame.
   await page.route('**/assets/three/view.js',async route=>{
     const response=await route.fetch();const source=await response.text();
     expect(source).toContain('renderer.render(scene, camera);');
@@ -63,8 +66,6 @@ async function controlledPlayback(page,file,state){
     window.advanceFrames=(count,interval=1000/60)=>{for(let i=0;i<count;i++){now+=interval;const current=[...callbacks.values()];callbacks.clear();for(const callback of current)callback(now);}};
     window.resetFrameClock=()=>{now=0;};
     window.playbackDraws=0;
-    const clear=CanvasRenderingContext2D.prototype.clearRect;
-    CanvasRenderingContext2D.prototype.clearRect=function(...args){if(this.canvas.id==='apparatus')window.playbackDraws++;return clear.apply(this,args);};
   });
 }
 async function frames(page,count,interval=1000/60){

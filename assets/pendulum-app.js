@@ -94,43 +94,7 @@ function canvasContext(id) {
   ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,box.width,box.height);
   return {ctx,w:box.width,h:box.height};
 }
-function apparatus() {
-  if (apparatus3D?.update(simulation.state, simulation.params)) return;
-  const {ctx:c,w,h} = canvasContext('apparatus');
-  const s = simulation.state, scale = (w-96)/4, center = w/2+s.x*scale, pivot = h-88;
-  // Fixed rod length and positive-right angle follow the actual state convention.
-  const length = Math.min(120,h-135,(w-48)/2), tipX = center+length*Math.sin(s.theta), tipY = pivot-length*Math.cos(s.theta);
-  const slate='#334155', edge='#94a3b8', pale='#e2e8f0';
-  const line = (x,y,X,Y,color,width=2,dash=[]) => {c.beginPath();c.strokeStyle=color;c.lineWidth=width;c.setLineDash(dash);c.moveTo(x,y);c.lineTo(X,Y);c.stroke();c.setLineDash([]);};
-  const circle=(x,y,r,fill)=>{c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fillStyle=fill;c.fill();c.strokeStyle=slate;c.lineWidth=1.5;c.stroke();};
-  const box=(x,y,width,height,fill,r=4)=>{c.beginPath();c.roundRect(x,y,width,height,r);c.fillStyle=fill;c.fill();c.strokeStyle=slate;c.lineWidth=1.5;c.stroke();};
-  c.save();c.lineCap='round';c.lineJoin='round';
-  box(24,pivot+37,w-48,9,pale,2);
-  line(25,pivot+38,w-25,pivot+38,edge,2);
-  for(const x of [-2,-1,0,1,2]) {
-    const X=w/2+x*scale;
-    line(X,pivot+47,X,pivot+52,edge,1);
-    c.fillStyle='#55555c';c.font='12px "Pretendard Variable", sans-serif';c.textAlign='center';c.fillText(`${x}`,X,pivot+66);
-  }
-  const target=w/2+simulation.params.target*scale;
-  line(target,28,target,pivot+46,'#c56b31',2,[5,5]);
-  line(center,pivot,center,pivot-length,edge,1,[4,4]);
-  box(center-32,pivot+3,64,25,'#fff',6);
-  box(center-23,pivot+8,46,10,pale,2);
-  line(center-27,pivot+23,center+27,pivot+23,'#087f74',3);
-  for(const dx of [-21,21]) {
-    const x=center+dx,y=pivot+30;
-    circle(x,y,8,slate);circle(x,y,4,pale);
-    const angle=s.x*scale/8;
-    line(x-3*Math.cos(angle),y-3*Math.sin(angle),x+3*Math.cos(angle),y+3*Math.sin(angle),slate,1);
-  }
-  line(center,pivot+7,center,pivot,slate,8);
-  line(center,pivot,tipX,tipY,slate,7);
-  line(center,pivot,tipX,tipY,'#cbd5e1',3);
-  circle(center,pivot,6,'#fff');circle(center,pivot,2,'#087f74');
-  circle(tipX,tipY,12,'#087f74');circle(tipX-4,tipY-4,3,'#d9f7f2');
-  c.restore();
-}
+function apparatus() { apparatus3D.update(simulation.state, simulation.params); }
 function plot(id, key, limit) {
   const {ctx:c,w,h} = canvasContext(id), left=45, right=w-16, top=16, bottom=h-30;
   const end=Math.max(15,simulation.state.t), start=end-15;

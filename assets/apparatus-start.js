@@ -1,38 +1,50 @@
-// Keep playback independent of the asynchronous choice of apparatus renderer.
+function localizePoster(stage) {
+  const status = stage.querySelector('.apparatus-loading');
+  const english = document.documentElement.lang === 'en';
+  status.textContent = stage.dataset.view === 'unavailable'
+    ? (english ? '3D view unavailable.' : '3D 화면을 불러올 수 없습니다.')
+    : (english ? 'Loading…' : '로딩 중…');
+}
+
+// Apply the current state after page-specific document translation has run.
+window.addEventListener('icar:lang', () => {
+  const stage = document.querySelector('.apparatus-stage');
+  if (stage) localizePoster(stage);
+});
+
+export function markPosterUnavailable(stage = document.querySelector('.apparatus-stage')) {
+  if (!stage) return;
+  stage.dataset.view = 'unavailable';
+  localizePoster(stage);
+}
+
+// The static HTML poster owns the first paint. Playback never waits for WebGL.
 export function startApparatus(canvas, id, redraw) {
+  const stage = canvas.previousElementSibling;
   const host = document.createElement('div');
   host.className = 'three-apparatus';
-  if (canvas.getBoundingClientRect().height >= 400) host.dataset.large = 'true';
-  // Reserve the actual desktop/mobile viewport while the heavier scene loads.
-  const style = document.createElement('link');
-  style.rel = 'stylesheet'; style.href = new URL('./three/view.css', import.meta.url).href;
-  if (![...document.styleSheets].some(sheet => sheet.href === style.href)) document.head.append(style);
-  const status = document.createElement('p');
-  status.className = 'apparatus-loading'; status.setAttribute('role', 'status');
-  function localize() {
-    status.textContent = document.documentElement.lang === 'en' ? 'Preparing 3D view…' : '3D 장면 준비 중…';
-  }
-  localize(); document.addEventListener('icar:lang', localize);
-  host.append(status); canvas.before(host); canvas.classList.add('apparatus-standby');
+  stage.append(host);
+  let view = null;
 
-  let pending = true, view = null;
-  function finish() {
-    pending = false;
-    document.removeEventListener('icar:lang', localize);
-    status.remove(); canvas.classList.remove('apparatus-standby');
-    if (!view) { host.remove(); canvas.dataset.renderer = 'canvas2d'; }
-    redraw();
+  function unavailable() {
+    view = null;
+    host.remove();
+    markPosterUnavailable(stage);
   }
+  localizePoster(stage);
   async function load() {
     try {
       const {attachApparatus} = await import('./three/catalog.js');
-      view = await attachApparatus(canvas, id, {host, onFallback() { view = null; finish(); }});
+      view = await attachApparatus(canvas, id, {host, onFallback: unavailable});
+      if (!view) { unavailable(); return; }
+      redraw(); // The user may already have adjusted or started the simulation.
+      if (view) stage.dataset.view = 'three';
     } catch (error) {
-      console.warn('3D view unavailable; using the 2D apparatus.', error);
+      console.warn('3D view unavailable.', error);
+      view?.dispose();
+      unavailable();
     }
-    finish();
   }
   load();
-  // Returning false is the caller's signal to draw its original 2D view.
-  return {update(...args) { return pending || (view?.update(...args) ?? false); }};
+  return {update(...args) { view?.update(...args); }};
 }

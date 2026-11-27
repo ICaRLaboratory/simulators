@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {observeCanvases, gateRequest, expectPoster, expectUnavailable} from './apparatus-poster.js';
 
 const base=process.env.SIM_BASE||'http://127.0.0.1:8765/simulators/';
 test.use({launchOptions:{executablePath:process.env.CHROMIUM_PATH,
@@ -10,8 +11,6 @@ async function instrument(page,gpu=true){
   let id=0,now=0;const callbacks=new Map();
   window.requestAnimationFrame=f=>{callbacks.set(++id,f);return id;};window.cancelAnimationFrame=i=>callbacks.delete(i);
   window.exp11Tick=()=>{now+=100;const batch=[...callbacks.values()];callbacks.clear();batch.forEach(f=>f(now));};
-  window.exp11CanvasLabels=[];const text=CanvasRenderingContext2D.prototype.fillText;
-  CanvasRenderingContext2D.prototype.fillText=function(value,...args){if(this.canvas.id==='apparatus')window.exp11CanvasLabels.push(String(value));return text.call(this,value,...args);};
  });
  await page.route('**/assets/experiment-app.js',async route=>{
   const response=await route.fetch(),source=await response.text(),marker='function frame(now)';
@@ -79,21 +78,53 @@ for(const width of [390,1280])test(`Gen3 real GPU reset, approach and contact at
  await testInfo.attach('real-render-evidence',{body:JSON.stringify(snapshots,null,2),contentType:'application/json'});
  expect(errors).toEqual([]);
 });
-for(const [width,lang] of [[320,'ko'],[1280,'en']])test(`Gen3 asynchronous 2D fallback ${width}px ${lang}`,async({page},testInfo)=>{
- const warnings=[];page.on('console',message=>{if(message.type()==='warning')warnings.push(message.text());});
- await page.setViewportSize({width,height:900});await page.emulateMedia({reducedMotion:'reduce'});await instrument(page,false);
- let attempted=false;await page.route('**/assets/three/view.js',route=>{attempted=true;return route.abort();});
- await page.goto(`${base}impedance-robot/?lang=${lang}`);await expect.poll(()=>attempted).toBe(true);
- await expect(page.locator('#start-pause')).toBeEnabled();await expect(page.locator('.three-view')).toHaveCount(0);
- await expect.poll(()=>warnings.some(message=>message.includes('3D view unavailable'))).toBe(true);
- await expect(page.locator('#apparatus')).toBeVisible();
- expect(await page.locator('#apparatus').evaluate(canvas=>Boolean(canvas.getContext('2d')))).toBe(true);
- const box=await page.locator('#apparatus').boundingBox();expect(box.height).toBeGreaterThanOrEqual(400);
+for(const [width,lang] of [[320,'ko'],[1280,'en']])test(`Gen3 scene-module failure leaves a static poster and live plots at ${width}px ${lang}`,async({page},testInfo)=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.setViewportSize({width,height:900});await page.emulateMedia({reducedMotion:'reduce'});
+ await observeCanvases(page);await instrument(page,false);
+ const failed=page.waitForEvent('requestfailed',{predicate:r=>r.url().endsWith('/assets/three/view.js')});
+ await page.route('**/assets/three/view.js',route=>route.abort());
+ await page.goto(`${base}impedance-robot/?lang=${lang}`);await failed;
+ await expectUnavailable(page,'impedance-robot',lang,width<=600);
+ const stage=page.locator('.apparatus-stage'), start=page.locator('#start-pause');
+ await expect(start).toBeEnabled();
+ const box=await stage.boundingBox();expect(box.height).toBeGreaterThanOrEqual(400);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- expect(await page.evaluate(()=>window.exp11CanvasLabels)).toContain(lang==='en'?'Red: reference position':'빨강: 목표 위치');
- await page.locator('#start-pause').click();await frames(page,6);await page.locator('#start-pause').click();
- expect((await page.evaluate(()=>window.exp11Snapshot())).state.t).toBeGreaterThan(.4);
- await page.locator('#apparatus').screenshot({path:testInfo.outputPath(`${width}-fallback-${lang}.png`)});
+ const plots=page.locator('.graph-panel canvas');expect(await plots.count()).toBeGreaterThan(0);
+ const plotPixels=()=>plots.evaluateAll(ns=>ns.map(n=>n.toDataURL()));
+ const before=await plotPixels(), reset=await page.evaluate(()=>window.exp11Snapshot());
+ await start.click();await frames(page,6);await start.click();
+ const paused=await page.evaluate(()=>window.exp11Snapshot());
+ expect(paused.state.t).toBeGreaterThan(.4);
+ await expect(page.locator('#metric-x')).toHaveText(paused.observed.x.toFixed(3));
+ expect((await plotPixels()).some((pixels,i)=>pixels!==before[i])).toBe(true);
+ await frames(page,3);expect(await page.evaluate(()=>window.exp11Snapshot())).toEqual(paused);
+ await expectUnavailable(page,'impedance-robot',lang,width<=600);
+ await stage.screenshot({path:testInfo.outputPath(`${width}-unavailable-${lang}.png`)});
+ await page.locator('#reset').click();expect(await page.evaluate(()=>window.exp11Snapshot())).toEqual(reset);
+ expect(await page.evaluate(()=>window.device2dRequests)).toBe(0);
+ expect(errors).toEqual([]);
+});
+
+test('delayed Gen3 handoff displays the contact reached during loading, not the reset pose',async({page})=>{
+ await observeCanvases(page);await instrument(page);
+ const catalog=await gateRequest(page,'**/assets/three/catalog.js');
+ const plots=page.locator('.graph-panel canvas');
+ let paused,history;
+ try {
+  await page.goto(`${base}impedance-robot/?lang=en`,{waitUntil:'domcontentloaded'});
+  await catalog.wait();await expectPoster(page,'impedance-robot',false);
+  await page.evaluate(()=>document.fonts.ready);
+  await page.locator('#start-pause').click();await frames(page,39);await page.locator('#start-pause').click();
+  paused=await page.evaluate(()=>window.exp11Snapshot());expect(paused.observed.force).toBeGreaterThan(0);
+  history=await plots.evaluateAll(nodes=>nodes.map(n=>n.toDataURL()));expect(history.length).toBeGreaterThan(0);
+ } finally { catalog.release(); }
+ await expect(page.locator('.apparatus-stage[data-view="three"] #apparatus')).toBeVisible();
+ const {snapshot,gpu}=await page.evaluate(()=>({snapshot:window.exp11Snapshot(),gpu:window.exp11GPU}));
+ expect(snapshot).toEqual(paused);expect(gpu.triangles).toBeGreaterThan(0);
+ expect(gpu.probe[0]).toBeCloseTo(paused.observed.x,12);expect(gpu.reaction).toBe(true);
+ expect(await plots.evaluateAll((nodes,history)=>nodes.length===history.length && nodes.every((n,i)=>n.toDataURL()===history[i]),history)).toBe(true);
+ expect(await page.evaluate(()=>window.device2dRequests)).toBe(0);
 });
 
 test('non-impedance robot views do not request Gen3 geometry',async({page})=>{

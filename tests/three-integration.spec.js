@@ -1,42 +1,75 @@
 import {test, expect} from '@playwright/test';
+import {observeCanvases, gateRequest, expectPoster, expectUnavailable} from './apparatus-poster.js';
+const metrics = page => page.locator('.metrics output').allTextContents();
 const root = process.env.SIM_BASE || 'http://127.0.0.1:8765/simulators/';
 const ids = ['cruise-control','dc-motor','ball-and-beam','inverted-pendulum','rotary-pendulum','ball-and-plate','robot-arm','parking','heat-exchanger','drone','impedance-robot','path-tracking','suspension','cstr','aircraft-pitch','rocket-landing'];
 test.use({launchOptions:{executablePath:process.env.CHROMIUM_PATH,
   args:['--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader']}});
+const plotPixels = async page => {
+  const plots = page.locator('.graph-panel canvas');
+  expect(await plots.count()).toBeGreaterThan(0);
+  return plots.evaluateAll(nodes => nodes.map(n => n.toDataURL()));
+};
+async function playAndPause(page) {
+  const time = page.locator('#sim-time'), start = page.locator('#start-pause');
+  const before = Number(await time.textContent()), pixels = await plotPixels(page);
+  await start.click();
+  await expect.poll(async () => Number(await time.textContent())).toBeGreaterThan(before + .2);
+  await start.click();
+  const paused = await time.textContent();
+  await page.waitForTimeout(120);
+  await expect(time).toHaveText(paused);
+  expect((await plotPixels(page)).some((current,i) => current !== pixels[i]), 'response traces advance').toBe(true);
+}
+// Occlusion/opacity can leave a loaded image with a nonempty DOM rectangle but no pixels on screen.
+async function expectFirstPaint(page, id, narrow) {
+  await expectPoster(page,id,narrow);
+  const image = page.locator('picture.apparatus-poster img');
+  const shown = await image.screenshot({animations:'disabled'});
+  const without = await image.screenshot({animations:'disabled',style:'picture.apparatus-poster img { opacity:0 !important; }'});
+  expect(shown.equals(without), 'poster contributes pixels before the entry script runs').toBe(false);
+}
 for (const id of ids) {
   test(`${id}: real Three.js apparatus, unchanged playback and camera-only interaction`, async ({page}) => {
     const errors=[];page.on('pageerror',error=>errors.push(error.message));
-    await page.addInitScript(()=>{
-      window.device2dRequests=0;
-      const get=HTMLCanvasElement.prototype.getContext;
-      HTMLCanvasElement.prototype.getContext=function(type,...args){
-        if(type==='2d' && /^apparatus(?:-fallback)?$/.test(this.id))window.device2dRequests++;
-        return get.call(this,type,...args);
-      };
-    });
-    let release,requested=false;
-    const gate=new Promise(resolve=>{release=resolve;});
-    await page.route('**/assets/three/catalog.js',async route=>{requested=true;await gate;await route.continue();});
-    const loading=page.locator('.apparatus-loading');
+    await observeCanvases(page);
+    const entry = await gateRequest(page, /\/assets\/(app|pendulum-app|experiment-app)\.js$/);
+    const catalog = await gateRequest(page, '**/assets/three/catalog.js');
+    const stage = page.locator('.apparatus-stage'), loading = stage.locator('.apparatus-loading');
+    let initialMetrics;
     try {
-      await page.goto(root+id+'/?lang=ko',{waitUntil:'domcontentloaded'});
-      await expect.poll(()=>requested).toBe(true);
-      await expect(loading).toBeVisible();await expect(loading).toHaveText('3D 장면 준비 중…');
-      await expect(page.locator('#apparatus')).toBeHidden();
-      await page.locator('[data-lang="en"]').click();await expect(loading).toHaveText('Preparing 3D view…');
-      await page.locator('[data-lang="ko"]').click();await expect(loading).toHaveText('3D 장면 준비 중…');
+      // Commit, not DOMContentLoaded: the deferred entry module is deliberately withheld.
+      await page.goto(root+id+'/?lang=ko',{waitUntil:'commit'});
+      await entry.wait();
+      await expect(stage).toHaveAttribute('data-view','poster');
+      await expectFirstPaint(page,id,false);
+      await expect(loading).toBeVisible(); await expect(loading).toHaveText('로딩 중…',{useInnerText:true});
+      await expect(page.locator('#start-pause')).toBeDisabled();
+      entry.release();
+      await catalog.wait();
+      await expect(page.locator('#start-pause')).toBeEnabled();
+      await expectPoster(page,id,false);
+      await page.locator('[data-lang="en"]').click(); await expect(loading).toHaveText('Loading…');
+      await page.locator('[data-lang="ko"]').click(); await expect(loading).toHaveText('로딩 중…',{useInnerText:true});
+      initialMetrics = await metrics(page);
       await expect(page.locator('#sim-time')).toHaveText('0.00');
-    } finally {release();}
-    const canvas=page.locator('#apparatus');
-    await expect(canvas).toHaveAttribute('data-renderer','three');
-    await expect(loading).toHaveCount(0);await expect(page.locator('#apparatus-fallback')).toBeHidden();
-    expect(await canvas.evaluate(n=>!!n.getContext('webgl2')&&!n.getContext('webgl2').isContextLost())).toBe(true);
+    } finally { entry.release(); catalog.release(); }
+    const canvas=stage.locator('#apparatus[data-renderer="three"]');
+    await expect(stage).toHaveAttribute('data-view','three');
+    await expect(canvas).toBeVisible();
+    await expect(stage.locator('picture.apparatus-poster')).toHaveCount(1);
+    await expect(stage.locator('picture.apparatus-poster img')).toBeHidden();
+    await expect(loading).toHaveCount(1); await expect(loading).toBeHidden();
+    await expect(page.locator('.apparatus-stage + canvas')).toHaveCount(1);
+    await expect(page.locator('.apparatus-stage + canvas')).toBeHidden();
+    expect(await canvas.evaluate(n=>{const gl=n.getContext('webgl2');return gl instanceof WebGL2RenderingContext&&!gl.isContextLost();})).toBe(true);
     expect(await page.evaluate(()=>window.device2dRequests)).toBe(0);
+    expect(await metrics(page)).toEqual(initialMetrics);
     await expect(page.locator('#sim-time')).toHaveText('0.00');
     const initial=await page.locator('#sim-time').textContent();
     const before=await canvas.evaluate(n=>n.toDataURL());
     await canvas.focus();await page.keyboard.press('ArrowRight');
-    expect(await canvas.evaluate(n=>n.toDataURL())).not.toBe(before);
+    await expect.poll(()=>canvas.evaluate((n,before)=>n.toDataURL()!==before,before)).toBe(true);
     expect(await page.locator('#sim-time').textContent()).toBe(initial);
     await page.getByRole('button',{name:'시점 초기화',exact:true}).click();
     await page.locator('#start-pause').click();
@@ -48,11 +81,18 @@ for (const id of ids) {
     await page.locator('#reset').click();
     expect(await page.locator('#sim-time').textContent()).toBe(initial);
     expect(await page.locator('canvas:not([data-renderer="three"]):visible').count()).toBeGreaterThan(0);
+    expect(await page.evaluate(()=>window.device2dRequests)).toBe(0);
     expect(errors).toEqual([]);
   });
   test(`${id}: narrow English viewport retains the complete view and controls`, async ({page}) => {
     await page.setViewportSize({width:390,height:844});
-    await page.goto(root+id+'/?lang=en');
+    await observeCanvases(page);
+    const entry = await gateRequest(page,/\/assets\/(app|pendulum-app|experiment-app)\.js$/);
+    try {
+      await page.goto(root+id+'/?lang=en',{waitUntil:'commit'});
+      await entry.wait();
+      await expectFirstPaint(page,id,true);
+    } finally { entry.release(); }
     await expect(page.locator('#apparatus')).toHaveAttribute('data-renderer','three');
     await expect(page.getByRole('button',{name:'Reset view',exact:true})).toBeVisible();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -61,18 +101,41 @@ for (const id of ids) {
     expect(geometry.every(Boolean)).toBe(true);
   });
 }
-test('context loss after startup restores a painted 2D device without resetting playback',async({page})=>{
-  await page.goto(root+'cruise-control/?lang=en');
-  const device=page.locator('#apparatus'), time=page.locator('#sim-time');
-  await expect(device).toHaveAttribute('data-renderer','three');
-  await page.locator('#start-pause').click();await expect.poll(async()=>Number(await time.textContent())).toBeGreaterThan(0);
-  await page.locator('#start-pause').click();const paused=await time.textContent();
-  await device.evaluate(n=>n.getContext('webgl2').getExtension('WEBGL_lose_context').loseContext());
-  await expect(device).toHaveAttribute('data-renderer','canvas2d');await expect(device).toBeVisible();
-  await expect(page.locator('.three-apparatus,.apparatus-loading')).toHaveCount(0);
-  expect(await device.evaluate(n=>n.getContext('2d').getImageData(0,0,n.width,n.height).data.some((v,i)=>i%4===3&&v>0))).toBe(true);
-  await expect(time).toHaveText(paused);
-});
+for (const id of ['cruise-control','inverted-pendulum','impedance-robot']) {
+  test(`${id}: a lost live WebGL context returns to a static poster without resetting the experiment`, async ({page}) => {
+    const errors=[]; page.on('pageerror', error => errors.push(error.message));
+    await observeCanvases(page);
+    await page.goto(root+id+'/?lang=en');
+    const canvas=page.locator('.apparatus-stage[data-view="three"] #apparatus[data-renderer="three"]');
+    await expect(canvas).toBeVisible();
+    await page.evaluate(()=>document.fonts.ready);
+    const range=page.locator('#parameter-controls input[type="range"]').first();
+    const initialSetting=await range.inputValue();
+    await range.press(initialSetting===await range.getAttribute('max') ? 'ArrowLeft' : 'ArrowRight');
+    expect(await range.inputValue()).not.toBe(initialSetting);
+    await playAndPause(page);
+    const paused=await metrics(page), setting=await range.inputValue(), plots=await plotPixels(page);
+    // Trigger the browser's actual loss path, not a synthetic DOM event.
+    await canvas.evaluate(n=>{
+      const gl=n.getContext('webgl2');
+      if (!gl || gl.isContextLost()) throw new Error('expected a live WebGL2 context');
+      gl.getExtension('WEBGL_lose_context').loseContext();
+    });
+    await expectUnavailable(page,id,'en');
+    expect(await metrics(page)).toEqual(paused);
+    const after=await plotPixels(page);expect(after).toHaveLength(plots.length);
+    expect(after.every((pixels,i)=>pixels===plots[i]), 'paused plots survive context loss').toBe(true);
+    await expect(range).toHaveValue(setting);
+    await page.locator('[data-lang="ko"]').click();
+    await expectUnavailable(page,id,'ko');
+    await playAndPause(page);
+    await page.locator('#reset').click();
+    await expect(page.locator('#sim-time')).toHaveText('0.00');
+    await expect(range).toHaveValue(setting);
+    await expectUnavailable(page,id,'ko');
+    expect(errors).toEqual([]);
+  });
+}
 for (const dpr of [1, 2]) {
   test.describe(`inverted-pendulum at DPR ${dpr}`, () => {
     test.use({deviceScaleFactor:dpr});
@@ -123,7 +186,8 @@ for (const dpr of [1, 2]) {
         else expect(widths).toEqual(desktopWidths);
         await expect(canvas).toHaveAttribute('data-renderer','three');
         await expect(canvas).toBeVisible();
-        await expect(page.locator('#apparatus-fallback')).toBeHidden();
+        await expect(page.locator('picture.apparatus-poster img')).toBeHidden();
+        await expect(page.locator('.apparatus-stage + canvas')).toBeHidden();
         await expect(page.locator('.three-apparatus')).toHaveCount(1);
         expect(await canvas.evaluate(n=>{
           const context=n.getContext('webgl2');return context instanceof WebGL2RenderingContext&&!context.isContextLost();
@@ -137,56 +201,41 @@ for (const dpr of [1, 2]) {
     });
   });
 }
-for (const id of ids) for (const delayed of [false,true]) {
-  test(`${id}: missing WebGL preserves 2D playback after ${delayed?'delayed':'normal'} module loading`,async({page})=>{
-    const errors=[];page.on('pageerror',error=>errors.push(error.message));
-    await page.addInitScript(()=>{
-      window.__webglAttempts=0;
-      const original=HTMLCanvasElement.prototype.getContext;
-      HTMLCanvasElement.prototype.getContext=function(type,...args){
-        if (/webgl/.test(type)) { window.__webglAttempts++;return null; }
-        return original.call(this,type,...args);
-      };
-    });
-    let releaseModule, responseReady=false;
-    const moduleGate=new Promise(resolve=>{releaseModule=resolve;});
-    if (delayed) await page.route('**/assets/three/catalog.js',async route=>{
-      const response=await route.fetch();responseReady=true;
-      await moduleGate;await route.fulfill({response});
-    });
-    const playAndPause=async()=>{
-      const before=Number(await page.locator('#sim-time').textContent());
-      await page.locator('#start-pause').click();
-      await expect.poll(async()=>Number(await page.locator('#sim-time').textContent())).toBeGreaterThan(before);
-      await page.locator('#start-pause').click();
-      const paused=await page.locator('#sim-time').textContent();
-      await page.waitForTimeout(120);
-      expect(await page.locator('#sim-time').textContent()).toBe(paused);
-    };
-    try {
-      await page.goto(root+id+'/?lang=en',{waitUntil:'domcontentloaded'});
-      await expect(page.locator('#start-pause')).toBeEnabled();
-      const originalCanvas=await page.locator('#apparatus').elementHandle();
-      if (delayed) {
-        await expect.poll(()=>responseReady).toBe(true);
-        expect(await page.evaluate(()=>window.__webglAttempts)).toBe(0);
-        await expect(page.locator('#apparatus')).toBeHidden();
-        await expect(page.getByRole('status').filter({hasText:'Preparing 3D view'})).toBeVisible();
-        await playAndPause();
-        expect(await page.evaluate(()=>window.__webglAttempts)).toBe(0);
-      }
-      const beforeUpgrade=await page.locator('#sim-time').textContent();
-      releaseModule();
-      // Controls alone can be ready before import() even reaches the WebGL upgrade.
-      await expect.poll(()=>page.evaluate(()=>window.__webglAttempts)).toBeGreaterThan(0);
-      await expect(page.locator('#apparatus')).toHaveAttribute('data-renderer','canvas2d');
-      await expect(page.locator('#apparatus')).toBeVisible();
-      await expect(page.locator('.three-apparatus')).toHaveCount(0);
-      await expect(page.locator('#apparatus-fallback,[data-renderer="three"]')).toHaveCount(0);
-      expect(await originalCanvas.evaluate(n=>n===document.getElementById('apparatus')&&n.isConnected&&!!n.getContext('2d'))).toBe(true);
-      expect(await page.locator('#sim-time').textContent()).toBe(beforeUpgrade);
-      await playAndPause();
+const withoutWebGL = test.extend({
+  browser: async ({playwright}, use) => {
+    const browser = await playwright.chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--disable-webgl']});
+    try { await use(browser); } finally { await browser.close(); }
+  },
+});
+withoutWebGL.describe('WebGL disabled in Chromium', () => {
+  for (const id of ids) for (const delayed of [false,true]) {
+    withoutWebGL(`${id}: final unavailable state after ${delayed?'delayed':'normal'} scene loading`,async({page})=>{
+      const errors=[]; page.on('pageerror',error=>errors.push(error.message));
+      await observeCanvases(page);
+      const catalog=delayed && await gateRequest(page,'**/assets/three/catalog.js');
+      let paused;
+      try {
+        await page.goto(root+id+'/?lang=en',{waitUntil:'domcontentloaded'});
+        await expect(page.locator('#start-pause')).toBeEnabled();
+        if (catalog) {
+          await catalog.wait();
+          await expect(page.locator('.apparatus-stage')).toHaveAttribute('data-view','poster');
+          await expect(page.locator('.apparatus-loading')).toBeVisible();
+          await expect(page.locator('.apparatus-loading')).toHaveText('Loading…');
+          await expectPoster(page,id,false);
+          await playAndPause(page);
+          paused=await metrics(page);
+          expect(await page.evaluate(()=>window.failedWebGLRequests)).toBe(0);
+        }
+      } finally { if (catalog) catalog.release(); }
+      // Enabled controls (and even the correct poster) are not evidence of terminal failure.
+      await expect.poll(()=>page.evaluate(()=>window.failedWebGLRequests)).toBeGreaterThan(0);
+      await expectUnavailable(page,id,'en');
+      if (paused) expect(await metrics(page)).toEqual(paused);
+      else await expect(page.locator('#sim-time')).toHaveText('0.00');
+      await playAndPause(page);
+      await expectUnavailable(page,id,'en');
       expect(errors).toEqual([]);
-    } finally { releaseModule(); }
-  });
-}
+    });
+  }
+});
